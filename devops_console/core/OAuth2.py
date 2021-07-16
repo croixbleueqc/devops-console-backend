@@ -1,5 +1,4 @@
-# Copyright 2019 mickybart
-# Copyright 2020 Croix Bleue du Québec
+# Copyright 2021 Croix Bleue du Québec
 
 # This file is part of devops-console-backend.
 
@@ -16,23 +15,17 @@
 # You should have received a copy of the GNU Lesser General Public License
 # along with devops-console-backend.  If not, see <https://www.gnu.org/licenses/>.
 
-from .wscom import wscom_setup
-from .apis import wscom1
-from .apis import health
-from .apis import sccs
-from .apis import kubernetes
-from .apis import OAuth2
-
-def setup(api):
-    api.add_routes(health.routes)
-
-    api.add_routes(wscom1.routes)
-
-    wscom_setup(api, wscom1.DISPATCHERS_APP_KEY, "sccs", sccs.wscom_dispatcher)
-
-    wscom_setup(api, wscom1.DISPATCHERS_APP_KEY, "k8s", kubernetes.wscom_dispatcher)
-
-    wscom_setup(api, wscom1.DISPATCHERS_APP_KEY, "oauth2", OAuth2.wscom_dispatcher)
 
 
-    return api
+
+class OAuth2(object):
+    """OAuth2 Core"""
+
+    def __init__(self, config):
+        self.config = config
+        self.core =None
+    
+    async def init(self, app):
+        pass
+    async def get_config(self):
+        return self.config

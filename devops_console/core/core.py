@@ -21,17 +21,20 @@
 from ..config import Config
 from .sccs import Sccs
 from .kubernetes import Kubernetes
+from .OAuth2 import OAuth2
 
 class Core:
     def __init__(self, config=None):
         self.config = config if config else Config()
         self.sccs = Sccs(config.get("sccs", {}))
         self.kubernetes = Kubernetes(config.get("kubernetes", {}), self.sccs)
+        self.OAuth2 = OAuth2(config.get("OAuth2", {}))
 
     def startup_background_tasks(self):
         return [
             self.sccs.init,
-            self.kubernetes.init
+            self.kubernetes.init,
+            self.OAuth2.init
         ]
 
     def cleanup_background_tasks(self):

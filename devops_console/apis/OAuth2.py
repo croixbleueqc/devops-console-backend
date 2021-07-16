@@ -1,5 +1,4 @@
-# Copyright 2019 mickybart
-# Copyright 2020 Croix Bleue du Québec
+# Copyright 2021 Croix Bleue du Québec
 
 # This file is part of devops-console-backend.
 
@@ -16,23 +15,19 @@
 # You should have received a copy of the GNU Lesser General Public License
 # along with devops-console-backend.  If not, see <https://www.gnu.org/licenses/>.
 
-from .wscom import wscom_setup
-from .apis import wscom1
-from .apis import health
-from .apis import sccs
-from .apis import kubernetes
-from .apis import OAuth2
-
-def setup(api):
-    api.add_routes(health.routes)
-
-    api.add_routes(wscom1.routes)
-
-    wscom_setup(api, wscom1.DISPATCHERS_APP_KEY, "sccs", sccs.wscom_dispatcher)
-
-    wscom_setup(api, wscom1.DISPATCHERS_APP_KEY, "k8s", kubernetes.wscom_dispatcher)
-
-    wscom_setup(api, wscom1.DISPATCHERS_APP_KEY, "oauth2", OAuth2.wscom_dispatcher)
+from devops_console.core.OAuth2 import OAuth2
+from ..core import Core
+from ..wscom import DispatcherUnsupportedRequest
 
 
-    return api
+# WebSocket (wscom) section
+
+async def wscom_dispatcher(request, action, path, body):
+    core: Core = request.config_dict['core']
+
+    if action == "read":
+        if(path == "/config"):
+            return core.OAuth2.config
+            
+    raise DispatcherUnsupportedRequest(action, path)
+    
