@@ -25,3 +25,4 @@ htmlcov/
 
 # Local config
 */config/local.json
+.local/
