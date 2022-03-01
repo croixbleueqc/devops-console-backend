@@ -1,0 +1,29 @@
+FROM python:3
+EXPOSE 5000
+EXPOSE 5001
+
+WORKDIR /usr/src/app/
+
+COPY ./python-typing-engine python-typing-engine
+COPY ./python-aiobitbucket python-aiobitbucket
+COPY ./python-devops-sccs python-devops-sccs
+COPY ./python-devops-kubernetes python-devops-kubernetes
+
+# Requirements not yet available on pypi
+RUN pip install --no-cache-dir --compile ./python-typing-engine
+RUN pip install --no-cache-dir --compile ./python-aiobitbucket
+RUN pip install --no-cache-dir --compile ./python-devops-sccs
+RUN pip install --no-cache-dir --compile ./python-devops-kubernetes
+
+# Copy necessary files
+COPY ./devops_console devops_console
+COPY ./setup.py .
+COPY ./README.rst .
+COPY ./MANIFEST.in .
+
+RUN pip install --no-cache-dir --compile .[prod]
+
+# Remove source code to avoid any confusion with the real one executed.
+RUN rm -rf ./devops_console setup.py README.rst MANIFEST.in ./python-typing-engine ./python-aiobitbucket ./python-devops-sccs ./python-devops-kubernetes
+
+CMD gunicorn devops_console.run:application --bind 0.0.0.0:5000 --worker-class aiohttp.GunicornWebWorker --access-logfile - --log-level debug
