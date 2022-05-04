@@ -9,9 +9,9 @@ python = "^3.10"
 hvac = "0.9.6"
 kubernetes-asyncio = "18.20.0"
 typing-engine = {path = "python-typing-engine"}
+devops-sccs = {path = "python-devops-sccs"}
 aiobitbucket = {path = "python-aiobitbucket"}
 devops-kubernetes = {path = "python-devops-kubernetes"}
-devops-sccs = {path = "python-devops-sccs"}
 
 [tool.poetry.dev-dependencies]
 
