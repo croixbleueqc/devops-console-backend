@@ -1,0 +1,12 @@
+[submodule "python-devops-sccs"]
+	path = python-devops-sccs
+	url = https://github.com/croixbleueqc/python-devops-sccs.git
+[submodule "python-typing-engine"]
+	path = python-typing-engine
+	url = https://github.com/croixbleueqc/python-typing-engine.git
+[submodule "python-aiobitbucket"]
+	path = python-aiobitbucket
+	url = https://github.com/croixbleueqc/python-aiobitbucket.git
+[submodule "python-devops-kubernetes"]
+	path = python-devops-kubernetes
+	url = https://github.com/croixbleueqc/python-devops-kubernetes.git
