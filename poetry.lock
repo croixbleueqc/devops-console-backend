@@ -1,7 +1,7 @@
 [[package]]
 name = "aiobitbucket"
 version = "0.0.3"
-description = ""
+description = "Bitbucket Asyncio"
 category = "main"
 optional = false
 python-versions = ">=3.6"
@@ -176,9 +176,9 @@ optional = false
 python-versions = ">=2.7, !=3.0.*, !=3.1.*, !=3.2.*, !=3.3.*, !=3.4.*"
 
 [[package]]
-name = "devops_kubernetes"
+name = "devops-kubernetes"
 version = "0.0.1"
-description = ""
+description = "kubernetes abstraction for DevOps"
 category = "main"
 optional = false
 python-versions = ">=3.7"
@@ -192,9 +192,9 @@ type = "directory"
 url = "python-devops-kubernetes"
 
 [[package]]
-name = "devops_sccs"
+name = "devops-sccs"
 version = "0.2.2"
-description = ""
+description = "Source code control systems abstraction for DevOps"
 category = "main"
 optional = false
 python-versions = ">=3.5"
@@ -464,9 +464,9 @@ anyio = ">=3.0.0,<4"
 full = ["itsdangerous", "jinja2", "python-multipart", "pyyaml", "requests"]
 
 [[package]]
-name = "typing_engine"
+name = "typing-engine"
 version = "2.1.0"
-description = ""
+description = "Typing Engine"
 category = "main"
 optional = false
 python-versions = ">=3.5"
@@ -796,8 +796,8 @@ colorama = [
     {file = "colorama-0.4.4-py2.py3-none-any.whl", hash = "sha256:9f47eda37229f68eee03b24b9748937c7dc3868f906e8ba69fbcbdd3bc5dc3e2"},
     {file = "colorama-0.4.4.tar.gz", hash = "sha256:5941b2b48a20143d2267e95b1c2a7603ce057ee39fd88e7329b0c292aa16869b"},
 ]
-devops_kubernetes = []
-devops_sccs = []
+devops-kubernetes = []
+devops-sccs = []
 fastapi = [
     {file = "fastapi-0.75.2-py3-none-any.whl", hash = "sha256:a70d31f4249b6b42dbe267667d22f83af645b2d857876c97f83ca9573215784f"},
     {file = "fastapi-0.75.2.tar.gz", hash = "sha256:b5dac161ee19d33346040d3f44d8b7a9ac09b37df9efff95891f5e7641fa482f"},
@@ -1199,7 +1199,7 @@ starlette = [
     {file = "starlette-0.17.1-py3-none-any.whl", hash = "sha256:26a18cbda5e6b651c964c12c88b36d9898481cd428ed6e063f5f29c418f73050"},
     {file = "starlette-0.17.1.tar.gz", hash = "sha256:57eab3cc975a28af62f6faec94d355a410634940f10b30d68d31cb5ec1b44ae8"},
 ]
-typing_engine = []
+typing-engine = []
 typing-extensions = [
     {file = "typing_extensions-4.2.0-py3-none-any.whl", hash = "sha256:6657594ee297170d19f67d55c05852a874e7eb634f4f753dbd667855e07c1708"},
     {file = "typing_extensions-4.2.0.tar.gz", hash = "sha256:f1c24655a0da0d1b67f07e17a5e6b2a105894e6824b92096378bb3668ef02376"},
