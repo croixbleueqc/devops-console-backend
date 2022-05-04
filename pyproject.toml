@@ -1,5 +1,5 @@
 [tool.poetry]
-name = "devops_console"
+name = "devops-console"
 version = "0.1.0"
 description = ""
 authors = ["Nicolas Epstein <nicolas.epstein@qc.croixbleue.ca>"]
