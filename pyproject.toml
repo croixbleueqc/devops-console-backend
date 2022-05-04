@@ -1,0 +1,20 @@
+[tool.poetry]
+name = "devops-console-backend"
+version = "0.1.0"
+description = ""
+authors = ["Nicolas Epstein <nicolas.epstein@qc.croixbleue.ca>"]
+
+[tool.poetry.dependencies]
+python = "^3.10"
+devops-sccs = {git = "https://github.com/croixbleueqc/python-devops-sccs.git"}
+typing-engine = {git = "https://github.com/croixbleueqc/python-typing-engine.git"}
+aiobitbucket = {git = "https://github.com/croixbleueqc/python-aiobitbucket.git"}
+devops-kubernetes = {git = "https://github.com/croixbleueqc/python-devops-kubernetes.git"}
+hvac = "0.9.6"
+kubernetes-asyncio = "18.20.0"
+
+[tool.poetry.dev-dependencies]
+
+[build-system]
+requires = ["poetry-core>=1.0.0"]
+build-backend = "poetry.core.masonry.api"
