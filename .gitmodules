@@ -1,15 +1,16 @@
-[submodule "devops-console-rest-api"]
-	path = devops-console-rest-api
-	url = https://github.com/croixbleueqc/devops-console-rest-api.git
-[submodule "python-devops-kubernetes"]
-	path = python-devops-kubernetes
-	url = https://github.com/croixbleueqc/python-devops-kubernetes.git
-[submodule "python-devops-sccs"]
-	path = python-devops-sccs
-	url = https://github.com/croixbleueqc/python-devops-sccs.git
-[submodule "python-aiobitbucket"]
-	path = python-aiobitbucket
-	url = https://github.com/croixbleueqc/python-aiobitbucket.git
-[submodule "python-typing-engine"]
-	path = python-typing-engine
+
+[submodule "_submodules/python-typing-engine"]
+	path = _submodules/python-typing-engine
 	url = https://github.com/croixbleueqc/python-typing-engine.git
+[submodule "_submodules/python-aiobitbucket"]
+	path = _submodules/python-aiobitbucket
+	url = https://github.com/croixbleueqc/python-aiobitbucket.git
+[submodule "_submodules/python-devops-sccs"]
+	path = _submodules/python-devops-sccs
+	url = https://github.com/croixbleueqc/python-devops-sccs.git
+[submodule "_submodules/python-devops-kubernetes"]
+	path = _submodules/python-devops-kubernetes
+	url = https://github.com/croixbleueqc/python-devops-kubernetes.git
+[submodule "_submodules/devops-console-rest-api"]
+	path = _submodules/devops-console-rest-api
+	url = https://github.com/croixbleueqc/devops-console-rest-api.git
