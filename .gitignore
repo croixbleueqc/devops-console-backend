@@ -12,6 +12,7 @@
 # Virtual env
 __pycache__/
 __venv__/
+venv/
 
 # Build using setup.py
 dist/
