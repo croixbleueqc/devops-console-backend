@@ -26,3 +26,4 @@ htmlcov/
 # Local config
 */config/local.json
 .local/
+poetry.lock
