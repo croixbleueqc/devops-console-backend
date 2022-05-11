@@ -134,8 +134,6 @@ setup(
         'aiohttp[speedups]',
         'aiohttp-swagger',
         'prometheus_async[aiohttp]',
-        'devops_sccs>=0.2.2',
-        'devops_kubernetes>=0.0.1'
     ],
     extras_require={
         'dev': [
