@@ -16,29 +16,36 @@
 from aiohttp import web, WSCloseCode
 from aiohttp.web_log import AccessLogger
 from aiohttp_swagger import setup_swagger
+from devops_console_rest_api import main
 
 import logging
 import os
 import weakref
+import uvicorn
 
 from .config import Config
 from .core import getCore
 from . import apiv1
 from . import monitoring
 
+
 class FilterAccessLogger(AccessLogger):
     """/health and /metrics filter
 
     Hidding those requests if we have a 200 OK when we are not in DEBUG
     """
+
     def log(self, request, response, time):
-        if self.logger.level != logging.DEBUG \
-            and response.status == 200 \
-            and request.path in ['/health','/metrics']:
+        if (
+            self.logger.level != logging.DEBUG
+            and response.status == 200
+            and request.path in ["/health", "/metrics"]
+        ):
 
             return
 
         super().log(request, response, time)
+
 
 class App:
     def __init__(self):
@@ -46,7 +53,9 @@ class App:
         config = Config()
 
         # Logging
-        logging_default_format = "[%(asctime)s] %(levelname)s in %(module)s: %(message)s"
+        logging_default_format = (
+            "[%(asctime)s] %(levelname)s in %(module)s: %(message)s"
+        )
 
         gunicorn_error = logging.getLogger("gunicorn.error")
         if len(gunicorn_error.handlers) != 0:
@@ -56,19 +65,14 @@ class App:
             # using LOGGING_LEVEL env or fallback to DEBUG
             logging_level = int(os.environ.get("LOGGING_LEVEL", logging.DEBUG))
 
-        logging.basicConfig(
-            level=logging_level,
-            format=logging_default_format
-        )
+        logging.basicConfig(level=logging_level, format=logging_default_format)
 
         aiohttp_access = logging.getLogger("aiohttp.access")
         aiohttp_access.setLevel(logging_level)
 
         # Application
         self.app = web.Application(
-            handler_args={
-                'access_log_class': FilterAccessLogger
-            }
+            handler_args={"access_log_class": FilterAccessLogger}
         )
         apiv1.setup(self.app)
         monitoring.setup(self.app)
@@ -80,7 +84,7 @@ class App:
                 api_version=config["api"]["version"],
                 description=config["api"]["description"],
                 swagger_url=config["api"]["swagger"]["url"],
-                ui_version=3
+                ui_version=3,
             )
 
         # Create and share the core for all APIs
@@ -102,10 +106,9 @@ class App:
 
     def run(self):
         web.run_app(self.app, host="0.0.0.0", port=5000)
+        uvicorn.run(main.app, reload=True)
+
 
 async def on_shutdown(app):
     for ws in set(app["websockets"]):
-        await ws.close(
-            code=WSCloseCode.GOING_AWAY,
-            message="Server shutdown"
-            )
+        await ws.close(code=WSCloseCode.GOING_AWAY, message="Server shutdown")
