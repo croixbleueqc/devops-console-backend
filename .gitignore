@@ -1,1 +1,7 @@
 devops_console/config/default.json
+
+
+build/
+__pycache__
+
+*.egg-info
