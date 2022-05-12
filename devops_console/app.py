@@ -21,7 +21,9 @@ from devops_console_rest_api import main
 import logging
 import os
 import weakref
+import threading
 import uvicorn
+import asyncio
 
 from .config import Config
 from .core import getCore
@@ -104,9 +106,19 @@ class App:
         for background_task in getCore().cleanup_background_tasks():
             self.app.on_cleanup.append(background_task)
 
+        # FIXME
+        def fn(loop):
+            asyncio.set_event_loop(loop)
+            try:
+                uvicorn.run(main.app)
+            except RuntimeError:
+                logging.debug("fastAPI Server has stopped")
+
+        thread = threading.Thread(target=fn, args=(asyncio.new_event_loop(),))
+        thread.start()
+
     def run(self):
         web.run_app(self.app, host="0.0.0.0", port=5000)
-        uvicorn.run(main.app, reload=True)
 
 
 async def on_shutdown(app):
