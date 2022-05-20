@@ -16,14 +16,12 @@
 from aiohttp import web, WSCloseCode
 from aiohttp.web_log import AccessLogger
 from aiohttp_swagger import setup_swagger
-from devops_console_rest_api import main
+from devops_console_rest_api import main as rest_api
+from devops_sccs.cache import Cache
 
 import logging
 import os
 import weakref
-import threading
-import uvicorn
-import asyncio
 
 from .config import Config
 from .core import getCore
@@ -106,16 +104,14 @@ class App:
         for background_task in getCore().cleanup_background_tasks():
             self.app.on_cleanup.append(background_task)
 
-        # FIXME
-        def fn(loop):
-            asyncio.set_event_loop(loop)
-            try:
-                uvicorn.run(main.app)
-            except RuntimeError:
-                logging.debug("fastAPI Server has stopped")
+        # Start rest_api server
+        cache = Cache()
 
-        thread = threading.Thread(target=fn, args=(asyncio.new_event_loop(),))
-        thread.start()
+        self.app["rest_api"] = rest_api.run_threaded(
+            config["sccs"]["plugins"]["config"]["cbq"],
+            cache,
+            config["sccs"]["hook_server"],
+        )
 
     def run(self):
         web.run_app(self.app, host="0.0.0.0", port=5000)
@@ -124,3 +120,5 @@ class App:
 async def on_shutdown(app):
     for ws in set(app["websockets"]):
         await ws.close(code=WSCloseCode.GOING_AWAY, message="Server shutdown")
+
+    app["rest_api"].join()
