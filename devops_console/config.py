@@ -1,4 +1,4 @@
-'''
+"""
 Configuration module to parse json configuration files correctly
 
 Config files are stored in the config folder inside the module.
@@ -12,7 +12,15 @@ Config will merge (listed as less to more important):
 
 In addition, Config will replace all {env} string in a json file to the BRANCH_NAME value.
 
-'''
+"""
+
+
+import contextlib
+import json
+import logging
+import os
+from copy import deepcopy
+from functools import reduce
 
 # Copyright 2019 mickybart
 # Copyright 2020 Croix Bleue du Québec
@@ -32,16 +40,12 @@ In addition, Config will replace all {env} string in a json file to the BRANCH_N
 # You should have received a copy of the GNU Lesser General Public License
 # along with devops-console-backend.  If not, see <https://www.gnu.org/licenses/>.
 
-import json
-import os
-
-from functools import reduce
-from copy import deepcopy
 
 class Config(dict):
-    '''
+    """
     Configuration class
-    '''
+    """
+
     def __init__(self):
         super().__init__()
 
@@ -54,31 +58,32 @@ class Config(dict):
         self.update(config)
 
         self.__deep_replace(self, env=os.environ["BRANCH_NAME"])
+        logging.debug(config)
 
     def use_resource(self, resource):
-        return '{dir}/resources/{resource}'.format(dir=self.dir_path, resource=resource)
+        return "{dir}/resources/{resource}".format(dir=self.dir_path, resource=resource)
 
     def __load_config(self):
-        default = self.__load_config_file('default')
+        default = self.__load_config_file("default")
         env = self.__load_config_file(os.environ["BRANCH_NAME"])
-        local = self.__load_config_file('local')
+        local = self.__load_config_file("local")
 
         # Order is important inside the list
         return reduce(self.__deep_merge, [{}, default, env, local])
 
     def __load_config_file(self, file_name):
-        file_path = '{dir}/config/{name}.json'.format(dir=self.dir_path, name=file_name)
+        file_path = "{dir}/config/{name}.json".format(dir=self.dir_path, name=file_name)
         return self.__load_json(file_path)
 
     def __load_json(self, json_file):
-        '''Load JSON file
+        """Load JSON file
 
         Args:
             json_file (str): filename of a json file
 
         Returns:
             dict: content of the file
-        '''
+        """
         try:
             with open(json_file) as f:
                 return json.load(f)
@@ -102,7 +107,5 @@ class Config(dict):
             if isinstance(value, dict):
                 self.__deep_replace(value, **kwargs)
             elif isinstance(value, str):
-                try:
+                with contextlib.suppress(IndexError):
                     dict_base[name] = value.format(**kwargs)
-                except IndexError:
-                    pass

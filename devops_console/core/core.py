@@ -19,23 +19,20 @@
 # along with devops-console-backend.  If not, see <https://www.gnu.org/licenses/>.
 
 from ..config import Config
-from .sccs import Sccs
 from .kubernetes import Kubernetes
 from .OAuth2 import OAuth2
+from .sccs import Sccs
+
 
 class Core:
     def __init__(self, config=None):
-        self.config = config if config else Config()
+        self.config = config or Config()
         self.sccs = Sccs(config.get("sccs", {}))
         self.kubernetes = Kubernetes(config.get("kubernetes", {}), self.sccs)
         self.OAuth2 = OAuth2(config.get("OAuth2", {}))
 
     def startup_background_tasks(self):
-        return [
-            self.sccs.init,
-            self.kubernetes.init,
-            self.OAuth2.init
-        ]
+        return [self.sccs.init, self.kubernetes.init, self.OAuth2.init]
 
     def cleanup_background_tasks(self):
         return []
