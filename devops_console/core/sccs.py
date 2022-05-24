@@ -57,7 +57,7 @@ class Sccs:
                 repository, environments, args=args
             )
 
-    async def watch_continous_deployment_config(
+    async def watch_continuous_deployment_config(
         self, plugin_id, session, repository, environments, args
     ):
         async with self.core.context(plugin_id, session) as ctx:
