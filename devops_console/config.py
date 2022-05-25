@@ -14,14 +14,6 @@ In addition, Config will replace all {env} string in a json file to the BRANCH_N
 
 """
 
-
-import contextlib
-import json
-import logging
-import os
-from copy import deepcopy
-from functools import reduce
-
 # Copyright 2019 mickybart
 # Copyright 2020 Croix Bleue du Québec
 
@@ -41,7 +33,16 @@ from functools import reduce
 # along with devops-console-backend.  If not, see <https://www.gnu.org/licenses/>.
 
 
-class Config(dict):
+import contextlib
+import json
+import logging
+import os
+from copy import deepcopy
+from functools import reduce
+from typing import Dict
+
+
+class Config(Dict[str, str]):
     """
     Configuration class
     """
@@ -90,7 +91,9 @@ class Config(dict):
         except FileNotFoundError:
             return {}
 
-    def __deep_merge(self, dict_base, dict_custom):
+    def __deep_merge(
+        self, dict_base: Dict[str, str], dict_custom: Dict[str, str]
+    ) -> Dict[str, str]:
         result = deepcopy(dict_base)
         for key, value in dict_custom.items():
             if isinstance(value, dict):
@@ -102,7 +105,7 @@ class Config(dict):
 
         return result
 
-    def __deep_replace(self, dict_base, **kwargs):
+    def __deep_replace(self, dict_base, **kwargs) -> None:
         for name, value in dict_base.items():
             if isinstance(value, dict):
                 self.__deep_replace(value, **kwargs)
