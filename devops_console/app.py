@@ -13,15 +13,19 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
+from typing import Dict
 from aiohttp import web, WSCloseCode
 from aiohttp.web_log import AccessLogger
 from aiohttp_swagger import setup_swagger
 from devops_console_rest_api import main as rest_api
-from devops_sccs.cache import Cache
+from devops_sccs.cache import ThreadsafeCache
 
 import logging
 import os
 import weakref
+from models.vault import VaultBitbucket
+
+from utils.vault import Vault
 
 from .config import Config
 from .core import getCore
@@ -105,16 +109,35 @@ class App:
             self.app.on_cleanup.append(background_task)
 
         # Start rest_api server
-        cache = Cache()
+        cache = ThreadsafeCache()
 
-        self.app["rest_api"] = rest_api.run_threaded(
-            config["sccs"]["plugins"]["config"]["cbq"],
-            cache,
-            config["sccs"]["hook_server"],
-        )
+        vault = Vault()
+        vault.connect()
+        vault_secret: str = config["sccs"]["plugins"]["config"]["cbq"]["su"][
+            "vault_secret"
+        ]
+        vault_mount: str = config["sccs"]["plugins"]["config"]["cbq"]["su"][
+            "vault_mount"
+        ]
+        vault_bitbucket = VaultBitbucket(**vault.read_secret(vault_secret, vault_mount))
+
+        rest_api_config = make_rest_api_config(config)
+
+        rest_api_config.update(vault_bitbucket.dict())
+
+        self.app["rest_api"] = rest_api.run_threaded(rest_api_config, cache)
 
     def run(self):
         web.run_app(self.app, host="0.0.0.0", port=5000)
+
+
+def make_rest_api_config(config: Config) -> Dict[str, str]:
+    rest_api_config: Dict[str, str] = {}
+
+    rest_api_config.update(config["sccs"]["plugins"]["config"]["cbq"])
+    rest_api_config["hook_server"] = config["sccs"]["hook_server"]
+
+    return rest_api_config
 
 
 async def on_shutdown(app):
