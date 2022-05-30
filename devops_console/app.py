@@ -53,11 +53,6 @@ class FilterAccessLogger(AccessLogger):
 
 
 class App:
-    app: web.Application
-    rest_api: threading.Thread
-    websockets: weakref.WeakSet[web.WebSocketResponse]
-    core: Core
-
     def __init__(self, config: Config | None = None):
         # Config
         if config is None:
@@ -119,7 +114,7 @@ class App:
         self.cache = ThreadsafeCache()
 
         rest_api_config = make_rest_api_config(self.config)
-        self.rest_api = serve_threaded(rest_api_config, self.cache, port=5001)
+        self.app["rest_api"] = serve_threaded(rest_api_config, self.cache, port=5001)
 
     def run(self):
         web.run_app(self.app, host="0.0.0.0", port=5000)
@@ -139,4 +134,4 @@ async def on_shutdown(app: App):
     for ws in set(app["websockets"]):
         await ws.close(code=WSCloseCode.GOING_AWAY, message="Server shutdown")
 
-    app.rest_api.join()
+    app["rest_api"].join()
