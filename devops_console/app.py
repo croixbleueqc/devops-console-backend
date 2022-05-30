@@ -13,19 +13,20 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-from typing import Dict
+import threading
+from typing import Any, Dict
 from aiohttp import web, WSCloseCode
 from aiohttp.web_log import AccessLogger
 from aiohttp_swagger import setup_swagger
-from devops_console_rest_api import main as rest_api
+from devops_console_rest_api.main import serve_threaded
 from devops_sccs.cache import ThreadsafeCache
 
 import logging
 import os
 import weakref
-from models.vault import VaultBitbucket
 
-from utils.vault import Vault
+from devops_console.core.core import Core
+from devops_console.models.vault import VaultBitbucket
 
 from .config import Config
 from .core import getCore
@@ -52,9 +53,15 @@ class FilterAccessLogger(AccessLogger):
 
 
 class App:
-    def __init__(self):
+    app: web.Application
+    rest_api: threading.Thread
+    websockets: weakref.WeakSet[web.WebSocketResponse]
+    core: Core
+
+    def __init__(self, config: Config | None = None, vault_secret: Dict[str, Any] = {}):
         # Config
-        config = Config()
+        if config is None:
+            config = Config()
 
         # Logging
         logging_default_format = (
@@ -111,27 +118,26 @@ class App:
         # Start rest_api server
         cache = ThreadsafeCache()
 
-        vault = Vault()
-        vault.connect()
-        vault_secret: str = config["sccs"]["plugins"]["config"]["cbq"]["su"][
-            "vault_secret"
-        ]
-        vault_mount: str = config["sccs"]["plugins"]["config"]["cbq"]["su"][
-            "vault_mount"
-        ]
-        vault_bitbucket = VaultBitbucket(**vault.read_secret(vault_secret, vault_mount))
+        # vault.connect()
+        # vault_secret: str = config["sccs"]["plugins"]["config"]["cbq"]["su"][
+        #     "vault_secret"
+        # ]
+        # vault_mount: str = config["sccs"]["plugins"]["config"]["cbq"]["su"][
+        #     "vault_mount"
+        # ]
+        vault_bitbucket = VaultBitbucket(**vault_secret)
 
         rest_api_config = make_rest_api_config(config)
 
         rest_api_config.update(vault_bitbucket.dict())
 
-        self.app["rest_api"] = rest_api.run_threaded(rest_api_config, cache)
+        self.rest_api = serve_threaded(rest_api_config, cache)
 
     def run(self):
         web.run_app(self.app, host="0.0.0.0", port=5000)
 
 
-def make_rest_api_config(config: Config) -> Dict[str, str]:
+def make_rest_api_config(config: Config) -> Dict[str, Any]:
     rest_api_config: Dict[str, str] = {}
 
     rest_api_config.update(config["sccs"]["plugins"]["config"]["cbq"])
@@ -140,8 +146,8 @@ def make_rest_api_config(config: Config) -> Dict[str, str]:
     return rest_api_config
 
 
-async def on_shutdown(app):
+async def on_shutdown(app: App):
     for ws in set(app["websockets"]):
         await ws.close(code=WSCloseCode.GOING_AWAY, message="Server shutdown")
 
-    app["rest_api"].join()
+    app.rest_api.join()

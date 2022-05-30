@@ -18,15 +18,17 @@
 import logging
 from devops_sccs.core import Core as SccsCore
 
+from devops_console.config import Config
+
 
 class Sccs:
     """Sccs Core"""
 
-    def __init__(self, config):
+    def __init__(self, config: Config):
         self.config = config
         self.core: SccsCore
 
-    async def init(self, app):
+    async def init(self, app) -> None:
         self.core = await SccsCore.create(self.config)
 
     def context(self, plugin_id, args):

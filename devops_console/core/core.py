@@ -18,6 +18,7 @@
 # You should have received a copy of the GNU Lesser General Public License
 # along with devops-console-backend.  If not, see <https://www.gnu.org/licenses/>.
 
+from typing import Any, List
 from ..config import Config
 from .kubernetes import Kubernetes
 from .OAuth2 import OAuth2
@@ -25,14 +26,14 @@ from .sccs import Sccs
 
 
 class Core:
-    def __init__(self, config=None):
+    def __init__(self, config: Config | None = None):
         self.config = config or Config()
-        self.sccs = Sccs(config.get("sccs", {}))
-        self.kubernetes = Kubernetes(config.get("kubernetes", {}), self.sccs)
-        self.OAuth2 = OAuth2(config.get("OAuth2", {}))
+        self.sccs = Sccs(self.config.get("sccs", {}))
+        self.kubernetes = Kubernetes(self.config.get("kubernetes", {}), self.sccs)
+        self.OAuth2 = OAuth2(self.config.get("OAuth2", {}))
 
-    def startup_background_tasks(self):
+    def startup_background_tasks(self) -> List[Any]:
         return [self.sccs.init, self.kubernetes.init, self.OAuth2.init]
 
-    def cleanup_background_tasks(self):
+    def cleanup_background_tasks(self) -> List[Any]:
         return []

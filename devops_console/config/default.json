@@ -1,10 +1,414 @@
 {
-    "api": {
-        "title": "devops_console",
-        "version": "0.2.2",
-        "description": "DevOps Console Backend",
-        "swagger": {
-            "url": "/api/doc"
-        }
+  "api": {
+    "title": "DevOps Console for Bluecross Quebec",
+    "version": "0.2.2",
+    "description": "DevOps Console Backend",
+    "swagger": {
+      "url": "/api/doc"
     }
+  },
+  "kubernetes": {
+    "clusters": {
+      "nonprod": {
+        "config_file": "/tmp/.kube/nonprod"
+      },
+      "prod": {
+        "config_file": "/tmp/.kube/prod"
+      }
+    }
+  },
+  "sccs": {
+    "plugins": {
+      "external": "/home/nilu/event-horizon-repos/event-horizon-backend/plugins/devops_sccs",
+      "builtin": {
+        "demo": true
+      },
+      "config": {
+        "cbq": {
+          "team": "croixbleue",
+          "watcher": {
+            "user": "",
+            "pwd": ""
+          },
+          "continuous_deployment": {
+            "environments": [
+              {
+                "name": "master",
+                "branch": "master",
+                "version": {
+                  "git": "HEAD"
+                },
+                "trigger": {
+                  "enabled": false
+                }
+              },
+              {
+                "name": "development",
+                "branch": "deploy/dev",
+                "version": {
+                  "file": "version.txt"
+                }
+              },
+              {
+                "name": "qa",
+                "branch": "deploy/qa",
+                "version": {
+                  "file": "version.txt"
+                }
+              },
+              {
+                "name": "training",
+                "branch": "deploy/formation",
+                "version": {
+                  "file": "version.txt"
+                }
+              },
+              {
+                "name": "acceptation",
+                "branch": "deploy/accept",
+                "version": {
+                  "file": "version.txt"
+                }
+              },
+              {
+                "name": "pre-production",
+                "branch": "deploy/preprod",
+                "version": {
+                  "file": "version.txt"
+                }
+              },
+              {
+                "name": "production",
+                "branch": "deploy/prod",
+                "version": {
+                  "file": "version.txt"
+                },
+                "trigger": {
+                  "pullrequest": true
+                }
+              }
+            ],
+            "pullrequest": {
+              "tag": "[cbq:cd]"
+            },
+            "pipeline": {
+              "versions_available": [
+                "master"
+              ]
+            }
+          },
+          "storage": {
+            "path": "/tmp/sccs/cbq/bitbucket-management-storage",
+            "git": "git@bitbucket.org:croixbleue/bitbucket-management-storage.git",
+            "repo": "bitbucket-management-storage"
+          },
+          "su": {
+            "tmp": "/tmp/sccs/cbq",
+            "vault_secret": "teams/devops/bitbucket/users/devops@qc.croixbleue.ca",
+            "vault_mount": "bluecross"
+          },
+          "escalation": {
+            "add_repository": {
+              "repository": "bitbucket-management-storage",
+              "permissions": [
+                "admin",
+                "write"
+              ]
+            },
+            "compliance": {
+              "repository": "bitbucket-management-storage",
+              "permissions": [
+                "admin"
+              ]
+            }
+          }
+        }
+      }
+    },
+    "provision": {
+      "checkout_base_path": "/tmp/sccs/provision",
+      "main": {
+        "repository_validator": "^[a-z][a-z0-9-]*[a-z]$",
+        "template_required": true
+      },
+      "repository": {
+        "project": {
+          "type": "suggestion",
+          "description": "Bitbucket project",
+          "required": true,
+          "roleName": "name",
+          "values": [
+            {
+              "name": "Automation",
+              "key": "AU"
+            },
+            {
+              "name": "Business To Business",
+              "key": "B2B"
+            },
+            {
+              "name": "Cognos",
+              "key": "COG"
+            },
+            {
+              "name": "Cross Team",
+              "key": "CT"
+            },
+            {
+              "name": "Data",
+              "key": "DATA"
+            },
+            {
+              "name": "Digital Claims",
+              "key": "DC"
+            },
+            {
+              "name": "Digital Platform",
+              "key": "DP"
+            },
+            {
+              "name": "Healthcare Claims",
+              "key": "HC"
+            },
+            {
+              "name": "Integration",
+              "key": "IN"
+            },
+            {
+              "name": "Integration Client",
+              "key": "INC"
+            },
+            {
+              "name": "IT Ops",
+              "key": "ITOPS"
+            },
+            {
+              "name": "Librairies",
+              "key": "LIB"
+            },
+            {
+              "name": "QA Team",
+              "key": "QT"
+            },
+            {
+              "name": "Reglement Assistance",
+              "key": "RA"
+            },
+            {
+              "name": "Salesforce",
+              "key": "SF"
+            },
+            {
+              "name": "Scaffolds",
+              "key": "SCAF"
+            },
+            {
+              "name": "Star",
+              "key": "STAR"
+            },
+            {
+              "name": "Virage",
+              "key": "VIR"
+            },
+            {
+              "name": "DevOps",
+              "key": "DO"
+            },
+            {
+              "name": "Proof Of Concept",
+              "key": "POC"
+            },
+            {
+              "name": "Assistance",
+              "key": "AS"
+            }
+          ]
+        },
+        "configuration": {
+          "type": "suggestion",
+          "description": "Branches strategy",
+          "required": true,
+          "default": 0,
+          "roleName": "short",
+          "values": [
+            {
+              "short": "Trunkbased with deployment branches",
+              "key": "repo-config-trunkbased-application"
+            },
+            {
+              "short": "Trunkbased",
+              "key": "repo-config-trunkbased"
+            },
+            {
+              "short": "Trunkbased for Reglement Assistance",
+              "key": "repo-config-trunkbased-ra"
+            }
+          ]
+        },
+        "privileges": {
+          "type": "suggestion",
+          "description": "Privileges",
+          "required": true,
+          "default": 4,
+          "roleName": "short",
+          "values": [
+            {
+              "short": "CBQ (write)",
+              "key": "all-cbq-write-privileges"
+            },
+            {
+              "short": "Administators Only",
+              "key": "admin-only-privileges"
+            },
+            {
+              "short": "Architecture Only (write)",
+              "key": "architecture-poc-privileges"
+            },
+            {
+              "short": "Devs and GCMI (write)",
+              "key": "dev-and-gcmi-privileges"
+            },
+            {
+              "short": "Developers (write)",
+              "key": "dev-default-privileges"
+            },
+            {
+              "short": "DevOps; Devs (read)",
+              "key": "devops-dev-read-privileges"
+            },
+            {
+              "short": "DevOps; Devs (write)",
+              "key": "devops-dev-write-privileges"
+            },
+            {
+              "short": "DevOps and Ops Only",
+              "key": "devops-ops-only-privileges"
+            },
+            {
+              "short": "Devs and InCloud (write)",
+              "key": "incloud-privileges"
+            },
+            {
+              "short": "Devs and Renaps (write)",
+              "key": "renaps-privileges"
+            }
+          ]
+        }
+      },
+      "templates": {
+        "hello-scaffold-service": {
+          "from": {
+            "git": "git@bitbucket.org:croixbleue/hello-scaffold-service.git",
+            "main_branch": "master",
+            "other_branches": [
+              "deploy/dev"
+            ]
+          },
+          "setup": {
+            "cmd": [
+              "bash",
+              "scaffold-instanciation.sh",
+              "{repository_name}"
+            ]
+          }
+        },
+        "scaffold-frontend-react": {
+          "from": {
+            "git": "git@bitbucket.org:croixbleue/scaffold-frontend-react.git",
+            "main_branch": "master",
+            "other_branches": [
+              "deploy/dev"
+            ]
+          },
+          "setup": {
+            "cmd": [
+              "bash",
+              "devops/scaffold-instanciation.sh",
+              "{repository_name}"
+            ]
+          }
+        },
+        "empty-repo-for-applications": {
+          "from": {
+            "git": "git@bitbucket.org:croixbleue/empty-repo-for-applications.git",
+            "main_branch": "master",
+            "other_branches": [
+              "deploy/dev"
+            ]
+          },
+          "setup": {}
+        },
+        "empty-repo-for-librairies": {
+          "from": {
+            "git": "git@bitbucket.org:croixbleue/empty-repo-for-librairies.git",
+            "main_branch": "master",
+            "other_branches": []
+          },
+          "setup": {}
+        },
+        "java-library": {
+          "from": {
+            "git": "git@bitbucket.org:croixbleue/java-library.git",
+            "main_branch": "master",
+            "other_branches": []
+          },
+          "setup": {}
+        },
+        "scaffold-aiohttp": {
+          "from": {
+            "git": "https://github.com/croixbleueqc/scaffold-aiohttp",
+            "main_branch": "master",
+            "other_branches": []
+          },
+          "setup": {
+            "cmd": [
+              "python",
+              "setup.py",
+              "init"
+            ],
+            "args": {
+              "name": {
+                "type": "string",
+                "description": "Project Name",
+                "required": true,
+                "default": null,
+                "validator": "^[a-z][a-z,-]*[a-z]$",
+                "arg": "--name={}"
+              },
+              "desc": {
+                "type": "string",
+                "description": "Description",
+                "required": true,
+                "default": null,
+                "validator": ".+",
+                "arg": "--desc='{}'"
+              },
+              "helloworld": {
+                "type": "bool",
+                "description": "Remove helloworld",
+                "default": true,
+                "arg": {
+                  "true": "-c",
+                  "false": null
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "hook_server": {
+      "host": "0.0.0.0",
+      "port": 5001
+    }
+  },
+  "OAuth2": {
+    "Config": {
+      "Issuer": "https://idp.svcnp.canassurance.com/auth/realms/master",
+      "kAuth": "https://idp.svcnp.canassurance.com/auth/realms/master/protocol/openid-connect/auth",
+      "kAccessToken": "https://idp.svcnp.canassurance.com/auth/realms/master/protocol/openid-connect/token",
+      "clientID": "devops-console",
+      "kScope": "email profile api"
+    }
+  }
 }

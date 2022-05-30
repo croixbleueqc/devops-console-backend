@@ -39,18 +39,26 @@ import logging
 import os
 from copy import deepcopy
 from functools import reduce
-from typing import Dict
+from pathlib import Path
+import sys
+from typing import Any, Dict
 
 
-class Config(Dict[str, str]):
+class Config(Dict[str, Any]):
     """
     Configuration class
     """
 
-    def __init__(self):
+    def __init__(self, path: Path | None = None):
         super().__init__()
 
-        self.dir_path = os.path.dirname(os.path.realpath(__file__))
+        if path is None:
+            self.dir_path = os.path.dirname(os.path.realpath(__file__))
+        elif path.is_dir():
+            self.dir_path = str(path)
+        else:
+            logging.error("path parameter must be a valid directory.")
+            sys.exit(1)
 
         if os.environ.get("BRANCH_NAME") is None:
             os.environ["BRANCH_NAME"] = "undefined"

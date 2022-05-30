@@ -16,9 +16,15 @@
 # You should have received a copy of the GNU Lesser General Public License
 # along with devops-console-backend.  If not, see <https://www.gnu.org/licenses/>.
 
-from .app import App
 
-if __name__ == '__main__':
+import os
+from pathlib import Path
+from devops_console.app import App
+from devops_console.config import Config
+
+config = Config(Path(os.getcwd(), "config/"))
+
+if __name__ == "__main__":
     App().run()
 else:
     application = App().app
