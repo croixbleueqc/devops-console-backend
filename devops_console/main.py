@@ -20,9 +20,7 @@
 import os
 from pathlib import Path
 from devops_console.app import App
-from devops_console.config import Config
 
-config = Config(Path(os.getcwd(), "config/"))
 
 if __name__ == "__main__":
     App().run()

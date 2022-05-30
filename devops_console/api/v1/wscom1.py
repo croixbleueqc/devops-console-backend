@@ -1,4 +1,3 @@
-# Copyright 2019 mickybart
 # Copyright 2020 Croix Bleue du Québec
 
 # This file is part of devops-console-backend.
@@ -16,22 +15,18 @@
 # You should have received a copy of the GNU Lesser General Public License
 # along with devops-console-backend.  If not, see <https://www.gnu.org/licenses/>.
 
-from .wscom import wscom_setup
-from .apis import wscom1
-from .apis import health
-from .apis import sccs
-from .apis import kubernetes
-from .apis import OAuth2
+from aiohttp import web
+from ...wscom import wscom_generic_handler
 
-def setup(api):
-    api.add_routes(health.routes)
+routes = web.RouteTableDef()
 
-    api.add_routes(wscom1.routes)
+DISPATCHERS_APP_KEY = "wscom1_dispatchers"
 
-    wscom_setup(api, wscom1.DISPATCHERS_APP_KEY, "sccs", sccs.wscom_dispatcher)
 
-    wscom_setup(api, wscom1.DISPATCHERS_APP_KEY, "k8s", kubernetes.wscom_dispatcher)
+@routes.get("/wscom1")
+async def wscom1_handler(request):
+    """Websocket Com1"""
 
-    wscom_setup(api, wscom1.DISPATCHERS_APP_KEY, "oauth2", OAuth2.wscom_dispatcher)
+    ws = await wscom_generic_handler(request, DISPATCHERS_APP_KEY)
 
-    return api
+    return ws

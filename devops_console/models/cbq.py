@@ -42,7 +42,7 @@ class EscalationDetails(BaseModel):
 
 
 class ContinuousDeployment(BaseModel):
-    environment: List[Environment]
+    environments: List[Environment]
     pullrequest: PullRequest
     pipeline: Pipeline
 

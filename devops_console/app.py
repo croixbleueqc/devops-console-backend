@@ -30,7 +30,7 @@ from devops_console.models.vault import VaultBitbucket
 
 from .config import Config
 from .core import getCore
-from . import apiv1
+from .api import v1 as api
 from . import monitoring
 
 
@@ -58,10 +58,11 @@ class App:
     websockets: weakref.WeakSet[web.WebSocketResponse]
     core: Core
 
-    def __init__(self, config: Config | None = None, vault_secret: Dict[str, Any] = {}):
+    def __init__(self, config: Config | None = None):
         # Config
         if config is None:
             config = Config()
+        self.config = config
 
         # Logging
         logging_default_format = (
@@ -85,7 +86,7 @@ class App:
         self.app = web.Application(
             handler_args={"access_log_class": FilterAccessLogger}
         )
-        apiv1.setup(self.app)
+        api.setup(self.app)
         monitoring.setup(self.app)
 
         if config["api"]["swagger"]["url"] is not None:
@@ -115,23 +116,10 @@ class App:
         for background_task in getCore().cleanup_background_tasks():
             self.app.on_cleanup.append(background_task)
 
-        # Start rest_api server
-        cache = ThreadsafeCache()
+        self.cache = ThreadsafeCache()
 
-        # vault.connect()
-        # vault_secret: str = config["sccs"]["plugins"]["config"]["cbq"]["su"][
-        #     "vault_secret"
-        # ]
-        # vault_mount: str = config["sccs"]["plugins"]["config"]["cbq"]["su"][
-        #     "vault_mount"
-        # ]
-        vault_bitbucket = VaultBitbucket(**vault_secret)
-
-        rest_api_config = make_rest_api_config(config)
-
-        rest_api_config.update(vault_bitbucket.dict())
-
-        self.rest_api = serve_threaded(rest_api_config, cache)
+        rest_api_config = make_rest_api_config(self.config)
+        self.rest_api = serve_threaded(rest_api_config, self.cache, port=5001)
 
     def run(self):
         web.run_app(self.app, host="0.0.0.0", port=5000)
@@ -142,6 +130,7 @@ def make_rest_api_config(config: Config) -> Dict[str, Any]:
 
     rest_api_config.update(config["sccs"]["plugins"]["config"]["cbq"])
     rest_api_config["hook_server"] = config["sccs"]["hook_server"]
+    rest_api_config["vault_bitbucket"] = config["vault_bitbucket"]
 
     return rest_api_config
 

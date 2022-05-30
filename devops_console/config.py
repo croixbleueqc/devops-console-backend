@@ -33,6 +33,7 @@ In addition, Config will replace all {env} string in a json file to the BRANCH_N
 # along with devops-console-backend.  If not, see <https://www.gnu.org/licenses/>.
 
 
+from collections import UserDict
 import contextlib
 import json
 import logging
@@ -44,7 +45,7 @@ import sys
 from typing import Any, Dict
 
 
-class Config(Dict[str, Any]):
+class Config(UserDict):
     """
     Configuration class
     """
@@ -53,7 +54,9 @@ class Config(Dict[str, Any]):
         super().__init__()
 
         if path is None:
-            self.dir_path = os.path.dirname(os.path.realpath(__file__))
+            self.dir_path = os.path.join(
+                os.path.dirname(os.path.realpath(__file__)), "config"
+            )
         elif path.is_dir():
             self.dir_path = str(path)
         else:
@@ -100,7 +103,7 @@ class Config(Dict[str, Any]):
             return {}
 
     def __deep_merge(
-        self, dict_base: Dict[str, str], dict_custom: Dict[str, str]
+        self, dict_base: Dict[str, Any], dict_custom: Dict[str, Any]
     ) -> Dict[str, str]:
         result = deepcopy(dict_base)
         for key, value in dict_custom.items():
