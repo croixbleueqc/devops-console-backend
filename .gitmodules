@@ -15,4 +15,3 @@
 [submodule "_submodules/devops-console-rest-api"]
 	path = _submodules/devops-console-rest-api
 	url = https://github.com/croixbleueqc/devops-console-rest-api.git
-	branch = webhooks
