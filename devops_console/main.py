@@ -17,10 +17,7 @@
 # along with devops-console-backend.  If not, see <https://www.gnu.org/licenses/>.
 
 
-import os
-from pathlib import Path
 from devops_console.app import App
-
 
 if __name__ == "__main__":
     App().run()

@@ -81,6 +81,7 @@ class App:
         self.app = web.Application(
             handler_args={"access_log_class": FilterAccessLogger}
         )
+
         api.setup(self.app)
         monitoring.setup(self.app)
 
