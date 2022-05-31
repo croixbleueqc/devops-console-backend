@@ -8,7 +8,6 @@
 [submodule "_submodules/python-devops-sccs"]
 	path = _submodules/python-devops-sccs
 	url = https://github.com/croixbleueqc/python-devops-sccs.git
-	branch = remove_hook_server
 [submodule "_submodules/python-devops-kubernetes"]
 	path = _submodules/python-devops-kubernetes
 	url = https://github.com/croixbleueqc/python-devops-kubernetes.git
