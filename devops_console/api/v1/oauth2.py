@@ -1,4 +1,4 @@
-# Copyright 2020 Croix Bleue du Québec
+# Copyright 2021 Croix Bleue du Québec
 
 # This file is part of devops-console-backend.
 
@@ -15,17 +15,17 @@
 # You should have received a copy of the GNU Lesser General Public License
 # along with devops-console-backend.  If not, see <https://www.gnu.org/licenses/>.
 
-from aiohttp import web
-from ..wscom import wscom_generic_handler
+from ...core import Core
+from ...wscom import DispatcherUnsupportedRequest
 
-routes = web.RouteTableDef()
+# WebSocket (wscom) section
 
-DISPATCHERS_APP_KEY="wscom1_dispatchers"
 
-@routes.get('/wscom1')
-async def wscom1_handler(request):
-    """Websocket Com1"""
+async def wscom_dispatcher(request, action, path, body):
+    core: Core = request.config_dict["core"]
 
-    ws = await wscom_generic_handler(request, DISPATCHERS_APP_KEY)
+    if action == "read":
+        if path == "/config":
+            return await core.OAuth2.get_config()
 
-    return ws
+    raise DispatcherUnsupportedRequest(action, path)

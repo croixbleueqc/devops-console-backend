@@ -1,4 +1,4 @@
-'''
+"""
 Configuration module to parse json configuration files correctly
 
 Config files are stored in the config folder inside the module.
@@ -12,7 +12,7 @@ Config will merge (listed as less to more important):
 
 In addition, Config will replace all {env} string in a json file to the BRANCH_NAME value.
 
-'''
+"""
 
 # Copyright 2019 mickybart
 # Copyright 2020 Croix Bleue du Québec
@@ -32,20 +32,36 @@ In addition, Config will replace all {env} string in a json file to the BRANCH_N
 # You should have received a copy of the GNU Lesser General Public License
 # along with devops-console-backend.  If not, see <https://www.gnu.org/licenses/>.
 
+
+from collections import UserDict
+import contextlib
 import json
+import logging
 import os
-
-from functools import reduce
 from copy import deepcopy
+from functools import reduce
+from pathlib import Path
+import sys
+from typing import Any, Dict
 
-class Config(dict):
-    '''
+
+class Config(UserDict):
+    """
     Configuration class
-    '''
-    def __init__(self):
+    """
+
+    def __init__(self, path: Path | None = None):
         super().__init__()
 
-        self.dir_path = os.path.dirname(os.path.realpath(__file__))
+        if path is None:
+            self.dir_path = os.path.join(
+                os.path.dirname(os.path.realpath(__file__)), "config"
+            )
+        elif path.is_dir():
+            self.dir_path = str(path)
+        else:
+            logging.error("path parameter must be a valid directory.")
+            sys.exit(1)
 
         if os.environ.get("BRANCH_NAME") is None:
             os.environ["BRANCH_NAME"] = "undefined"
@@ -54,38 +70,41 @@ class Config(dict):
         self.update(config)
 
         self.__deep_replace(self, env=os.environ["BRANCH_NAME"])
+        logging.debug(config)
 
     def use_resource(self, resource):
-        return '{dir}/resources/{resource}'.format(dir=self.dir_path, resource=resource)
+        return "{dir}/resources/{resource}".format(dir=self.dir_path, resource=resource)
 
     def __load_config(self):
-        default = self.__load_config_file('default')
+        default = self.__load_config_file("default")
         env = self.__load_config_file(os.environ["BRANCH_NAME"])
-        local = self.__load_config_file('local')
+        local = self.__load_config_file("local")
 
         # Order is important inside the list
         return reduce(self.__deep_merge, [{}, default, env, local])
 
     def __load_config_file(self, file_name):
-        file_path = '{dir}/config/{name}.json'.format(dir=self.dir_path, name=file_name)
+        file_path = "{dir}/config/{name}.json".format(dir=self.dir_path, name=file_name)
         return self.__load_json(file_path)
 
     def __load_json(self, json_file):
-        '''Load JSON file
+        """Load JSON file
 
         Args:
             json_file (str): filename of a json file
 
         Returns:
             dict: content of the file
-        '''
+        """
         try:
             with open(json_file) as f:
                 return json.load(f)
         except FileNotFoundError:
             return {}
 
-    def __deep_merge(self, dict_base, dict_custom):
+    def __deep_merge(
+        self, dict_base: Dict[str, Any], dict_custom: Dict[str, Any]
+    ) -> Dict[str, str]:
         result = deepcopy(dict_base)
         for key, value in dict_custom.items():
             if isinstance(value, dict):
@@ -97,12 +116,10 @@ class Config(dict):
 
         return result
 
-    def __deep_replace(self, dict_base, **kwargs):
+    def __deep_replace(self, dict_base, **kwargs) -> None:
         for name, value in dict_base.items():
             if isinstance(value, dict):
                 self.__deep_replace(value, **kwargs)
             elif isinstance(value, str):
-                try:
+                with contextlib.suppress(IndexError):
                     dict_base[name] = value.format(**kwargs)
-                except IndexError:
-                    pass

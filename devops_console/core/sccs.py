@@ -18,14 +18,17 @@
 import logging
 from devops_sccs.core import Core as SccsCore
 
+from devops_console.config import Config
+
+
 class Sccs:
     """Sccs Core"""
 
-    def __init__(self, config):
+    def __init__(self, config: Config):
         self.config = config
-        self.core = None
+        self.core: SccsCore
 
-    async def init(self, app):
+    async def init(self, app) -> None:
         self.core = await SccsCore.create(self.config)
 
     def context(self, plugin_id, args):
@@ -48,38 +51,64 @@ class Sccs:
         async with self.core.context(plugin_id, session) as ctx:
             return await ctx.passthrough(request, args)
 
-    async def get_continuous_deployment_config(self, plugin_id, session, repository, environments, args):
+    async def get_continuous_deployment_config(
+        self, plugin_id, session, repository, environments, args
+    ):
         async with self.core.context(plugin_id, session) as ctx:
-            return await ctx.get_continuous_deployment_config(repository, environments, args=args)
+            return await ctx.get_continuous_deployment_config(
+                repository, environments, args=args
+            )
 
-    async def watch_continous_deployment_config(self, plugin_id, session, repository, environments, args):
+    async def watch_continuous_deployment_config(
+        self, plugin_id, session, repository, environments, args
+    ):
         async with self.core.context(plugin_id, session) as ctx:
-            async for event in await ctx.watch_continuous_deployment_config(repository, environments, args=args):
+            async for event in await ctx.watch_continuous_deployment_config(
+                repository, environments, args=args
+            ):
                 yield event
 
-    async def watch_continuous_deployment_versions_available(self, plugin_id, session, repository, args):
+    async def watch_continuous_deployment_versions_available(
+        self, plugin_id, session, repository, args
+    ):
         async with self.core.context(plugin_id, session) as ctx:
-            async for event in await ctx.watch_continuous_deployment_versions_available(repository, args=args):
+            async for event in await ctx.watch_continuous_deployment_versions_available(
+                repository, args=args
+            ):
                 yield event
 
-    async def trigger_continuous_deployment(self, plugin_id, session, repository, environment, version, args):
+    async def trigger_continuous_deployment(
+        self, plugin_id, session, repository, environment, version, args
+    ):
         try:
             async with self.core.context(plugin_id, session) as ctx:
-                return await ctx.trigger_continuous_deployment(repository, environment, version, args)
+                return await ctx.trigger_continuous_deployment(
+                    repository, environment, version, args
+                )
         except:
             logging.exception("trigger_continuous_deployment")
             raise
 
-    async def get_continuous_deployment_environments_available(self, plugin_id, session, repository, args):
+    async def get_continuous_deployment_environments_available(
+        self, plugin_id, session, repository, args
+    ):
         async with self.core.context(plugin_id, session) as ctx:
-            return await ctx.get_continuous_deployment_environments_available(repository, args)
+            return await ctx.get_continuous_deployment_environments_available(
+                repository, args
+            )
 
-    async def watch_continuous_deployment_environments_available(self, plugin_id, session, repository, args):
+    async def watch_continuous_deployment_environments_available(
+        self, plugin_id, session, repository, args
+    ):
         async with self.core.context(plugin_id, session) as ctx:
-            async for event in await ctx.watch_continuous_deployment_environments_available(repository, args=args):
+            async for event in await ctx.watch_continuous_deployment_environments_available(
+                repository, args=args
+            ):
                 yield event
 
-    async def bridge_repository_to_namespace(self, plugin_id, session, repository, environment, untrustable=True, args=None):
+    async def bridge_repository_to_namespace(
+        self, plugin_id, session, repository, environment, untrustable=True, args=None
+    ):
         async with self.core.context(plugin_id, session) as ctx:
             return await ctx.bridge_repository_to_namespace(repository, environment)
 
@@ -87,9 +116,11 @@ class Sccs:
         async with self.core.context(plugin_id, session) as ctx:
             return ctx.get_add_repository_contract()
 
-    async def add_repository(self, plugin_id, session, repository, template,  template_params, args):
+    async def add_repository(
+        self, plugin_id, session, repository, template, template_params, args
+    ):
         async with self.core.context(plugin_id, session) as ctx:
-            return await ctx.add_repository(repository, template,  template_params, args)
+            return await ctx.add_repository(repository, template, template_params, args)
 
     async def compliance_report(self, plugin_id, session, args):
         async with self.core.context(plugin_id, session) as ctx:

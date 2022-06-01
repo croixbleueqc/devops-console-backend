@@ -16,22 +16,10 @@
 # You should have received a copy of the GNU Lesser General Public License
 # along with devops-console-backend.  If not, see <https://www.gnu.org/licenses/>.
 
-from .wscom import wscom_setup
-from .apis import wscom1
-from .apis import health
-from .apis import sccs
-from .apis import kubernetes
-from .apis import OAuth2
 
-def setup(api):
-    api.add_routes(health.routes)
+from devops_console.app import App
 
-    api.add_routes(wscom1.routes)
-
-    wscom_setup(api, wscom1.DISPATCHERS_APP_KEY, "sccs", sccs.wscom_dispatcher)
-
-    wscom_setup(api, wscom1.DISPATCHERS_APP_KEY, "k8s", kubernetes.wscom_dispatcher)
-
-    wscom_setup(api, wscom1.DISPATCHERS_APP_KEY, "oauth2", OAuth2.wscom_dispatcher)
-
-    return api
+if __name__ == "__main__":
+    App().run()
+else:
+    application = App().app

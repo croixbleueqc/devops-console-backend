@@ -1,28 +1,4 @@
-# System Files
-.DS_Store
-
-# IDE - VSCode
-.vscode/
-.idea/
-*.kdev4
-
-# Autoenv
-.env
-
-# Virtual env
-__pycache__/
-__venv__/
-
-# Build using setup.py
-dist/
 build/
+__pycache__
 *.egg-info
-.eggs/
-
-# Coverage
-.coverage
-htmlcov/
-
-# Local config
-*/config/local.json
-.local/
+devops_console/config/default.json

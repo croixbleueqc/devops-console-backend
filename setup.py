@@ -134,8 +134,6 @@ setup(
         'aiohttp[speedups]',
         'aiohttp-swagger',
         'prometheus_async[aiohttp]',
-        'devops_sccs>=0.2.2',
-        'devops_kubernetes>=0.0.1'
     ],
     extras_require={
         'dev': [
@@ -154,7 +152,7 @@ setup(
     author='Croix Bleue du Quebec',
     author_email='devops@qc.croixbleue.ca',
     license='LGPL-3.0-or-later',
-    long_description=open('README.rst').read(),
+    long_description=open('README.md').read(),
     keywords=["devops", "backend"],
     classifiers=[
         # How mature is this project? Common values are

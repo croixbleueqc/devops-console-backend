@@ -1,0 +1,17 @@
+
+[submodule "_submodules/python-typing-engine"]
+  path = _submodules/python-typing-engine
+  url = https://github.com/croixbleueqc/python-typing-engine.git
+[submodule "_submodules/python-aiobitbucket"]
+  path = _submodules/python-aiobitbucket
+  url = https://github.com/croixbleueqc/python-aiobitbucket.git
+[submodule "_submodules/python-devops-sccs"]
+  path = _submodules/python-devops-sccs
+  url = https://github.com/croixbleueqc/python-devops-sccs.git
+  branch = develop
+[submodule "_submodules/python-devops-kubernetes"]
+  path = _submodules/python-devops-kubernetes
+  url = https://github.com/croixbleueqc/python-devops-kubernetes.git
+[submodule "_submodules/devops-console-rest-api"]
+  path = _submodules/devops-console-rest-api
+  url = https://github.com/croixbleueqc/devops-console-rest-api.git

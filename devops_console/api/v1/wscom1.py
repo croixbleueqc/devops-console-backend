@@ -1,4 +1,3 @@
-# Copyright 2019 mickybart
 # Copyright 2020 Croix Bleue du Québec
 
 # This file is part of devops-console-backend.
@@ -16,9 +15,18 @@
 # You should have received a copy of the GNU Lesser General Public License
 # along with devops-console-backend.  If not, see <https://www.gnu.org/licenses/>.
 
-from .app import App
+from aiohttp import web
+from ...wscom import wscom_generic_handler
 
-if __name__ == '__main__':
-    App().run()
-else:
-    application = App().app
+routes = web.RouteTableDef()
+
+DISPATCHERS_APP_KEY = "wscom1_dispatchers"
+
+
+@routes.get("/wscom1")
+async def wscom1_handler(request):
+    """Websocket Com1"""
+
+    ws = await wscom_generic_handler(request, DISPATCHERS_APP_KEY)
+
+    return ws

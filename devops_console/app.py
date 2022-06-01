@@ -13,40 +13,56 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
+import threading
+from typing import Any, Dict
 from aiohttp import web, WSCloseCode
 from aiohttp.web_log import AccessLogger
 from aiohttp_swagger import setup_swagger
+from devops_console_rest_api.main import serve_threaded
+from devops_sccs.cache import ThreadsafeCache
 
 import logging
 import os
 import weakref
 
+from devops_console.core.core import Core
+from devops_console.models.vault import VaultBitbucket
+
 from .config import Config
 from .core import getCore
-from . import apiv1
+from .api import v1 as api
 from . import monitoring
+
 
 class FilterAccessLogger(AccessLogger):
     """/health and /metrics filter
 
     Hidding those requests if we have a 200 OK when we are not in DEBUG
     """
+
     def log(self, request, response, time):
-        if self.logger.level != logging.DEBUG \
-            and response.status == 200 \
-            and request.path in ['/health','/metrics']:
+        if (
+            self.logger.level != logging.DEBUG
+            and response.status == 200
+            and request.path in ["/health", "/metrics"]
+        ):
 
             return
 
         super().log(request, response, time)
 
+
 class App:
-    def __init__(self):
+    def __init__(self, config: Config | None = None):
         # Config
-        config = Config()
+        if config is None:
+            config = Config()
+        self.config = config
 
         # Logging
-        logging_default_format = "[%(asctime)s] %(levelname)s in %(module)s: %(message)s"
+        logging_default_format = (
+            "[%(asctime)s] %(levelname)s in %(module)s: %(message)s"
+        )
 
         gunicorn_error = logging.getLogger("gunicorn.error")
         if len(gunicorn_error.handlers) != 0:
@@ -56,21 +72,17 @@ class App:
             # using LOGGING_LEVEL env or fallback to DEBUG
             logging_level = int(os.environ.get("LOGGING_LEVEL", logging.DEBUG))
 
-        logging.basicConfig(
-            level=logging_level,
-            format=logging_default_format
-        )
+        logging.basicConfig(level=logging_level, format=logging_default_format)
 
         aiohttp_access = logging.getLogger("aiohttp.access")
         aiohttp_access.setLevel(logging_level)
 
         # Application
         self.app = web.Application(
-            handler_args={
-                'access_log_class': FilterAccessLogger
-            }
+            handler_args={"access_log_class": FilterAccessLogger}
         )
-        apiv1.setup(self.app)
+
+        api.setup(self.app)
         monitoring.setup(self.app)
 
         if config["api"]["swagger"]["url"] is not None:
@@ -80,7 +92,7 @@ class App:
                 api_version=config["api"]["version"],
                 description=config["api"]["description"],
                 swagger_url=config["api"]["swagger"]["url"],
-                ui_version=3
+                ui_version=3,
             )
 
         # Create and share the core for all APIs
@@ -100,12 +112,27 @@ class App:
         for background_task in getCore().cleanup_background_tasks():
             self.app.on_cleanup.append(background_task)
 
+        self.cache = ThreadsafeCache()
+
+        rest_api_config = make_rest_api_config(self.config)
+        self.app["rest_api"] = serve_threaded(rest_api_config, self.cache, port=5001)
+
     def run(self):
         web.run_app(self.app, host="0.0.0.0", port=5000)
 
-async def on_shutdown(app):
+
+def make_rest_api_config(config: Config) -> Dict[str, Any]:
+    rest_api_config: Dict[str, str] = {}
+
+    rest_api_config.update(config["sccs"]["plugins"]["config"]["cbq"])
+    rest_api_config["hook_server"] = config["sccs"]["hook_server"]
+    rest_api_config["vault_bitbucket"] = config["vault_bitbucket"]
+
+    return rest_api_config
+
+
+async def on_shutdown(app: App):
     for ws in set(app["websockets"]):
-        await ws.close(
-            code=WSCloseCode.GOING_AWAY,
-            message="Server shutdown"
-            )
+        await ws.close(code=WSCloseCode.GOING_AWAY, message="Server shutdown")
+
+    app["rest_api"].join()
