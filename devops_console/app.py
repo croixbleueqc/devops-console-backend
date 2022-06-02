@@ -112,10 +112,10 @@ class App:
         for background_task in getCore().cleanup_background_tasks():
             self.app.on_cleanup.append(background_task)
 
-        self.cache = ThreadsafeCache()
+        # self.cache = ThreadsafeCache()
 
         rest_api_config = make_rest_api_config(self.config)
-        self.app["rest_api"] = serve_threaded(rest_api_config, self.cache, port=5001)
+        self.app["rest_api"] = serve_threaded(rest_api_config)
 
     def run(self):
         web.run_app(self.app, host="0.0.0.0", port=5000)

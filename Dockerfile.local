@@ -18,4 +18,4 @@ RUN pip install --no-cache-dir --compile .[prod]
 # Remove source code to avoid any confusion with the real one executed.
 RUN rm -rf devops_console setup.py README.md MANIFEST.in _submodules
 
-CMD gunicorn devops_console.run:application --bind 0.0.0.0:5000 --worker-class aiohttp.worker.GunicornWebWorker --access-logfile - --log-level debug
+CMD gunicorn devops_console.main:application --bind 0.0.0.0:5000 --worker-class aiohttp.worker.GunicornWebWorker --access-logfile - --log-level debug
