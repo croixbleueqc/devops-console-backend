@@ -12,7 +12,7 @@ class Environment(BaseModel):
     name: str
     branch: str
     version: Dict[str, str]
-    trigger: Dict[str, bool] | None
+    trigger: Dict[str, bool] = {}
 
 
 class PullRequest(BaseModel):
