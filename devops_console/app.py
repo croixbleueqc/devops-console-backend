@@ -13,20 +13,15 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-import threading
 from typing import Any, Dict
 from aiohttp import web, WSCloseCode
 from aiohttp.web_log import AccessLogger
 from aiohttp_swagger import setup_swagger
-from devops_console_rest_api.main import serve_threaded
-from devops_sccs.cache import ThreadsafeCache
+from devops_console_rest_api import main as rest_api_main
 
 import logging
 import os
 import weakref
-
-from devops_console.core.core import Core
-from devops_console.models.vault import VaultBitbucket
 
 from .config import Config
 from .core import getCore
@@ -96,7 +91,9 @@ class App:
             )
 
         # Create and share the core for all APIs
-        self.app["core"] = getCore(config=config)
+        core = getCore(config=config)
+
+        self.app["core"] = core
 
         # Create and share websockets
         self.app["websockets"] = weakref.WeakSet()
@@ -112,26 +109,15 @@ class App:
         for background_task in getCore().cleanup_background_tasks():
             self.app.on_cleanup.append(background_task)
 
-        # self.cache = ThreadsafeCache()
-
-        rest_api_config = make_rest_api_config(self.config)
-        self.app["rest_api"] = serve_threaded(rest_api_config)
+        self.app["rest_api"] = rest_api_main.serve_threaded(
+            cfg=self.config, core_sccs=core.sccs
+        )
 
     def run(self):
         web.run_app(self.app, host="0.0.0.0", port=5000)
 
 
-def make_rest_api_config(config: Config) -> Dict[str, Any]:
-    rest_api_config: Dict[str, str] = {}
-
-    rest_api_config.update(config["sccs"]["plugins"]["config"]["cbq"])
-    rest_api_config["hook_server"] = config["sccs"]["hook_server"]
-    rest_api_config["vault_bitbucket"] = config["vault_bitbucket"]
-
-    return rest_api_config
-
-
-async def on_shutdown(app: App):
+async def on_shutdown(app: web.Application):
     for ws in set(app["websockets"]):
         await ws.close(code=WSCloseCode.GOING_AWAY, message="Server shutdown")
 
