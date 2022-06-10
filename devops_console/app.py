@@ -13,7 +13,6 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-from typing import Any, Dict
 from aiohttp import web, WSCloseCode
 from aiohttp.web_log import AccessLogger
 from aiohttp_swagger import setup_swagger
@@ -110,7 +109,8 @@ class App:
             self.app.on_cleanup.append(background_task)
 
         self.app["rest_api"] = rest_api_main.serve_threaded(
-            cfg=self.config, core_sccs=core.sccs
+            cfg=self.config,
+            core_sccs=core.sccs,
         )
 
     def run(self):
