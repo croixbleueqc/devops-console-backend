@@ -125,3 +125,7 @@ class Sccs:
     async def compliance_report(self, plugin_id, session, args):
         async with self.core.context(plugin_id, session) as ctx:
             return await ctx.compliance_report(args)
+
+    async def create_webhook_subscription(self, plugin_id, session, **kwargs):
+        async with self.core.context(plugin_id, session) as ctx:
+            return await ctx.create_webhook_subscription(**kwargs)
