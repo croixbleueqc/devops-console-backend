@@ -42,9 +42,9 @@ class Sccs:
             logging.exception("get repositories")
             raise
 
-    async def watch_repositories(self, plugin_id, session, args):
+    async def watch_repositories(self, plugin_id, session, *args, **kwargs):
         async with self.core.context(plugin_id, session) as ctx:
-            async for event in await ctx.watch_repositories(args=args):
+            async for event in await ctx.watch_repositories(*args, **kwargs):
                 yield event
 
     async def passthrough(self, plugin_id, session, request, args):

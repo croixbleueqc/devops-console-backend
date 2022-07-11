@@ -13,6 +13,9 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
+import asyncio
+import threading
+
 from aiohttp import web, WSCloseCode
 from aiohttp.web_log import AccessLogger
 from aiohttp_swagger import setup_swagger
@@ -108,10 +111,27 @@ class App:
         for background_task in getCore().cleanup_background_tasks():
             self.app.on_cleanup.append(background_task)
 
-        self.app["rest_api"] = rest_api_main.serve_threaded(
-            cfg=self.config,
-            core_sccs=core.sccs,
+        # Start subserver
+        self.start_subserver(core.sccs)
+
+    def start_subserver(self, sccs) -> None:
+        """Start the FastAPI subserver in a separate thread"""
+        _loop = asyncio.get_event_loop()
+
+        def run(loop) -> None:
+            rest_api_main.run(
+                cfg=self.config,
+                core_sccs=sccs,
+                loop=_loop,
+            )
+
+        thread = threading.Thread(
+            target=run,
+            args=(asyncio.new_event_loop(),),
+            name="FastAPI subserver",
+            daemon=True,
         )
+        thread.start()
 
     def run(self):
         web.run_app(self.app, host="0.0.0.0", port=5000)
