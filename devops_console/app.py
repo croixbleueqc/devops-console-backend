@@ -31,6 +31,19 @@ from .api import v1 as api
 from . import monitoring
 
 
+def _start_background_loop(loop: asyncio.AbstractEventLoop):
+    asyncio.set_event_loop(loop)
+    loop.run_forever()
+    loop.close()
+
+
+_LOOP = asyncio.new_event_loop()
+_LOOP_THREAD = threading.Thread(
+    target=_start_background_loop, args=(_LOOP,), daemon=True
+)
+_LOOP_THREAD.start()
+
+
 class FilterAccessLogger(AccessLogger):
     """/health and /metrics filter
 
@@ -114,15 +127,19 @@ class App:
         # Start subserver
         self.start_subserver(core.sccs)
 
+    def run(self):
+        web.run_app(self.app, host="0.0.0.0", port=5000, loop=_LOOP)
+
     def start_subserver(self, sccs) -> None:
         """Start the FastAPI subserver in a separate thread"""
-        _loop = asyncio.get_event_loop()
 
+        # we need to pass a reference of the event loop to the subserver
+        # so that we can make calls from it to the sccs plugin in this thread
         def run(loop) -> None:
             rest_api_main.run(
                 cfg=self.config,
                 core_sccs=sccs,
-                loop=_loop,
+                loop=_LOOP,
             )
 
         thread = threading.Thread(
@@ -132,9 +149,6 @@ class App:
             daemon=True,
         )
         thread.start()
-
-    def run(self):
-        web.run_app(self.app, host="0.0.0.0", port=5000)
 
 
 async def on_shutdown(app: web.Application):
