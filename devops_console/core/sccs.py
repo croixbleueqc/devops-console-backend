@@ -119,8 +119,22 @@ class Sccs:
     async def add_repository(
         self, plugin_id, session, repository, template, template_params, args
     ):
-        async with self.core.context(plugin_id, session) as ctx:
-            return await ctx.add_repository(repository, template, template_params, args)
+        try:
+            async with self.core.context(plugin_id, session) as ctx:
+                return await ctx.add_repository(
+                    repository, template, template_params, args
+                )
+        except:
+            logging.exception("add repository")
+            raise
+
+    async def delete_repository(self, plugin_id, session, repo_name):
+        try:
+            async with self.core.context(plugin_id, session) as ctx:
+                return await ctx.delete_repository(repo_name)
+        except:
+            logging.exception("delete repository")
+            raise
 
     async def compliance_report(self, plugin_id, session, args):
         async with self.core.context(plugin_id, session) as ctx:
@@ -133,3 +147,11 @@ class Sccs:
     async def create_webhook_subscription(self, plugin_id, session, **kwargs):
         async with self.core.context(plugin_id, session) as ctx:
             return await ctx.create_webhook_subscription(**kwargs)
+
+    async def delete_webhook_subscription(self, plugin_id, session, **kwargs):
+        async with self.core.context(plugin_id, session) as ctx:
+            return await ctx.delete_webhook_subscription(**kwargs)
+
+    async def get_projects(self, plugin_id, session):
+        async with self.core.context(plugin_id, session) as ctx:
+            return await ctx.get_projects()
