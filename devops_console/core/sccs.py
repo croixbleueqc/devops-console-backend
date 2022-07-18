@@ -34,10 +34,10 @@ class Sccs:
     def context(self, plugin_id, args):
         return self.core.context(plugin_id, args)
 
-    async def get_repositories(self, plugin_id, session, args):
+    async def get_repositories(self, plugin_id, session, *args, **kwargs):
         try:
             async with self.core.context(plugin_id, session) as ctx:
-                return await ctx.get_repositories(args)
+                return await ctx.get_repositories(*args, **kwargs)
         except:
             logging.exception("get repositories")
             raise
@@ -52,11 +52,11 @@ class Sccs:
             return await ctx.passthrough(request, args)
 
     async def get_continuous_deployment_config(
-        self, plugin_id, session, repository, environments, args
+        self, plugin_id, session, repository, environments=None, args=None
     ):
         async with self.core.context(plugin_id, session) as ctx:
             return await ctx.get_continuous_deployment_config(
-                repository, environments, args=args
+                repository=repository, environments=environments, args=args
             )
 
     async def watch_continuous_deployment_config(
