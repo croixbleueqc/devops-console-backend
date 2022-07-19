@@ -1,4 +1,4 @@
 build/
-__pycache__
-*.egg-info
+__pycache__/
+*.egg-info/
 devops_console/config/default.json

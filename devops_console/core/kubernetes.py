@@ -23,7 +23,7 @@ class Kubernetes(object):
     def __init__(self, config, sccs):
         self.config = config
         self.sccs = sccs
-        self.core = None
+        self.core: K8sCore
 
     async def init(self, app):
         self.core = await K8sCore.create(self.config)
