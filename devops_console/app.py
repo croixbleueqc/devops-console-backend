@@ -28,7 +28,6 @@ import weakref
 from .config import Config
 from .core import getCore
 from .api import v1 as api
-from . import monitoring
 
 
 def _start_background_loop(loop: asyncio.AbstractEventLoop):
@@ -42,24 +41,6 @@ _LOOP_THREAD = threading.Thread(
     target=_start_background_loop, args=(_LOOP,), daemon=True
 )
 _LOOP_THREAD.start()
-
-
-class FilterAccessLogger(AccessLogger):
-    """/health and /metrics filter
-
-    Hidding those requests if we have a 200 OK when we are not in DEBUG
-    """
-
-    def log(self, request, response, time):
-        if (
-            self.logger.level != logging.DEBUG
-            and response.status == 200
-            and request.path in ["/health", "/metrics"]
-        ):
-
-            return
-
-        super().log(request, response, time)
 
 
 class App:
@@ -88,9 +69,7 @@ class App:
         aiohttp_access.setLevel(logging_level)
 
         # Application
-        self.app = web.Application(
-            handler_args={"access_log_class": FilterAccessLogger}
-        )
+        self.app = web.Application()
 
         api.setup(self.app)
 
