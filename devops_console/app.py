@@ -93,7 +93,6 @@ class App:
         )
 
         api.setup(self.app)
-        monitoring.setup(self.app)
 
         if config["api"]["swagger"]["url"] is not None:
             setup_swagger(
