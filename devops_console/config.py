@@ -42,7 +42,7 @@ from copy import deepcopy
 from functools import reduce
 from pathlib import Path
 import sys
-from typing import Any, Dict
+from typing import Any
 
 
 class Config(UserDict):
@@ -103,8 +103,8 @@ class Config(UserDict):
             return {}
 
     def __deep_merge(
-        self, dict_base: Dict[str, Any], dict_custom: Dict[str, Any]
-    ) -> Dict[str, str]:
+        self, dict_base: dict[str, Any], dict_custom: dict[str, Any]
+    ) -> dict[str, str]:
         result = deepcopy(dict_base)
         for key, value in dict_custom.items():
             if isinstance(value, dict):
