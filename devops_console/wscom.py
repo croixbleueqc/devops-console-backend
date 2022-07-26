@@ -24,14 +24,17 @@ from typing_engine.typing import Typing2
 
 WATCHERS = "ws_watchers"
 
+
 class CustomEncoder(json.JSONEncoder):
     def default(self, obj):
         if isinstance(obj, Typing2):
             return obj.dumps()
         return json.JSONEncoder.default(self, obj)
 
+
 def custom_dumps(obj):
     return json.dumps(obj, cls=CustomEncoder)
+
 
 async def wscom_generic_handler(request, dispatchers_app_key):
     """Websocket Generic handler
@@ -40,7 +43,7 @@ async def wscom_generic_handler(request, dispatchers_app_key):
     By security, if the message is malformed, the websocket will be closed.
 
     This handler is using dispatcher functions set with wscom_setup()
-    
+
     Message expected:
     {
         "uniqueId": "<str>",
@@ -63,13 +66,13 @@ async def wscom_generic_handler(request, dispatchers_app_key):
     Reserved Messages request are:
     - "ws:ctl:close" : Ask the server to close the websocket
     - "ws:watch:close" : Ask the server to close a watcher for the current websocket
-    
+
     """
     ws = web.WebSocketResponse()
     await ws.prepare(request)
 
     logging.info("connected")
-    
+
     request.app["websockets"].add(ws)
     request[WATCHERS] = weakref.WeakValueDictionary()
     dispatchers = request.app.get(dispatchers_app_key, {})
@@ -86,10 +89,10 @@ async def wscom_generic_handler(request, dispatchers_app_key):
                 except (AttributeError, ValueError, json.decoder.JSONDecodeError):
                     # Malformed request.
                     logging.error(f"malformed request. ws will be closed")
-                    
+
                     # Closing the websocket
                     break
-                
+
                 if deeplink == "ws":
                     if request_headers == "ws:ctl:close":
                         # Closing the websocket
@@ -120,15 +123,9 @@ async def wscom_generic_handler(request, dispatchers_app_key):
 
                     task = asyncio.create_task(
                         wscom_watcher_run(
-                            request,
-                            ws,
-                            dispatch,
-                            data,
-                            action,
-                            path,
-                            body
+                            request, ws, dispatch, data, action, path, body
                         ),
-                        name=uniqueId
+                        name=uniqueId,
                     )
 
                     request[WATCHERS][uniqueId] = task
@@ -138,18 +135,14 @@ async def wscom_generic_handler(request, dispatchers_app_key):
 
                     asyncio.create_task(
                         wscom_restful_run(
-                            request,
-                            ws,
-                            dispatch,
-                            data,
-                            action,
-                            path,
-                            body
+                            request, ws, dispatch, data, action, path, body
                         )
                     )
 
             elif msg.type == WSMsgType.ERROR:
-                logging.error("ws connection closed with exception {}".format(ws.exception()))
+                logging.error(
+                    "ws connection closed with exception {}".format(ws.exception())
+                )
     finally:
         logging.info("disconnected")
 
@@ -162,18 +155,18 @@ async def wscom_generic_handler(request, dispatchers_app_key):
 
     return ws
 
+
 async def wscom_restful_run(request, ws, dispatch, data, action, path, body):
-    """RESTful like request
-    """
+    """RESTful like request"""
     try:
         data["dataResponse"] = await dispatch(request, action, path, body)
     except Exception as e:
         data["error"] = repr(e)
     await ws.send_json(data, dumps=custom_dumps)
 
+
 async def wscom_watcher_run(request, ws, dispatch, data, action, path, body):
-    """Watch request
-    """
+    """Watch request"""
     try:
         async for event in (await dispatch(request, action, path, body)):
             data["dataResponse"] = event
@@ -184,6 +177,7 @@ async def wscom_watcher_run(request, ws, dispatch, data, action, path, body):
         data["dataResponse"] = None
         logging.exception(repr(e))
         await ws.send_json(data, dumps=custom_dumps)
+
 
 async def wscom_watcher_close(request, uniqueId, ws=None, data=None):
     """Closes a watcher
@@ -203,13 +197,13 @@ async def wscom_watcher_close(request, uniqueId, ws=None, data=None):
         pass
     except Exception as e:
         if data is not None:
-            data["error"]=repr(e)
-        logging.error(f"{uniqueId}: something wrong occured during watcher closing. error: {repr(e)}")
+            data["error"] = repr(e)
+        logging.error(
+            f"{uniqueId}: something wrong occured during watcher closing. error: {repr(e)}"
+        )
 
     if ws is not None and data is not None:
-        data["dataResponse"] = {
-            "status": "ws:watch:closed"
-        }
+        data["dataResponse"] = {"status": "ws:watch:closed"}
         try:
             await ws.send_json(data=data)
         except ConnectionResetError:
@@ -218,17 +212,26 @@ async def wscom_watcher_close(request, uniqueId, ws=None, data=None):
 
     logging.info(f"{uniqueId}: watcher closed")
 
+
 class DispatcherUnsupportedRequest(Exception):
     def __init__(self, action, path):
-        Exception.__init__(self, f"Dispatcher does not support {action}:{path} with provided dataRequest")
+        Exception.__init__(
+            self,
+            f"Dispatcher does not support {action}:{path} with provided dataRequest",
+        )
+
 
 class DeepLinkAlreadySet(Exception):
     def __init__(self, deeplink, dispatchers_app_key):
-        Exception.__init__(self, f"The deeplink {deeplink} is already registred for {dispatchers_app_key}")
+        Exception.__init__(
+            self,
+            f"The deeplink {deeplink} is already registred for {dispatchers_app_key}",
+        )
+
 
 def wscom_setup(app, dispatchers_app_key, deeplink, dispatch):
     """Setup a dispatcher function for a deeplink
-    
+
     Final target is a dict of dispatcher functions for all deeplink that will be received on the websocket.
 
     app[dispatchers_app_key] = {
@@ -240,7 +243,7 @@ def wscom_setup(app, dispatchers_app_key, deeplink, dispatch):
 
     if app.get(dispatchers_app_key) is None:
         app[dispatchers_app_key] = {}
-    
+
     if app[dispatchers_app_key].get(deeplink) is not None:
         raise DeepLinkAlreadySet(deeplink, dispatchers_app_key)
 

@@ -15,27 +15,29 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-'''
+"""
 Setup module
-'''
+"""
 
 from setuptools import setup, find_packages, Command
 
 import os
 import subprocess
 
+
 def execute(cmd):
     proc = subprocess.run(cmd)
     proc.check_returncode()
 
+
 class InitCommand(Command):
-    description="Initialize and Configure the template"
+    description = "Initialize and Configure the template"
 
     user_options = [
         ("name=", None, "Project name"),
         ("desc=", None, "Project description"),
         ("rm-helloworld", "c", "Remove helloworld"),
-        ("git-commit", "g", "Commit for me")
+        ("git-commit", "g", "Commit for me"),
     ]
 
     def initialize_options(self):
@@ -57,15 +59,7 @@ class InitCommand(Command):
             print("    - Remove helloworld")
             os.remove("svc/apis/helloworld.py")
             os.remove("svc/core/helloworld.py")
-            execute(
-                [
-                    "sed",
-                    "-i",
-                    "/helloworld/d",
-                    "svc/core/core.py",
-                    "svc/apiv1.py"
-                ]
-            )
+            execute(["sed", "-i", "/helloworld/d", "svc/core/core.py", "svc/apiv1.py"])
 
         print("    - Setting project name and description")
         execute(
@@ -73,15 +67,17 @@ class InitCommand(Command):
                 "sed",
                 "-i",
                 "s/PROJECT_NAME/{}/;s/$PROJECT_DESC/{}/".format(self.name, self.desc),
-                "svc/config/default.json"
+                "svc/config/default.json",
             ]
         )
         execute(
             [
                 "sed",
                 "-i",
-                "s/'devops_console'/'{}'/;s/'DevOps Console Backend'/'{}'/".format(self.name, self.desc),
-                "setup.py"
+                "s/'devops_console'/'{}'/;s/'DevOps Console Backend'/'{}'/".format(
+                    self.name, self.desc
+                ),
+                "setup.py",
             ]
         )
         execute(
@@ -91,7 +87,7 @@ class InitCommand(Command):
                 "s/svc/{}/g".format(self.name),
                 "Dockerfile",
                 "tests/test_service.py",
-                "MANIFEST.in"
+                "MANIFEST.in",
             ]
         )
 
@@ -105,8 +101,9 @@ class InitCommand(Command):
 
         print("  > done")
 
+
 class BootstrapCommand(Command):
-    description="Bootstrap"
+    description = "Bootstrap"
 
     user_options = []
 
@@ -123,62 +120,57 @@ class BootstrapCommand(Command):
 
         print("  > done")
 
+
 setup(
-    name='devops_console',
-    description='DevOps Console Backend',
-    url='',
-    version='0.2.2',
-    python_requires='>=3.7',
-    packages=find_packages(exclude=['tests']),
+    name="devops_console",
+    description="DevOps Console Backend",
+    url="",
+    version="0.2.2",
+    python_requires=">=3.7",
+    packages=find_packages(exclude=["tests"]),
     install_requires=[
-        'aiohttp[speedups]',
-        'aiohttp-swagger',
-        'prometheus_async[aiohttp]',
+        "aiohttp[speedups]",
+        "aiohttp-swagger",
+        "prometheus_async[aiohttp]",
     ],
     extras_require={
-        'dev': [
-            'pylint',
-            'pytest-cov',
-            'bumpversion',
+        "dev": [
+            "pylint",
+            "pytest-cov",
+            "bumpversion",
         ],
-        'prod': [
-            'gunicorn',
+        "prod": [
+            "gunicorn",
         ],
     },
     test_suite="tests",
     include_package_data=True,
-
     # Metadata
-    author='Croix Bleue du Quebec',
-    author_email='devops@qc.croixbleue.ca',
-    license='LGPL-3.0-or-later',
-    long_description=open('README.md').read(),
+    author="Croix Bleue du Quebec",
+    author_email="devops@qc.croixbleue.ca",
+    license="LGPL-3.0-or-later",
+    long_description=open("README.md").read(),
     keywords=["devops", "backend"],
     classifiers=[
         # How mature is this project? Common values are
         #   3 - Alpha
         #   4 - Beta
         #   5 - Production/Stable
-        'Development Status :: 4 - Beta',
-
+        "Development Status :: 4 - Beta",
         # Indicate who your project is intended for
-        'Intended Audience :: Developers',
-
+        "Intended Audience :: Developers",
         # Pick your license as you wish (should match 'license' above)
-        'License :: OSI Approved :: GNU Lesser General Public License v3 or later (LGPLv3+)',
-
-        'Operating System :: OS Independent',
-
+        "License :: OSI Approved :: GNU Lesser General Public License v3 or later (LGPLv3+)",
+        "Operating System :: OS Independent",
         # Specify the Python versions you support here. In particular, ensure
         # that you indicate whether you support Python 2, Python 3 or both.
-        'Programming Language :: Python :: 3 :: Only',
-        'Programming Language :: Python :: 3.7',
-        'Programming Language :: Python :: 3.8',
+        "Programming Language :: Python :: 3 :: Only",
+        "Programming Language :: Python :: 3.7",
+        "Programming Language :: Python :: 3.8",
     ],
-
     # Custom command
     cmdclass={
-        'init': InitCommand,
-        'bootstrap': BootstrapCommand,
+        "init": InitCommand,
+        "bootstrap": BootstrapCommand,
     },
 )
