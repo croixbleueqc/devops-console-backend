@@ -13,43 +13,34 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
+import asyncio
 import threading
-from typing import Any, Dict
+
 from aiohttp import web, WSCloseCode
 from aiohttp.web_log import AccessLogger
 from aiohttp_swagger import setup_swagger
-from devops_console_rest_api.main import serve_threaded
-from devops_sccs.cache import ThreadsafeCache
+from devops_console_rest_api import main as rest_api_main
 
 import logging
 import os
 import weakref
 
-from devops_console.core.core import Core
-from devops_console.models.vault import VaultBitbucket
-
 from .config import Config
 from .core import getCore
 from .api import v1 as api
-from . import monitoring
 
 
-class FilterAccessLogger(AccessLogger):
-    """/health and /metrics filter
+def _start_background_loop(loop: asyncio.AbstractEventLoop):
+    asyncio.set_event_loop(loop)
+    loop.run_forever()
+    loop.close()
 
-    Hidding those requests if we have a 200 OK when we are not in DEBUG
-    """
 
-    def log(self, request, response, time):
-        if (
-            self.logger.level != logging.DEBUG
-            and response.status == 200
-            and request.path in ["/health", "/metrics"]
-        ):
-
-            return
-
-        super().log(request, response, time)
+_LOOP = asyncio.new_event_loop()
+_LOOP_THREAD = threading.Thread(
+    target=_start_background_loop, args=(_LOOP,), daemon=True
+)
+_LOOP_THREAD.start()
 
 
 class App:
@@ -78,12 +69,9 @@ class App:
         aiohttp_access.setLevel(logging_level)
 
         # Application
-        self.app = web.Application(
-            handler_args={"access_log_class": FilterAccessLogger}
-        )
+        self.app = web.Application()
 
         api.setup(self.app)
-        monitoring.setup(self.app)
 
         if config["api"]["swagger"]["url"] is not None:
             setup_swagger(
@@ -96,7 +84,9 @@ class App:
             )
 
         # Create and share the core for all APIs
-        self.app["core"] = getCore(config=config)
+        core = getCore(config=config)
+
+        self.app["core"] = core
 
         # Create and share websockets
         self.app["websockets"] = weakref.WeakSet()
@@ -112,26 +102,34 @@ class App:
         for background_task in getCore().cleanup_background_tasks():
             self.app.on_cleanup.append(background_task)
 
-        # self.cache = ThreadsafeCache()
-
-        rest_api_config = make_rest_api_config(self.config)
-        self.app["rest_api"] = serve_threaded(rest_api_config)
+        # Start subserver
+        self.start_subserver(core.sccs)
 
     def run(self):
-        web.run_app(self.app, host="0.0.0.0", port=5000)
+        web.run_app(self.app, host="0.0.0.0", port=5000, loop=_LOOP)
+
+    def start_subserver(self, sccs) -> None:
+        """Start the FastAPI subserver in a separate thread"""
+
+        # we need to pass a reference of the event loop to the subserver
+        # so that we can make calls from it to the sccs plugin in this thread
+        def run(loop) -> None:
+            rest_api_main.run(
+                cfg=self.config,
+                core_sccs=sccs,
+                loop=_LOOP,
+            )
+
+        thread = threading.Thread(
+            target=run,
+            args=(asyncio.new_event_loop(),),
+            name="FastAPI subserver",
+            daemon=True,
+        )
+        thread.start()
 
 
-def make_rest_api_config(config: Config) -> Dict[str, Any]:
-    rest_api_config: Dict[str, str] = {}
-
-    rest_api_config.update(config["sccs"]["plugins"]["config"]["cbq"])
-    rest_api_config["hook_server"] = config["sccs"]["hook_server"]
-    rest_api_config["vault_bitbucket"] = config["vault_bitbucket"]
-
-    return rest_api_config
-
-
-async def on_shutdown(app: App):
+async def on_shutdown(app: web.Application):
     for ws in set(app["websockets"]):
         await ws.close(code=WSCloseCode.GOING_AWAY, message="Server shutdown")
 

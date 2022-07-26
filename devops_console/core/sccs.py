@@ -34,17 +34,17 @@ class Sccs:
     def context(self, plugin_id, args):
         return self.core.context(plugin_id, args)
 
-    async def get_repositories(self, plugin_id, session, args):
+    async def get_repositories(self, plugin_id, session, *args, **kwargs):
         try:
             async with self.core.context(plugin_id, session) as ctx:
-                return await ctx.get_repositories(args)
+                return await ctx.get_repositories(*args, **kwargs)
         except:
             logging.exception("get repositories")
             raise
 
-    async def watch_repositories(self, plugin_id, session, args):
+    async def watch_repositories(self, plugin_id, session, *args, **kwargs):
         async with self.core.context(plugin_id, session) as ctx:
-            async for event in await ctx.watch_repositories(args=args):
+            async for event in await ctx.watch_repositories(*args, **kwargs):
                 yield event
 
     async def passthrough(self, plugin_id, session, request, args):
@@ -52,11 +52,11 @@ class Sccs:
             return await ctx.passthrough(request, args)
 
     async def get_continuous_deployment_config(
-        self, plugin_id, session, repository, environments, args
+        self, plugin_id, session, repository, environments=None, args=None
     ):
         async with self.core.context(plugin_id, session) as ctx:
             return await ctx.get_continuous_deployment_config(
-                repository, environments, args=args
+                repository=repository, environments=environments, args=args
             )
 
     async def watch_continuous_deployment_config(
@@ -119,9 +119,39 @@ class Sccs:
     async def add_repository(
         self, plugin_id, session, repository, template, template_params, args
     ):
-        async with self.core.context(plugin_id, session) as ctx:
-            return await ctx.add_repository(repository, template, template_params, args)
+        try:
+            async with self.core.context(plugin_id, session) as ctx:
+                return await ctx.add_repository(
+                    repository, template, template_params, args
+                )
+        except:
+            logging.exception("add repository")
+            raise
+
+    async def delete_repository(self, plugin_id, session, repo_name):
+        try:
+            async with self.core.context(plugin_id, session) as ctx:
+                return await ctx.delete_repository(repo_name)
+        except:
+            logging.exception("delete repository")
+            raise
 
     async def compliance_report(self, plugin_id, session, args):
         async with self.core.context(plugin_id, session) as ctx:
             return await ctx.compliance_report(args)
+
+    async def get_webhook_subscriptions(self, plugin_id, session, **kwargs):
+        async with self.core.context(plugin_id, session) as ctx:
+            return await ctx.get_webhook_subscriptions(**kwargs)
+
+    async def create_webhook_subscription(self, plugin_id, session, **kwargs):
+        async with self.core.context(plugin_id, session) as ctx:
+            return await ctx.create_webhook_subscription(**kwargs)
+
+    async def delete_webhook_subscription(self, plugin_id, session, **kwargs):
+        async with self.core.context(plugin_id, session) as ctx:
+            return await ctx.delete_webhook_subscription(**kwargs)
+
+    async def get_projects(self, plugin_id, session):
+        async with self.core.context(plugin_id, session) as ctx:
+            return await ctx.get_projects()

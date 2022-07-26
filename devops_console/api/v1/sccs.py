@@ -26,17 +26,15 @@ async def wscom_dispatcher(request, action, path, body):
 
     if action == "read":
         if path == "/repositories":
-            return await core.sccs.get_repositories(
-                body["plugin"], body["session"], body.get("args")
-            )
+            return await core.sccs.get_repositories(body["plugin"], body["session"])
         elif path == "/repository/cd/config":
             return (
                 await core.sccs.get_continuous_deployment_config(
-                    body["plugin"],
-                    body["session"],
-                    body["repository"],
-                    body.get("environments"),
-                    body.get("args"),
+                    plugin_id=body["plugin"],
+                    session=body["session"],
+                    repository=body["repository"],
+                    environments=body["environment"],
+                    args=body["args"],
                 )
             ).dumps()
         elif path == "/repository/cd/environments_available":
@@ -54,7 +52,7 @@ async def wscom_dispatcher(request, action, path, body):
     elif action == "watch":
         if path == "/repositories":
             return core.sccs.watch_repositories(
-                body["plugin"], body["session"], body.get("args")
+                plugin_id=body["plugin"], session=body["session"], args=body.get("args")
             )
         elif path == "/repository/cd/config":
             return core.sccs.watch_continuous_deployment_config(
