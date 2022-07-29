@@ -23,7 +23,7 @@ from ...wscom import DispatcherUnsupportedRequest
 
 async def wscom_dispatcher(request, action, path, body):
     core: Core = request.config_dict["core"]
-
+    return
     if action == "watch":
         if path == "/pods":
             return await core.kubernetes.pods_watch(

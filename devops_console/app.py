@@ -43,6 +43,24 @@ _LOOP_THREAD = threading.Thread(
 _LOOP_THREAD.start()
 
 
+class FilterAccessLogger(AccessLogger):
+    """/health and /metrics filter
+
+    Hidding those requests if we have a 200 OK when we are not in DEBUG
+    """
+
+    def log(self, request, response, time):
+        if (
+            self.logger.level != logging.DEBUG
+            and response.status == 200
+            and request.path in ["/health", "/metrics"]
+        ):
+
+            return
+
+        super().log(request, response, time)
+
+
 class App:
     def __init__(self, config: Config | None = None):
         # Config

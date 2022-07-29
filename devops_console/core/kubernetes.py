@@ -29,18 +29,48 @@ class Kubernetes(object):
         self.core = await K8sCore.create(self.config)
 
     async def pods_watch(self, sccs_plugin, sccs_session, repository, environment):
-        bridge = await self.sccs.bridge_repository_to_namespace(
-            sccs_plugin, sccs_session, repository, environment
-        )
+        """Return a generator iterator of events for the pods of the given repository.
+        see core.py in python-devops-kubernetes for the event shape.
+        """
+        clusters: list[str] = self.config["clusters"].keys()
 
-        async def pods_watch_with_bridge_info():
-            yield {"type": "INFO", "key": "bridge", "value": bridge}
+        suffixmap = {
+            "accept-2": "accept2",
+            "acceptation": "accept",
+            "development": "dev",
+            "development-2": "dev2",
+            "master": None,
+            "pre-production": "preprod",
+            "production": "prod",
+            "qa": "qa",
+            "quality-assurance-2": "qa2",
+            "training": "formation",
+        }
 
-            async with self.core.context(bridge["cluster"]) as ctx:
-                async for event in ctx.pods(bridge["namespace"]):
-                    yield event
+        env: str = suffixmap[environment] if environment in suffixmap else environment
 
-        return pods_watch_with_bridge_info()
+        namespace = repository + "-" + env if env else repository
+
+        async def gen():
+            nonlocal namespace
+            nonlocal clusters
+            for cluster in clusters:
+                yield {
+                    "type": "INFO",
+                    "key": "bridge",
+                    "value": {
+                        "cluster": cluster,
+                        "namespace": namespace,
+                        "repository": {
+                            "write_access": False,
+                        },
+                    },
+                }
+                async with self.core.context(cluster=cluster) as ctx:
+                    async for event in ctx.pods(namespace):
+                        yield event
+
+        return gen()
 
     async def delete_pod(
         self, sccs_plugin, sccs_session, repository, environment, pod_name

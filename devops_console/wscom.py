@@ -72,12 +72,14 @@ async def wscom_generic_handler(request, dispatchers_app_key):
     await ws.prepare(request)
 
     logging.info("connected")
+    print("wscom_generic_handler: connected")
 
     request.app["websockets"].add(ws)
     request[WATCHERS] = weakref.WeakValueDictionary()
     dispatchers = request.app.get(dispatchers_app_key, {})
     try:
         async for msg in ws:
+            print(f"received websocket message:\n {msg}")
             if msg.type == WSMsgType.TEXT:
                 try:
                     data = json.loads(msg.data)
