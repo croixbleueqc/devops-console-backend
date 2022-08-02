@@ -16,9 +16,10 @@
 # along with devops-console-backend.  If not, see <https://www.gnu.org/licenses/>.
 
 import logging
+
 from devops_sccs.core import Core as SccsCore
 
-from devops_console.config import Config
+from ..config import Config
 
 
 class Sccs:

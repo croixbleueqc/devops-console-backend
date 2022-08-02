@@ -12,7 +12,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-from devops_console.config import Config
+from ..config import Config
 from .core import Core
 
 _core = None

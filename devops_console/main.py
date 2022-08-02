@@ -17,7 +17,7 @@
 # along with devops-console-backend.  If not, see <https://www.gnu.org/licenses/>.
 
 
-from devops_console.app import App
+from .app import App
 
 if __name__ == "__main__":
     App().run()
