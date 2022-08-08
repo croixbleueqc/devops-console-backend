@@ -19,7 +19,4 @@
 
 from devops_console.app import App
 
-if __name__ == "__main__":
-    App().run()
-else:
-    application = App().app
+application = App().app
