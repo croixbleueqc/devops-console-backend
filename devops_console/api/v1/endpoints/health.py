@@ -17,10 +17,14 @@
 # along with devops-console-backend.  If not, see <https://www.gnu.org/licenses/>.
 
 from aiohttp import web
+from fastapi import APIRouter
+
+router = APIRouter()
 
 routes = web.RouteTableDef()
 
-@routes.get('/health')
+
+@router.get("/health")
 async def health(request):
     """
     ---
@@ -33,4 +37,4 @@ async def health(request):
         "200":
             description: success
     """
-    return web.json_response({'status' : True})
+    return {"status": True}

@@ -1,4 +1,4 @@
-# Copyright 2021 Croix Bleue du Québec
+# Copyright 2020 Croix Bleue du Québec
 
 # This file is part of devops-console-backend.
 
@@ -15,17 +15,22 @@
 # You should have received a copy of the GNU Lesser General Public License
 # along with devops-console-backend.  If not, see <https://www.gnu.org/licenses/>.
 
-from ...core import Core
-from ...wscom import DispatcherUnsupportedRequest
+from fastapi import APIRouter, WebSocket
 
-# WebSocket (wscom) section
+from ....wscom import wscom_generic_handler
+from . import kubernetes, oauth2, sccs
+
+router = APIRouter()
+
+handlers = {
+    "k8s": kubernetes.wscom_dispatcher,
+    "oauth2": oauth2.wscom_dispatcher,
+    "sccs": sccs.wscom_dispatcher,
+}
 
 
-async def wscom_dispatcher(request, action, path, body):
-    core: Core = request.config_dict["core"]
+@router.websocket("/wscom1")
+async def wscom1_handler(websocket: WebSocket):
+    """Websocket Com1"""
 
-    if action == "read":
-        if path == "/config":
-            return await core.OAuth2.get_config()
-
-    raise DispatcherUnsupportedRequest(action, path)
+    return await wscom_generic_handler(websocket, handlers)

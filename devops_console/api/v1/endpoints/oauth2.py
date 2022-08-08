@@ -1,4 +1,4 @@
-# Copyright 2020 Croix Bleue du Québec
+# Copyright 2021 Croix Bleue du Québec
 
 # This file is part of devops-console-backend.
 
@@ -15,31 +15,16 @@
 # You should have received a copy of the GNU Lesser General Public License
 # along with devops-console-backend.  If not, see <https://www.gnu.org/licenses/>.
 
-from ...core import Core
-from ...wscom import DispatcherUnsupportedRequest
+from ....core import get_core
+from ....wscom import DispatcherUnsupportedRequest
 
 # WebSocket (wscom) section
 
 
-async def wscom_dispatcher(request, action, path, body):
-    core: Core = request.config_dict["core"]
-    return
-    if action == "watch":
-        if path == "/pods":
-            return await core.kubernetes.pods_watch(
-                body["sccs_plugin"],
-                body["sccs_session"],
-                body["repository"],
-                body["environment"],
-            )
-    elif action == "delete":
-        if path == "/pod":
-            return await core.kubernetes.delete_pod(
-                body["sccs_plugin"],
-                body["sccs_session"],
-                body["repository"],
-                body["environment"],
-                body["name"],
-            )
+async def wscom_dispatcher(websocket, action, path, body):
+    core = get_core()
+    if action == "read":
+        if path == "/config":
+            return await core.OAuth2.get_config()
 
     raise DispatcherUnsupportedRequest(action, path)

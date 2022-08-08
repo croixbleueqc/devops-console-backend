@@ -15,14 +15,14 @@
 # You should have received a copy of the GNU Lesser General Public License
 # along with devops-console-backend.  If not, see <https://www.gnu.org/licenses/>.
 
-from ...core import Core
-from ...wscom import DispatcherUnsupportedRequest
+from ....core import get_core
+from ....wscom import DispatcherUnsupportedRequest
 
 # WebSocket (wscom) section
 
 
 async def wscom_dispatcher(request, action, path, body):
-    core: Core = request.config_dict["core"]
+    core = get_core()
 
     if action == "read":
         if path == "/repositories":
