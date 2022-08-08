@@ -1,22 +1,59 @@
 # Copyright 2019 mickybart
 # Copyright 2020 Croix Bleue du Québec
 
-# This file is part of devops-console-backend.
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
 
-# devops-console-backend is free software: you can redistribute it and/or modify
-# it under the terms of the GNU Lesser General Public License as published by
-# the Free Software Foundation, either version 3 of the License, or
-# (at your option) any later version.
+#     http://www.apache.org/licenses/LICENSE-2.0
 
-# devops-console-backend is distributed in the hope that it will be useful,
-# but WITHOUT ANY WARRANTY; without even the implied warranty of
-# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-# GNU Lesser General Public License for more details.
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
 
-# You should have received a copy of the GNU Lesser General Public License
-# along with devops-console-backend.  If not, see <https://www.gnu.org/licenses/>.
+# from devops_console_rest_api import main as rest_api_main
+
+from fastapi import FastAPI
+
+from devops_console.core.core import Core
+
+from .api.v1.router import router
+from .config import Config
+from .core import get_core
+
+core: Core
 
 
-from devops_console.app import App
+class App:
+    def __init__(self, config: Config | None = None):
+        # Config
+        if config is None:
+            config = Config()
+        self.config = config
 
-application = App().app
+        global core
+        core = get_core(config=config)
+
+        # Application
+        app = FastAPI()
+
+        # Create and share the core for all APIs
+        app.include_router(router)
+
+        # Create and share websockets
+
+        # Set background tasks (startup)
+        @app.on_event("startup")
+        async def startup():
+            for task in get_core().startup_tasks():
+                await task()
+
+        # shutdown
+        @app.on_event("shutdown")
+        async def shutdown():
+            for task in get_core().shutdown_tasks():
+                await task()
+
+        self.app = app
