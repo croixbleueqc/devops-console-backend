@@ -25,7 +25,7 @@ class Kubernetes(object):
         self.sccs = sccs
         self.core: K8sCore
 
-    async def init(self, app):
+    async def init(self):
         self.core = await K8sCore.create(self.config)
 
     async def pods_watch(self, sccs_plugin, sccs_session, repository, environment):

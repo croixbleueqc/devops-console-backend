@@ -28,7 +28,7 @@ class Sccs:
         self.config = config
         self.core: SccsCore
 
-    async def init(self, app) -> None:
+    async def init(self) -> None:
         self.core = await SccsCore.create(self.config)
 
     def context(self, plugin_id, args):

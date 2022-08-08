@@ -18,7 +18,7 @@ from .core import Core
 _core = None
 
 
-def getCore(config: Config | None = None) -> Core:
+def get_core(config: Config | None = None) -> Core:
     """Get a unique core
 
     Returns:

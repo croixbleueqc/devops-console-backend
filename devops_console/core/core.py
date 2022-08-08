@@ -31,8 +31,8 @@ class Core:
         self.kubernetes = Kubernetes(self.config.get("kubernetes", {}), self.sccs)
         self.OAuth2 = OAuth2(self.config.get("OAuth2", {}))
 
-    def startup_background_tasks(self) -> list:
+    def startup_tasks(self) -> list:
         return [self.sccs.init, self.kubernetes.init, self.OAuth2.init]
 
-    def cleanup_background_tasks(self) -> list:
+    def shutdown_tasks(self) -> list:
         return []

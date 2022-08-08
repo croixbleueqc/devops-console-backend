@@ -22,7 +22,7 @@ class OAuth2(object):
     def __init__(self, config):
         self.config = config
 
-    async def init(self, app):
+    async def init(self):
         pass
 
     async def get_config(self):
