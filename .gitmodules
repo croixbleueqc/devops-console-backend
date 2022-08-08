@@ -1,11 +1,4 @@
 
-[submodule "_submodules/python-typing-engine"]
-  path = _submodules/python-typing-engine
-  url = https://github.com/croixbleueqc/python-typing-engine.git
-[submodule "_submodules/python-aiobitbucket"]
-  path = _submodules/python-aiobitbucket
-  url = https://github.com/croixbleueqc/python-aiobitbucket.git
-  branch = develop
 [submodule "_submodules/python-devops-sccs"]
   path = _submodules/python-devops-sccs
   url = https://github.com/croixbleueqc/python-devops-sccs.git
