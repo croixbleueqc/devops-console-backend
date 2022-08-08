@@ -13,52 +13,17 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-import asyncio
-import threading
+# from devops_console_rest_api import main as rest_api_main
 
-from aiohttp import web, WSCloseCode
-from aiohttp.web_log import AccessLogger
-from aiohttp_swagger import setup_swagger
-from devops_console_rest_api import main as rest_api_main
+from fastapi import FastAPI
 
-import logging
-import os
-import weakref
+from devops_console.core.core import Core
 
+from .api.v1.router import router
 from .config import Config
-from .core import getCore
-from .api import v1 as api
+from .core import get_core
 
-
-def _start_background_loop(loop: asyncio.AbstractEventLoop):
-    asyncio.set_event_loop(loop)
-    loop.run_forever()
-    loop.close()
-
-
-_LOOP = asyncio.new_event_loop()
-_LOOP_THREAD = threading.Thread(
-    target=_start_background_loop, args=(_LOOP,), daemon=True
-)
-_LOOP_THREAD.start()
-
-
-class FilterAccessLogger(AccessLogger):
-    """/health and /metrics filter
-
-    Hidding those requests if we have a 200 OK when we are not in DEBUG
-    """
-
-    def log(self, request, response, time):
-        if (
-            self.logger.level != logging.DEBUG
-            and response.status == 200
-            and request.path in ["/health", "/metrics"]
-        ):
-
-            return
-
-        super().log(request, response, time)
+core: Core
 
 
 class App:
@@ -68,87 +33,27 @@ class App:
             config = Config()
         self.config = config
 
-        # Logging
-        logging_default_format = (
-            "[%(asctime)s] %(levelname)s in %(module)s: %(message)s"
-        )
-
-        gunicorn_error = logging.getLogger("gunicorn.error")
-        if len(gunicorn_error.handlers) != 0:
-            # Seems to use gunicorn so we are using the provided logging level
-            logging_level = gunicorn_error.level
-        else:
-            # using LOGGING_LEVEL env or fallback to DEBUG
-            logging_level = int(os.environ.get("LOGGING_LEVEL", logging.DEBUG))
-
-        logging.basicConfig(level=logging_level, format=logging_default_format)
-
-        aiohttp_access = logging.getLogger("aiohttp.access")
-        aiohttp_access.setLevel(logging_level)
+        global core
+        core = get_core(config=config)
 
         # Application
-        self.app = web.Application()
-
-        api.setup(self.app)
-
-        if config["api"]["swagger"]["url"] is not None:
-            setup_swagger(
-                self.app,
-                title=config["api"]["title"],
-                api_version=config["api"]["version"],
-                description=config["api"]["description"],
-                swagger_url=config["api"]["swagger"]["url"],
-                ui_version=3,
-            )
+        app = FastAPI()
 
         # Create and share the core for all APIs
-        core = getCore(config=config)
-
-        self.app["core"] = core
+        app.include_router(router)
 
         # Create and share websockets
-        self.app["websockets"] = weakref.WeakSet()
 
         # Set background tasks (startup)
-        for background_task in getCore().startup_background_tasks():
-            self.app.on_startup.append(background_task)
+        @app.on_event("startup")
+        async def startup():
+            for task in get_core().startup_tasks():
+                await task()
 
         # shutdown
-        self.app.on_shutdown.append(on_shutdown)
+        @app.on_event("shutdown")
+        async def shutdown():
+            for task in get_core().shutdown_tasks():
+                await task()
 
-        # Set background tasks (cleanup)
-        for background_task in getCore().cleanup_background_tasks():
-            self.app.on_cleanup.append(background_task)
-
-        # Start subserver
-        self.start_subserver(core.sccs)
-
-    def run(self):
-        web.run_app(self.app, host="0.0.0.0", port=5000, loop=_LOOP)
-
-    def start_subserver(self, sccs) -> None:
-        """Start the FastAPI subserver in a separate thread"""
-
-        # we need to pass a reference of the event loop to the subserver
-        # so that we can make calls from it to the sccs plugin in this thread
-        def run(loop) -> None:
-            rest_api_main.run(
-                cfg=self.config,
-                core_sccs=sccs,
-                loop=_LOOP,
-            )
-
-        thread = threading.Thread(
-            target=run,
-            args=(asyncio.new_event_loop(),),
-            name="FastAPI subserver",
-            daemon=True,
-        )
-        thread.start()
-
-
-async def on_shutdown(app: web.Application):
-    for ws in set(app["websockets"]):
-        await ws.close(code=WSCloseCode.GOING_AWAY, message="Server shutdown")
-
-    # app["rest_api"].join()
+        self.app = app
