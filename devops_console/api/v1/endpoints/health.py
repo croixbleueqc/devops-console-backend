@@ -16,12 +16,9 @@
 # You should have received a copy of the GNU Lesser General Public License
 # along with devops-console-backend.  If not, see <https://www.gnu.org/licenses/>.
 
-from aiohttp import web
 from fastapi import APIRouter
 
 router = APIRouter()
-
-routes = web.RouteTableDef()
 
 
 @router.get("/health")

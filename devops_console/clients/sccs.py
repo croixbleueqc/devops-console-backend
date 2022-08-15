@@ -16,23 +16,34 @@
 # along with devops-console-backend.  If not, see <https://www.gnu.org/licenses/>.
 
 import logging
-from devops_sccs.core import Core as SccsCore
 
-from devops_console.config import Config
+from devops_sccs.client import SccsClient
+
+from ..schemas.userconfig import SCCSConfig
 
 
 class Sccs:
     """Sccs Core"""
 
-    def __init__(self, config: Config):
+    def __init__(self, config: SCCSConfig):
         self.config = config
-        self.core: SccsCore
+        self.core: SccsClient
 
     async def init(self) -> None:
-        self.core = await SccsCore.create(self.config)
+        self.core = await SccsClient.create(self.config.dict())
+        """ TODO: propagate models so that we can use them directly rather
+        than having to "dict()" them """
 
     def context(self, plugin_id, args):
         return self.core.context(plugin_id, args)
+
+    async def get_repository(self, plugin_id, session, *args, **kwargs):
+        try:
+            async with self.core.context(plugin_id, session) as ctx:
+                return await ctx.get_repository(*args, **kwargs)
+        except:
+            logging.exception("Failed to get repository")
+            raise
 
     async def get_repositories(self, plugin_id, session, *args, **kwargs):
         try:

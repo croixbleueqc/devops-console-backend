@@ -1,21 +1,21 @@
-FROM python:3
-EXPOSE 5000
-EXPOSE 5001
+FROM python:3.10
 
-WORKDIR /usr/src/app/
-
-COPY ./_submodules _submodules/
-RUN pip install --upgrade --compile _submodules/*
+# install poetry
+RUN apt update && apt install -y curl
+ENV POETRY_HOME /opt/poetry
+RUN curl -sSL https://install.python-poetry.org | python3 - 
+ENV PATH $PATH:${POETRY_HOME}/bin/poetry
 
 # Copy necessary files
-COPY ./devops_console devops_console
-COPY ./setup.py .
-COPY ./README.md .
-COPY ./MANIFEST.in .
+WORKDIR /usr/src/app/
+COPY _submodules _submodules/
+COPY devops_console devops_console/
+COPY pyproject.toml poetry.lock README.md MANIFEST.in ./
 
-RUN pip install --no-cache-dir --compile .[prod]
+RUN poetry install --extras local,prod --no-dev
 
 # Remove source code to avoid any confusion with the real one executed.
-RUN rm -rf devops_console setup.py README.md MANIFEST.in _submodules
+RUN rm -rf devops_console pyproject.toml poetry.lock README.md MANIFEST.in _submodules
 
-CMD gunicorn devops_console.main:application --bind 0.0.0.0:5000 --worker-class aiohttp.worker.GunicornWebWorker --access-logfile - --log-level debug
+EXPOSE 5000
+CMD gunicorn --bind 0.0.0.0:5000 --worker-class uvicorn.workers.UvicornWorker --access-logfile - devops_console.main:app 

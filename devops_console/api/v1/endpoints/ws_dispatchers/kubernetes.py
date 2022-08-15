@@ -15,14 +15,13 @@
 # You should have received a copy of the GNU Lesser General Public License
 # along with devops-console-backend.  If not, see <https://www.gnu.org/licenses/>.
 
-from ....core import get_core
-from ....wscom import DispatcherUnsupportedRequest
 
-# WebSocket (wscom) section
+from devops_console.clients.client import CoreClient
+from devops_console.clients.wscom import DispatcherUnsupportedRequest
 
 
 async def wscom_dispatcher(request, action, path, body):
-    core = get_core()
+    core = CoreClient()
     if action == "watch":
         if path == "/pods":
             return await core.kubernetes.pods_watch(

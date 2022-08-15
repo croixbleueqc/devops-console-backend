@@ -13,47 +13,72 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-# from devops_console_rest_api import main as rest_api_main
 
-from fastapi import FastAPI
-
-from devops_console.core.core import Core
+from fastapi import FastAPI, HTTPException, status, Request
+from fastapi.responses import RedirectResponse
+from fastapi.middleware.cors import CORSMiddleware
 
 from .api.v1.router import router
-from .config import Config
-from .core import get_core
+from .api.v2.router import router as router_v2
+from .core.config import settings
+from .clients.client import CoreClient
+from .webhooks_server.app import app as webhooks_server
 
-core: Core
+# from .api.deps import azure_scheme
+
+# initialize core
+core = CoreClient()
+
+app = FastAPI(
+    # swagger_ui_oauth2_redirect_url="/oauth2-redirect",
+    # swagger_ui_init_oauth={
+    #     "usePkceWithAuthorizationCodeGrant": True,
+    #     "clientId": settings.OPENAPI_CLIENT_ID,
+    # },
+)
 
 
-class App:
-    def __init__(self, config: Config | None = None):
-        # Config
-        if config is None:
-            config = Config()
-        self.config = config
+if settings.BACKEND_CORS_ORIGINS:
+    app.add_middleware(
+        CORSMiddleware,
+        allow_origins=settings.BACKEND_CORS_ORIGINS,
+        allow_credentials=True,
+        allow_methods=["*"],
+        allow_headers=["*"],
+    )
 
-        global core
-        core = get_core(config=config)
+# main API
+app.include_router(router)
+app.include_router(router_v2)
 
-        # Application
-        app = FastAPI()
+# webhook server mounted as a "subapp" to decouple it from the main API
+app.mount(settings.WEBHOOKS_PATH, webhooks_server)
 
-        # Create and share the core for all APIs
-        app.include_router(router)
 
-        # Create and share websockets
+@app.exception_handler(HTTPException)
+async def redirect_unauthorized(request: Request, exc):
+    if exc.status_code == status.HTTP_401_UNAUTHORIZED:
+        # redirect to login page
+        return RedirectResponse(url=f"{settings.API_V2_STR}/login")
+    raise exc
 
-        # Set background tasks (startup)
-        @app.on_event("startup")
-        async def startup():
-            for task in get_core().startup_tasks():
-                await task()
 
-        # shutdown
-        @app.on_event("shutdown")
-        async def shutdown():
-            for task in get_core().shutdown_tasks():
-                await task()
+@app.on_event("startup")
+async def startup():
+    for task in core.startup_tasks():
+        await task()
+    # load OpenID config
+    # await azure_scheme.openid_config.load_config()
 
-        self.app = app
+
+# shutdown
+@app.on_event("shutdown")
+async def shutdown():
+    for task in core.shutdown_tasks():
+        await task()
+
+
+if __name__ == "__main__":
+    import uvicorn
+
+    uvicorn.run("main:app", reload=True, port=5000)

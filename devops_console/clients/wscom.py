@@ -18,7 +18,7 @@
 import asyncio
 import logging
 import json
-from typing import Any, Type
+from typing import Type
 import weakref
 from fastapi import WebSocket, WebSocketDisconnect
 from pydantic import BaseModel

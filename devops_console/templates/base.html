@@ -1,0 +1,24 @@
+<!DOCTYPE html>
+<html lang="fr">
+
+<head>
+    <title>Event Horizon</title>
+
+    <!--htmx-->
+    <script src="https://unpkg.com/htmx.org@1.8.0"
+        integrity="sha384-cZuAZ+ZbwkNRnrKi05G/fjBX+azI9DNOkNYysZ0I/X5ZFgsmMiBXgDZof30F5ofc"
+        crossorigin="anonymous"></script>
+</head>
+
+<body>
+    <header>
+        {% block header %}
+        {% include "fragments/header.html" %}
+        {% endblock %}
+    </header>
+    <main>
+        {% block content %}{% endblock %}
+    </main>
+    {% block scripts %}
+    {% endblock %}
+</body>

@@ -18,21 +18,32 @@
 # You should have received a copy of the GNU Lesser General Public License
 # along with devops-console-backend.  If not, see <https://www.gnu.org/licenses/>.
 
-from ..config import Config
+from ..core.config import settings
 from .kubernetes import Kubernetes
-from .OAuth2 import OAuth2
+from .oauth2 import OAuth2
 from .sccs import Sccs
 
 
-class Core:
-    def __init__(self, config: Config | None = None):
-        self.config = config or Config()
-        self.sccs = Sccs(self.config.get("sccs", {}))
-        self.kubernetes = Kubernetes(self.config.get("kubernetes", {}), self.sccs)
-        self.OAuth2 = OAuth2(self.config.get("OAuth2", {}))
+class CoreClient:
+    """Singleton class containing the core crud clients."""
+
+    _client = None
+
+    def __new__(cls):
+        if cls._client is not None:
+            return cls._client
+
+        cls._client = super(CoreClient, cls).__new__(cls)
+
+        cls.config = settings.userconfig
+        cls.sccs = Sccs(cls.config.sccs)
+        cls.kubernetes = Kubernetes(cls.config.kubernetes, cls.sccs)
+        cls.oauth2 = OAuth2(cls.config.oauth2)
+
+        return cls._client
 
     def startup_tasks(self) -> list:
-        return [self.sccs.init, self.kubernetes.init, self.OAuth2.init]
+        return [self.sccs.init, self.kubernetes.init, self.oauth2.init]
 
     def shutdown_tasks(self) -> list:
         return []

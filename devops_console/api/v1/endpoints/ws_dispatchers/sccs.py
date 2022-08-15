@@ -15,21 +15,20 @@
 # You should have received a copy of the GNU Lesser General Public License
 # along with devops-console-backend.  If not, see <https://www.gnu.org/licenses/>.
 
-from ....core import get_core
-from ....wscom import DispatcherUnsupportedRequest
 
-# WebSocket (wscom) section
+from devops_console.clients.client import CoreClient
+from devops_console.clients.wscom import DispatcherUnsupportedRequest
 
 
 async def wscom_dispatcher(request, action, path, body):
-    core = get_core()
+    client = CoreClient()
 
     if action == "read":
         if path == "/repositories":
-            return await core.sccs.get_repositories(body["plugin"], body["session"])
+            return await client.sccs.get_repositories(body["plugin"], body["session"])
         elif path == "/repository/cd/config":
             return (
-                await core.sccs.get_continuous_deployment_config(
+                await client.sccs.get_continuous_deployment_config(
                     plugin_id=body["plugin"],
                     session=body["session"],
                     repository=body["repository"],
@@ -38,24 +37,24 @@ async def wscom_dispatcher(request, action, path, body):
                 )
             ).dumps()
         elif path == "/repository/cd/environments_available":
-            return await core.sccs.get_continuous_deployment_environments_available(
+            return await client.sccs.get_continuous_deployment_environments_available(
                 body["plugin"], body["session"], body["repository"], body.get("args")
             )
         elif path == "/repository/add/contract":
-            return await core.sccs.get_add_repository_contract(
+            return await client.sccs.get_add_repository_contract(
                 body["plugin"], body["session"]
             )
         elif path == "/repositories/compliance/report":
-            return await core.sccs.compliance_report(
+            return await client.sccs.compliance_report(
                 body["plugin"], body["session"], body.get("args")
             )
     elif action == "watch":
         if path == "/repositories":
-            return core.sccs.watch_repositories(
+            return client.sccs.watch_repositories(
                 plugin_id=body["plugin"], session=body["session"], args=body.get("args")
             )
         elif path == "/repository/cd/config":
-            return core.sccs.watch_continuous_deployment_config(
+            return client.sccs.watch_continuous_deployment_config(
                 body["plugin"],
                 body["session"],
                 body["repository"],
@@ -63,17 +62,17 @@ async def wscom_dispatcher(request, action, path, body):
                 body.get("args"),
             )
         elif path == "/repository/cd/versions_available":
-            return core.sccs.watch_continuous_deployment_versions_available(
+            return client.sccs.watch_continuous_deployment_versions_available(
                 body["plugin"], body["session"], body["repository"], body.get("args")
             )
         elif path == "/repository/cd/environments_available":
-            return core.sccs.watch_continuous_deployment_environments_available(
+            return client.sccs.watch_continuous_deployment_environments_available(
                 body["plugin"], body["session"], body["repository"], body.get("args")
             )
     elif action == "write":
         if path == "/repository/cd/trigger":
             return (
-                await core.sccs.trigger_continuous_deployment(
+                await client.sccs.trigger_continuous_deployment(
                     body["plugin"],
                     body["session"],
                     body["repository"],
@@ -83,7 +82,7 @@ async def wscom_dispatcher(request, action, path, body):
                 )
             ).dumps()
         elif path == "/repository/add":
-            return await core.sccs.add_repository(
+            return await client.sccs.add_repository(
                 body["plugin"],
                 body["session"],
                 body["repository"],
@@ -93,7 +92,7 @@ async def wscom_dispatcher(request, action, path, body):
             )
     elif action == "":
         if path == "/passthrough":
-            return await core.sccs.passthrough(
+            return await client.sccs.passthrough(
                 body["plugin"], body["session"], body["request"], body.get("args")
             )
 

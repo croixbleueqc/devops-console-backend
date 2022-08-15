@@ -15,24 +15,26 @@
 # You should have received a copy of the GNU Lesser General Public License
 # along with devops-console-backend.  If not, see <https://www.gnu.org/licenses/>.
 
-from devops_kubernetes.core import Core as K8sCore
 from devops_sccs.errors import AccessForbidden
+from devops_kubernetes.client import K8sClient
+
+from ..schemas.userconfig import KubernetesConfig
 
 
 class Kubernetes(object):
-    def __init__(self, config, sccs):
+    def __init__(self, config: KubernetesConfig, sccs):
         self.config = config
         self.sccs = sccs
-        self.core: K8sCore
+        self.client: K8sClient
 
     async def init(self):
-        self.core = await K8sCore.create(self.config)
+        self.client = await K8sClient.create(self.config.dict())
 
     async def pods_watch(self, sccs_plugin, sccs_session, repository, environment):
         """Return a generator iterator of events for the pods of the given repository.
         see core.py in python-devops-kubernetes for the event shape.
         """
-        clusters: list[str] = self.config["clusters"].keys()
+        clusters = self.config.clusters.keys()
 
         suffixmap = {
             "accept-2": "accept2",
@@ -66,7 +68,7 @@ class Kubernetes(object):
                         },
                     },
                 }
-                async with self.core.context(cluster=cluster) as ctx:
+                async with self.client.context(cluster=cluster) as ctx:
                     async for event in ctx.pods(namespace):
                         yield event
 
@@ -84,5 +86,5 @@ class Kubernetes(object):
                 f"You don't have write access on {repository} to delete a pod"
             )
 
-        async with self.core.context(bridge["cluster"]) as ctx:
+        async with self.client.context(bridge["cluster"]) as ctx:
             await ctx.delete_pod(pod_name, bridge["namespace"])

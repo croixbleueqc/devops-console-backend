@@ -16,10 +16,13 @@
 # along with devops-console-backend.  If not, see <https://www.gnu.org/licenses/>.
 
 
+from ..schemas.userconfig import OAuth2Config
+
+
 class OAuth2(object):
     """OAuth2 Core"""
 
-    def __init__(self, config):
+    def __init__(self, config: OAuth2Config):
         self.config = config
 
     async def init(self):

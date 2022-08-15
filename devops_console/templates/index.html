@@ -1,0 +1,17 @@
+{% extends "base.html" %}
+{% block content %}
+{% if user %}
+<div>
+    <h1>Hello {{ user }}!</h1>
+    <p>
+        This is the home page.
+    </p>
+</div>
+{% else %}
+{% endif %}
+{% endblock %}
+{% block scripts %}
+<script>
+
+</script>
+{% endblock %}

@@ -30,7 +30,7 @@ class Storage(BaseModel):
 
 
 class SU(BaseModel):
-    skip_vault: bool | None = False
+    skip_vault: bool = False
     tmp: str
     vault_secret: str
     vault_mount: str
