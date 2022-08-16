@@ -3,18 +3,25 @@
 
 <head>
     <title>Event Horizon</title>
-
     <!--htmx-->
     <script src="https://unpkg.com/htmx.org@1.8.0"
         integrity="sha384-cZuAZ+ZbwkNRnrKi05G/fjBX+azI9DNOkNYysZ0I/X5ZFgsmMiBXgDZof30F5ofc"
         crossorigin="anonymous"></script>
+    <!--css-->
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/purecss@2.1.0/build/pure-min.css"
+        integrity="sha384-yHIFVG6ClnONEA5yB5DJXfW2/KC173DIQrYoZMEtBvGzmf0PKiGyNEqe9N6BNDBH" crossorigin="anonymous">
 </head>
 
-<body>
+<body hx-target="main" hx-swap="innerHTML">
     <header>
-        {% block header %}
-        {% include "fragments/header.html" %}
-        {% endblock %}
+        <nav class="pure-menu pure-menu-horizontal">
+            <ul class="pure-menu-list">
+                <li class="pure-menu-item"><a hx-get="/" class="pure-menu-link">Home</a></li>
+                <li class="pure-menu-item"><a hx-get="/users" class="pure-menu-link">Users</a></li>
+                <li class="pure-menu-item"><a hx-get="/logout" hx-boost="true" class="pure-menu-link">Log out</a></li>
+            </ul>
+        </nav>
+        <hr>
     </header>
     <main>
         {% block content %}{% endblock %}

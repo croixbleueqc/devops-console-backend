@@ -1,17 +1,15 @@
 {% extends "base.html" %}
-{% block content %}
-{% if user %}
-<div>
-    <h1>Hello {{ user }}!</h1>
-    <p>
-        This is the home page.
-    </p>
-</div>
-{% else %}
-{% endif %}
-{% endblock %}
-{% block scripts %}
-<script>
 
-</script>
+{% block content %}
+<div>
+    <h1>Welcome, {{ user.full_name }}</h1>
+    <hr>
+    <h3>View a repository <span>
+            <select hx-bind="repository" hx-on-change="repositoryChanged">
+                {% for repository in repositories %}
+                <option value="{{repository.id}}">{{repository.name}}</option>
+                {% endfor %}
+            </select>
+        </span></h3>
+</div>
 {% endblock %}

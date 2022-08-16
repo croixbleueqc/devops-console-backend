@@ -65,7 +65,7 @@ async def get_current_user(
             token, settings.SECRET_KEY, algorithms=[settings.ALGORITHM]
         )
         token_data = schemas.TokenData(**payload)
-    except (JWTError, ValidationError):
+    except (JWTError, ValidationError) as e:
         raise credentials_exception
 
     user = crud.user.get(db, id=token_data.sub)
@@ -73,3 +73,13 @@ async def get_current_user(
         raise credentials_exception
 
     return user
+
+
+async def has_valid_token(token: str = Depends(oauth2_scheme)):
+    try:
+        jwt.decode(token, settings.SECRET_KEY, algorithms=[settings.ALGORITHM])
+    except (JWTError, ValidationError) as e:
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail="Could not validate credentials",
+        )

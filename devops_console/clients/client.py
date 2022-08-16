@@ -38,7 +38,7 @@ class CoreClient:
         cls.config = settings.userconfig
         cls.sccs = Sccs(cls.config.sccs)
         cls.kubernetes = Kubernetes(cls.config.kubernetes, cls.sccs)
-        cls.oauth2 = OAuth2(cls.config.oauth2)
+        cls.oauth2 = OAuth2(cls.config.OAuth2)
 
         return cls._client
 

@@ -1,6 +1,6 @@
 from typing import Any, Literal
 
-from pydantic import BaseModel, Field, HttpUrl
+from pydantic import BaseModel, Field
 
 
 class APIConfig(BaseModel):
@@ -113,9 +113,9 @@ class SCCSConfig(BaseModel):
 
 
 class OAuth2ConfigConfig(BaseModel):
-    Issuer: HttpUrl
-    kAuth: HttpUrl
-    kAccessToken: HttpUrl
+    Issuer: str
+    kAuth: str
+    kAccessToken: str
     clientID: str
     kScope: str
 
@@ -128,4 +128,4 @@ class UserConfig(BaseModel):
     api: APIConfig
     kubernetes: KubernetesConfig
     sccs: SCCSConfig
-    oauth2: OAuth2Config = Field(..., alias="OAuth2")
+    OAuth2: OAuth2Config

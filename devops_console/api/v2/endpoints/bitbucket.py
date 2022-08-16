@@ -25,7 +25,7 @@ def get_bitbucket_session(user: schemas.User = Depends(get_current_user)):
     )
     plugin_id = user.plugin_id
     try:
-        yield session, plugin_id
+        yield plugin_id, session
     finally:
         session.close()
 
@@ -40,7 +40,7 @@ async def home():
 # ----------------------------------------------------------------------------------------------------------------------
 
 
-@router.get("/repos")
+@router.get("/repos", response_model=schemas.Paginated[schemas.Repository])
 async def get_repositories(
     bitbucket: tuple[str, BitbucketSession] = Depends(get_bitbucket_session),
 ):

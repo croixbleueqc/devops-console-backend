@@ -11,8 +11,12 @@ from sqlalchemy.orm import Session
 router = APIRouter()
 
 
-@router.post("/token")
-async def access_token(
+@router.post(
+    "/token",
+    status_code=status.HTTP_204_NO_CONTENT,
+    response_class=Response,  # https://github.com/tiangolo/fastapi/issues/4939
+)
+def access_token(
     response: Response,
     db: Session = Depends(get_db),
     form_data: OAuth2PasswordRequestForm = Depends(),
@@ -28,10 +32,11 @@ async def access_token(
         )
     access_token_expires = timedelta(minutes=settings.ACCESS_TOKEN_TTL)
     access_token = create_access_token(
-        data={"sub": user.username},
+        data={"sub": f"{user.id}"},
         expires_delta=access_token_expires,
     )
-    response.status_code = status.HTTP_204_NO_CONTENT
     response.set_cookie(key="access_token", value=access_token, httponly=True)
 
-    return
+    response.headers["HX-Trigger"] = "reload"
+
+    return None

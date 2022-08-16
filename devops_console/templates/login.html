@@ -1,9 +1,16 @@
 {% extends "base.html" %}
 
 {% block content %}
-<form hx-post={{target}}>
+<form hx-post={{action}} hx-boost="true" class="pure-form pure-form-stacked">
     <input type="email" name="username" placeholder="Email">
     <input type="password" name="password" placeholder="Password">
-    <button type="submit">Login</button>
+    <button class="pure-button">Login</button>
 </form>
+{% endblock %}
+{% block scripts %}
+<script>
+    document.body.addEventListener("reload", function (e) {
+        window.location.assign("/");
+    });
+</script>
 {% endblock %}

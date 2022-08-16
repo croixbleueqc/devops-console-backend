@@ -18,6 +18,8 @@ from fastapi import FastAPI, HTTPException, status, Request
 from fastapi.responses import RedirectResponse
 from fastapi.middleware.cors import CORSMiddleware
 
+from .core.database import SessionLocal
+
 from .api.v1.router import router
 from .api.v2.router import router as router_v2
 from .core.config import settings
@@ -25,6 +27,12 @@ from .clients.client import CoreClient
 from .webhooks_server.app import app as webhooks_server
 
 # from .api.deps import azure_scheme
+
+# initialize db
+from .init_db import init_db
+
+db = SessionLocal()
+init_db(db)
 
 # initialize core
 core = CoreClient()
@@ -59,7 +67,7 @@ app.mount(settings.WEBHOOKS_PATH, webhooks_server)
 async def redirect_unauthorized(request: Request, exc):
     if exc.status_code == status.HTTP_401_UNAUTHORIZED:
         # redirect to login page
-        return RedirectResponse(url=f"{settings.API_V2_STR}/login")
+        return RedirectResponse(url="/login")
     raise exc
 
 

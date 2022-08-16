@@ -80,7 +80,7 @@ async def wscom_dispatcher(request, action, path, body):
                     body["version"],
                     body.get("args"),
                 )
-            ).dumps()
+            ).dict()
         elif path == "/repository/add":
             return await client.sccs.add_repository(
                 body["plugin"],

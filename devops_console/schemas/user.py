@@ -2,6 +2,7 @@ from pydantic import BaseModel, EmailStr
 
 
 class UserBase(BaseModel):
+    full_name: str
     email: EmailStr
     plugin_id: str
     bitbucket_username: str
@@ -9,10 +10,6 @@ class UserBase(BaseModel):
 
 
 class UserCreate(UserBase):
-    email: EmailStr
-    plugin_id: str
-    bitbucket_username: str
-    bitbucket_app_password: str
     password: str
 
 

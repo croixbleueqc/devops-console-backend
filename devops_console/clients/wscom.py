@@ -18,7 +18,7 @@
 import asyncio
 import logging
 import json
-from typing import Type
+from typing import Any, Type
 import weakref
 from fastapi import WebSocket, WebSocketDisconnect
 from pydantic import BaseModel
@@ -66,7 +66,7 @@ class ConnectionManager:
             for watcher_id in watchers.keys():
                 wscom_watcher_close(websocket, watcher_id)
 
-    async def send_json(self, websocket: WebSocket, data: Type[BaseModel]):
+    async def send_json(self, websocket: WebSocket, data: Any):
         await websocket.send_json(data)
 
     def disconnect(self, websocket: WebSocket):
@@ -195,7 +195,7 @@ async def wscom_watcher_run(websocket, dispatch, data, action, path, body):
     """Watch request"""
     try:
         async for event in (await dispatch(websocket, action, path, body)):
-            data["dataResponse"] = event.dict()
+            data["dataResponse"] = event.dict() if hasattr(event, "dict") else event
             logging.debug("received an event")
             await manager.send_json(websocket, data)
     except Exception as e:

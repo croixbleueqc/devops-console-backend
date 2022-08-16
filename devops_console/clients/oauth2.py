@@ -29,4 +29,6 @@ class OAuth2(object):
         pass
 
     async def get_config(self):
-        return self.config
+        return {
+            "Config": {**self.config.config.dict()}
+        }  # this ugly hack this has to do with the fact that "Config" is a reserved keyword in pydantic but it's the key expected by the frontend.

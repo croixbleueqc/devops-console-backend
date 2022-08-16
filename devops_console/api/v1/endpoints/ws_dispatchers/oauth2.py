@@ -23,6 +23,7 @@ async def wscom_dispatcher(websocket, action, path, body):
     core = CoreClient()
     if action == "read":
         if path == "/config":
-            return await core.oauth2.get_config()
+            cfg = await core.oauth2.get_config()
+            return cfg
 
     raise DispatcherUnsupportedRequest(action, path)
