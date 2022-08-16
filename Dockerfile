@@ -14,8 +14,8 @@ COPY pyproject.toml README.md MANIFEST.in ./
 
 # Install requirements while fetching upstream croixbleue dependencies
 RUN poetry install --extras prod --no-dev
-RUN poetry add git+https://github.com/croixbleueqc/python-devops-sccs@07c8a71484a3c0eec68e25ce830ace535231301b
-RUN poetry add git+https://github.com/croixbleueqc/python-devops-kubernetes@f5b90008b1d0a21059e97fbcd7335760bc1f6325
+RUN poetry add git+https://github.com/croixbleueqc/python-devops-sccs@f5b90008b1d0a21059e97fbcd7335760bc1f6325
+RUN poetry add git+https://github.com/croixbleueqc/python-devops-kubernetes@27cc8d9e757b9d8daa473375977f24b736434cad
 
 # Remove source code to avoid any confusion with the real one executed.
 RUN rm -rf devops_console pyproject.toml poetry.lock README.md MANIFEST.in _submodules
