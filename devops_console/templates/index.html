@@ -2,7 +2,7 @@
 
 {% block content %}
 <div>
-    <h1>Welcome, {{ user.full_name }}</h1>
+    <h2>Welcome, {{ user.full_name }}</h2>
     <hr>
     <h3>View a repository <span>
             <select hx-bind="repository" hx-on-change="repositoryChanged">
@@ -13,3 +13,9 @@
         </span></h3>
 </div>
 {% endblock %}
+{% block scripts %}
+<script>
+    document.on("load", function () {
+
+    })
+</script>

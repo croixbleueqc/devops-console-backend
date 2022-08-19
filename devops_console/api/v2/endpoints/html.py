@@ -25,12 +25,10 @@ class Context(dict):
 async def home(
     request: Request,
     user: models.User = Depends(get_current_user),
-    bitbucket: tuple[str, BitbucketSession] = Depends(get_bitbucket_session),
 ):
     if user is None:
         return templates.TemplateResponse("login.html", Context(request=request))
-    repos = await get_repositories(bitbucket=bitbucket)
-    ctx = Context(request, user=user, repositories=repos)
+    ctx = Context(request, user=user, repositories=f"{settings.API_V2_STR}/bb/repos")
     return templates.TemplateResponse("index.html", ctx)
 
 

@@ -1,6 +1,6 @@
 [tool.poetry]
 name = "devops_console"
-version = "2.0.0"
+version = "2.0.1"
 description = "Monitor and manage your devops environment"
 authors = ["Croix Bleue <devops@qc.croixbleue.ca>"]
 license = "LGPL-3.0-or-later"
@@ -8,11 +8,10 @@ readme = "README.md"
 
 [tool.poetry.dependencies]
 atlassian-python-api = "^3.26.0"
-devops-kubernetes = { path = "_submodules/python-devops-kubernetes", optional = true, develop = true }
-devops-sccs = { path = "_submodules/python-devops-sccs", optional = true, develop = true }
+devops-kubernetes = { path = "_submodules/python-devops-kubernetes", optional = true }
+devops-sccs = { path = "_submodules/python-devops-sccs", optional = true }
 fastapi = "^0.79.0"
 fastapi-azure-auth = "^3.5.0"
-gunicorn = { version = "^20.1.0", optional = true }
 hvac = "^0.11.2"
 Jinja2 = "^3.1.2"
 passlib = { extras = ["bcrypt"], version = "^1.7.4" }
@@ -21,17 +20,16 @@ python = "^3.10"
 python-multipart = "^0.0.5"
 uvicorn = { extras = ["standard"], version = "^0.18.2" }
 SQLAlchemy = "^1.4.40"
+gunicorn = "^20.1.0"
 
 [tool.poetry.dev-dependencies]
 black = "^22.6.0"
 mypy = "^0.971"
-pytest = { version = "^7.1.2", optional = true }
-pytest-cov = { version = "^3.0.0", optional = true }
+pytest = { version = "^7.1.2" }
+pytest-cov = { version = "^3.0.0" }
 
 [tool.poetry.extras]
-dev = ["pytest", "pytest-cov"]
 local = ["devops-kubernetes", "devops-sccs"]
-prod = ["gunicorn", "uvicorn"]
 
 [build-system]
 requires = ["poetry-core>=1.0.0"]

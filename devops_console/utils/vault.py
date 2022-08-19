@@ -9,6 +9,7 @@ env:
 
 import logging
 import os
+import sys
 from typing import Any
 
 from hvac import Client
@@ -48,7 +49,10 @@ class Vault:
         self.token = None
         self.client = None
 
-        self.addr = os.environ.get("VAULT_ADDR", "http://localhost:8200")
+        self.addr = os.environ.get("VAULT_ADDR")
+        if self.addr is None:
+            logging.warning("Please set VAULT_ADDR")
+            sys.exit(1)
         logging.info(f"VAULT_ADDR: {self.addr}")
 
         self.role = os.environ.get("VAULT_ROLE", "default")
