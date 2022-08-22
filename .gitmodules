@@ -2,10 +2,8 @@
 [submodule "_submodules/python-devops-sccs"]
   path = _submodules/python-devops-sccs
   url = https://github.com/croixbleueqc/python-devops-sccs.git
-  branch = develop
+	branch = 2.0
 [submodule "_submodules/python-devops-kubernetes"]
   path = _submodules/python-devops-kubernetes
   url = https://github.com/croixbleueqc/python-devops-kubernetes.git
-[submodule "_submodules/devops-console-rest-api"]
-  path = _submodules/devops-console-rest-api
-  url = https://github.com/croixbleueqc/devops-console-rest-api.git
+	branch = 2.0
