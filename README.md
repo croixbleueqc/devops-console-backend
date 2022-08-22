@@ -30,7 +30,5 @@ docker run -it -p 5000:5000 devops-console-backend:local
 
 ## Endpoints
 
-http://localhost:5000/api/v1/docs
-http://localhost:5000/api/v2/docs
 http://localhost:5000/docs 
 http://localhost:5000 -> temporary ssr frontend
