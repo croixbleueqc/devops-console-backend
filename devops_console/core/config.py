@@ -17,6 +17,7 @@
 # along with devops-console-backend.  If not, see <https://www.gnu.org/licenses/>.
 
 
+import logging
 import secrets
 
 from pydantic import AnyHttpUrl, AnyUrl, BaseSettings, Field
@@ -70,6 +71,8 @@ class Settings(BaseSettings):
     BACKEND_CORS_ORIGINS: list[str | AnyHttpUrl] = [
         "http://localhost:8080",
     ]
+
+    LOG_LEVEL: int = Field(default=logging.INFO, env="LOG_LEVEL")
 
     userconfig: UserConfig
 

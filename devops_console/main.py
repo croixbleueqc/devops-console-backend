@@ -13,24 +13,25 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-
 from fastapi import FastAPI, HTTPException, status, Request
 from fastapi.responses import RedirectResponse
 from fastapi.middleware.cors import CORSMiddleware
 
 from .core.database import SessionLocal
 
+# from .api.deps import azure_scheme
 from .api.v1.router import router
 from .api.v2.router import router as router_v2
 from .core.config import settings
 from .clients.client import CoreClient
+from .init_db import init_db
+from .utils.logs import setup_logging
 from .webhooks_server.app import app as webhooks_server
 
-# from .api.deps import azure_scheme
+
+setup_logging()
 
 # initialize db
-from .init_db import init_db
-
 db = SessionLocal()
 init_db(db)
 
@@ -88,5 +89,14 @@ async def shutdown():
 
 if __name__ == "__main__":
     import uvicorn
+
+    server = uvicorn.Server(
+        uvicorn.Config(
+            "devops_console.main:app",
+            host="0.0.0.0",
+            port=5000,
+            log_level=settings.LOG_LEVEL,
+        )
+    )
 
     uvicorn.run("main:app", reload=True, port=5000)

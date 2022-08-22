@@ -1,14 +1,14 @@
-ARG IS_LOCAL=false
+# dev by default
+ARG IS_LOCAL=true
 FROM python:3.10-slim 
 
-COPY dist/*.whl /tmp/
+WORKDIR /app
 
-RUN if [[ "$IS_LOCAL" = "false" ]]; then \
-    pip install --no-cache-dir --compile git+https://github.com/croixbleueqc/python-devops-kubernetes.git@27cc8d9e757b9d8daa473375977f24b736434cad \
-    git+https://github.com/croixbleueqc/python-devops-sccs.git@f5b90008b1d0a21059e97fbcd7335760bc1f6325; \
-    rm /tmp/*sccs*.whl /tmp/*kubernetes*.whl; \
-    fi
-RUN pip install /tmp/*.whl
+COPY pyproject.toml ./
+COPY _submodules ./_submodules
+
+# see pyproject.toml to change prod revisions for local packages
+RUN if [[ "$IS_LOCAL" = "false" ]]; then pip install --no-cache-dir -U .[prod]; else pip install --no-cache-dir -U _submodules/* .; fi
 
 EXPOSE 5000
-CMD ["gunicorn" "--bind" "0.0.0.0:5000" "--worker-class" "uvicorn.workers.UvicornWorker" "--access-logfile" "-" "--log-level" "info" "devops_console.main:app" ]
+CMD ["uvicorn", "devops_console.main:app", "--host" "0.0.0.0", "--port", "5000"]

@@ -70,7 +70,7 @@ def load_config_file(directory, file_name):
     try:
         d = json.loads(Path(file_path).read_text())
     except OSError:
-        logging.warning(f"Could not load {file_path}")
+        logging.info(f"Could not load {file_path}")
         return {}
     return d
 

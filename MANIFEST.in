@@ -1,2 +1,1 @@
 recursive-include devops_console/config *
-recursive-include devops_console/resources *
