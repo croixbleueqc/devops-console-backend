@@ -11,31 +11,26 @@ Install
 ```bash
 git clone --recurse-submodules https://github.com/croixbleueqc/devops-console-backend
 cd devops-console-backend
-python3.10 -m pip install ./_submodules/*
+python3.10 -m pip install --editable ./_submodules/* .
 ```
 
 
 Run
 ```bash
-BRANCH_NAME=dev python -m devops_console.run
+BRANCH_NAME=dev python -m devops_console.main
 ```
 
 or, with docker:
 
 ```bash
-docker build -t devops-console-backend .
-docker run -it --rm -e BRANCH_NAME=dev -p 5000:5000 devops-console-backend:local
+docker build -t devops-console-backend:local .
+docker run -it -p 5000:5000 devops-console-backend:local
 ```
 
 
-## Swagger
+## Endpoints
 
-```bash
-curl http://localhost:5000/api/doc/swagger.json
-```
-
-You can use the Swagger UI at this location: http://localhost:5000/api/doc/
-
-## WebSocket
-
-More documentation are available under apis/wscom1.py and wscom.py
+http://localhost:5000/api/v1/docs
+http://localhost:5000/api/v2/docs
+http://localhost:5000/docs 
+http://localhost:5000 -> temporary ssr frontend
