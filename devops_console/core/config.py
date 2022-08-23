@@ -58,7 +58,7 @@ class Settings(BaseSettings):
 
     WEBHOOKS_DEFAULT_DESCRIPTION = "Default webhook created via DevOps Console"
 
-    DATABASE_URI: str = Field(default="sqlite:///devops_console.db", env="DATABASE_URI")
+    DATABASE_URI: str = Field(default="sqlite://", env="DATABASE_URI")
 
     SECRET_KEY: str = Field(default=secrets.token_urlsafe(32), env="SECRET_KEY")
     ACCESS_TOKEN_TTL: int = Field(default=60 * 24 * 7, env="ACCESS_TOKEN_TTL")

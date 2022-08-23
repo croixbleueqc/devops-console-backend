@@ -40,7 +40,7 @@ async def home():
 # ----------------------------------------------------------------------------------------------------------------------
 
 
-@router.get("/repos", response_model=schemas.Paginated[schemas.Repository])
+@router.get("/repos")
 async def get_repositories(
     bitbucket: tuple[str, BitbucketSession] = Depends(get_bitbucket_session),
 ):

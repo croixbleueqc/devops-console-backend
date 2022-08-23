@@ -204,8 +204,8 @@ class PaginatedRepositories(BaseModel):
     size: int = Field(ge=0)
     page: int = Field(ge=1)
     pagelen: int = Field(ge=1)
-    next: AnyHttpUrl
-    previous: AnyHttpUrl
+    next: AnyHttpUrl | None
+    previous: AnyHttpUrl | None
     values: list[Repository]
 
 

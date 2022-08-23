@@ -12,21 +12,42 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
+import logging
 
-from fastapi import FastAPI, HTTPException, status, Request
-from fastapi.responses import RedirectResponse
+from fastapi import FastAPI, HTTPException, Request, status
 from fastapi.middleware.cors import CORSMiddleware
-
-from .core.database import SessionLocal
+from fastapi.responses import RedirectResponse
+from sqlalchemy.orm import Session
 
 # from .api.deps import azure_scheme
+from . import crud
 from .api.v1.router import router
 from .api.v2.router import router as router_v2
-from .core.config import settings
 from .clients.client import CoreClient
-from .init_db import init_db
+from .core.config import settings
+from .core.database import Base, SessionLocal, engine
+from .schemas.user import UserCreate
 from .utils.logs import setup_logging
 from .webhooks_server.app import app as webhooks_server
+
+
+def init_db(db: Session) -> None:
+    Base.metadata.create_all(bind=engine)
+
+    user = crud.user.get_by_email(db, email=settings.superuser.email)
+    if not user:
+        # create superuser
+        user_create = UserCreate(
+            full_name="Admin User",
+            email=settings.superuser.email,
+            plugin_id="cbq",
+            password=settings.superuser.pwd,
+            bitbucket_username=settings.superuser.username,
+            bitbucket_app_password=settings.superuser.app_passwords.bitbucket_management,
+        )
+        su = crud.user.create(db, obj_in=user_create)
+        logging.info(f"Superuser created: {su.email}")
+    logging.info("Database initialized")
 
 
 setup_logging()

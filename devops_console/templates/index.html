@@ -6,16 +6,26 @@
     <hr>
     <h3>View a repository <span>
             <select hx-bind="repository" hx-on-change="repositoryChanged">
-                {% for repository in repositories %}
-                <option value="{{repository.id}}">{{repository.name}}</option>
-                {% endfor %}
+                <option value="">select a repository</option>
             </select>
         </span></h3>
 </div>
 {% endblock %}
 {% block scripts %}
 <script>
-    document.on("load", function () {
-
+    window.addEventListener("load", function () {
+        fetch("/api/v2/bb/repos")
+            .then(function (response) {
+                return response.json();
+            }).then(function (data) {
+                var select = document.querySelector("select");
+                data.forEach(function (repo) {
+                    var option = document.createElement("option");
+                    option.value = repo.id;
+                    option.textContent = repo.name;
+                    select.appendChild(option);
+                });
+            });
     })
 </script>
+{% endblock %}
