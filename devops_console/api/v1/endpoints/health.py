@@ -22,7 +22,7 @@ router = APIRouter()
 
 
 @router.get("/health")
-async def health(request):
+async def health():
     """
     ---
     description: Health check endpoint
