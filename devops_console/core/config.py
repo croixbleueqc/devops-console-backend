@@ -20,7 +20,7 @@
 import logging
 import secrets
 
-from pydantic import AnyHttpUrl, AnyUrl, BaseSettings, Field
+from pydantic import AnyHttpUrl, BaseSettings, Field
 
 from devops_console.utils.cfg_sources import json_userconfig_source, vault_secret_source
 
@@ -40,7 +40,7 @@ class Settings(BaseSettings):
 
     AUTH_PATH: str = Field(default="/token", env="AUTH_PATH")
 
-    WEBHOOKS_HOST: AnyUrl = Field(default="localhost:4242", env="WEBHOOKS_HOST")
+    WEBHOOKS_HOST: str = Field(default="localhost:4242", env="WEBHOOKS_HOST")
     WEBHOOKS_PATH: str = Field(
         default="/bitbucketcloud/hooks/repo", env="WEBHOOKS_PATH"
     )

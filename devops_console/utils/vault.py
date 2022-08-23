@@ -154,9 +154,7 @@ def get_k8s_secrets() -> tuple[dict[str, Any], dict[str, Any]]:
     vault.connect()
 
     nonprod: dict[str, Any] = vault.read_secret(
-        # f"infra/k8s/devops-console-backend/{BRANCH_NAME}/nonprod", "bluecross"
-        "infra/k8s/nonprod",
-        "bluecross",
+        f"infra/k8s/devops-console-backend/{BRANCH_NAME}/nonprod", "bluecross"
     )
     prod: dict[str, Any] = vault.read_secret(
         f"infra/k8s/devops-console-backend/{BRANCH_NAME}/prod", "bluecross"
