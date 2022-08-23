@@ -10,7 +10,4 @@ COPY . .
 RUN if [[ "$IS_LOCAL" = "false" ]]; then pip install .[prod]; \
     else pip install _submodules/* .; fi
 
-RUN rm -rf devops_console
-
 EXPOSE 5000
-# CMD ["uvicorn", "devops_console.main:app", "--host" "0.0.0.0", "--port", "5000"]
