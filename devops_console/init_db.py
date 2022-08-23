@@ -2,7 +2,7 @@ import logging
 
 from sqlalchemy.orm import Session
 
-from devops_console.core.database import Base, SessionLocal, engine
+from devops_console.core.database import Base, engine
 
 from . import crud
 from .core import settings
@@ -25,8 +25,3 @@ def init_db(db: Session) -> None:
         )
         _ = crud.user.create(db, obj_in=user_create)
     logging.info("Database initialized")
-
-
-if __name__ == "__main__":
-    db = SessionLocal()
-    init_db(db)
