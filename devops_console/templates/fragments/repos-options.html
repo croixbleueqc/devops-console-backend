@@ -1,13 +1,5 @@
-<select
-    name="repo_name"
-    hx-get="/repo/"
-    hx-target="main"
-    hx-swap="innerHTML"
->
-    <option
-        aria-busy="true"
-        value=""
-    >select a repository</option>
+<select name="repo_name" hx-get="/repo/" hx-target="main" hx-swap="innerHTML">
+    <option value="">select a repository</option>
     {% for repo in repos|sort(attribute="name") %}
     <option value="{{ repo.name }}">{{ repo.name }}</option>
     {% endfor %}

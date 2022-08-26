@@ -3,6 +3,7 @@ from fastapi.responses import RedirectResponse
 from pydantic import EmailStr
 from devops_console import models, schemas
 from sqlalchemy.orm import Session
+from sse_starlette.sse import EventSourceResponse
 
 from devops_console.api.deps import get_current_user, get_db
 from devops_console.api.v2.endpoints import users
@@ -111,6 +112,21 @@ def read_user(
     return templates.TemplateResponse("fragments/user.html", ctx)
 
 
+@router.get("/repos-options")
+async def read_repos(
+    request: Request,
+    bitbucket_session=Depends(get_bitbucket_session),
+):
+    """Returns a list of <option> tags to populate a select element with
+    the names of the repositories in the user's account."""
+    plugin_id, session = bitbucket_session
+    repos = await client.get_repositories(session=session, plugin_id=plugin_id)
+
+    ctx = Context(request, repos=repos)
+
+    return templates.TemplateResponse("fragments/repos-options.html", ctx)
+
+
 @router.get("/repo/")
 async def read_repo(request: Request, repo_name: str):
     ctx = Context(request, name=repo_name)
@@ -129,7 +145,7 @@ async def read_repo_details(
     return templates.TemplateResponse("fragments/repo-details.html", ctx)
 
 
-@router.get("/repo-cd/{repo_name}")
+@router.get("/repo/{repo_name}/cd")
 async def read_repo_cd(
     request: Request, repo_name: str, bitbucket_session=Depends(get_bitbucket_session)
 ):
@@ -138,18 +154,92 @@ async def read_repo_cd(
         plugin_id=plugin_id, session=session, repository=repo_name
     )
 
-    ctx = Context(request, envs=environment_cfgs)
+    ctx = Context(request, repo_name=repo_name, envs=environment_cfgs)
     return templates.TemplateResponse("fragments/repo-cd.html", ctx)
 
 
-@router.get("/repos-options")
-async def read_repos(
+@router.get("/repo/{repo_name}/cd/{env_name}")
+async def read_repo_cd_env(
     request: Request,
+    repo_name: str,
+    env_name: str,
     bitbucket_session=Depends(get_bitbucket_session),
 ):
     plugin_id, session = bitbucket_session
-    repos = await client.get_repositories(session=session, plugin_id=plugin_id)
+    environment_cfg = await client.get_continuous_deployment_config(
+        plugin_id=plugin_id,
+        session=session,
+        repository=repo_name,
+        environments=[env_name],
+    )
 
-    ctx = Context(request, repos=repos)
+    ctx = Context(
+        request, repo_name=repo_name, env_name=env_name, env=environment_cfg[0]
+    )
+    return templates.TemplateResponse("fragments/repo-cd-env.html", ctx)
 
-    return templates.TemplateResponse("fragments/repos-options.html", ctx)
+
+@router.get("/repo/{repo_name}/cd/{env_name}/versions/")
+async def read_repo_cd_versions(
+    request: Request,
+    repo_name: str,
+    env_name: str,
+    env_version: str = "",
+    bitbucket_session=Depends(get_bitbucket_session),
+):
+    plugin_id, session = bitbucket_session
+    versions = await client.get_continuous_deployment_versions_available(
+        plugin_id=plugin_id,
+        session=session,
+        repository=repo_name,
+    )
+
+    ctx = Context(
+        request,
+        repo_name=repo_name,
+        env_name=env_name,
+        env_version=env_version,
+        versions=versions,
+    )
+    return templates.TemplateResponse("fragments/repo-cd-versions.html", ctx)
+
+
+@router.post("/repo/{repo_name}/cd/{env_name}/deploy/")
+async def deploy_env_version(
+    request: Request,
+    repo_name: str,
+    env_name: str,
+    version: str,
+    bitbucket_session=Depends(get_bitbucket_session),
+):
+    plugin_id, session = bitbucket_session
+    await client.trigger_continuous_deployment(
+        plugin_id=plugin_id,
+        session=session,
+        repository=repo_name,
+        environment=env_name,
+        version=version,
+        args=None,
+    )
+
+    return RedirectResponse(f"/repo/{repo_name}/cd/{env_name}")
+
+
+@router.get("/repo/{repo_name}/sse", response_class=EventSourceResponse)
+async def read_repo_sse(
+    request: Request,
+    repo_name: str,
+    env_name: str = "",
+    bitbucket_session=Depends(get_bitbucket_session),
+):
+    plugin_id, session = bitbucket_session
+
+    return EventSourceResponse(
+        client.watch_continuous_deployment_config(
+            plugin_id=plugin_id,
+            session=session,
+            repository=repo_name,
+            environments=[env_name],
+            args=None,
+        )
+    )

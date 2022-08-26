@@ -117,6 +117,14 @@ class Sccs:
             ):
                 yield event
 
+    async def get_continuous_deployment_versions_available(
+        self, plugin_id, session, repository, args=None
+    ):
+        async with self.core.context(plugin_id, session) as ctx:
+            return await ctx.get_continuous_deployment_versions_available(
+                repository, args
+            )
+
     async def bridge_repository_to_namespace(
         self, plugin_id, session, repository, environment, untrustable=True, args=None
     ):

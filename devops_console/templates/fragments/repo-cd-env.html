@@ -1,0 +1,14 @@
+<article>
+    <header>
+        <hgroup>
+            <h2><a href="#" hx-get="/repo/{{ repo_name }}">{{ repo_name }}</a></h2>
+            <h3>{{ env.environment }}</h3>
+            <h4>Version: {{ env.version }}</h2>
+        </hgroup>
+    </header>
+    <div hx-sse="connect:/repo/{{ repo_name }}/sse/?env_name={{ env.environment }}">
+        <div hx-trigger="sse:update"
+             hx-get="/repo/{{ repo_name }}/cd/{{ env.environment }}/{{ env.version }}"
+             hx-target="this" hx-swap="innerHTML"></div>
+    </div>
+</article>

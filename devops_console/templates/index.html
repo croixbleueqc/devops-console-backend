@@ -2,37 +2,32 @@
 <html lang="fr">
 
 <head>
-    <title>Event Horizon</title>
+    <meta charset="UTF-8">
+
+    <title>🌌 Event Horizon</title>
     <!--htmx-->
-    <script
-        src="https://unpkg.com/htmx.org@1.8.0"
-        integrity="sha384-cZuAZ+ZbwkNRnrKi05G/fjBX+azI9DNOkNYysZ0I/X5ZFgsmMiBXgDZof30F5ofc"
-        crossorigin="anonymous"
-    ></script>
+    <script src="https://unpkg.com/htmx.org@1.8.0"
+            integrity="sha384-cZuAZ+ZbwkNRnrKi05G/fjBX+azI9DNOkNYysZ0I/X5ZFgsmMiBXgDZof30F5ofc"
+            crossorigin="anonymous"></script>
     <!--css-->
-    <link
-        rel="stylesheet"
-        href="https://unpkg.com/@picocss/pico@latest/css/pico.min.css"
-    >
+    <link rel="stylesheet" href="https://unpkg.com/@picocss/pico@latest/css/pico.min.css">
 </head>
 
-<body
-    hx-target="main"
-    hx-swap="innerHTML"
->
+<body hx-target="main" hx-swap="innerHTML">
     <nav class="container-fluid">
         <ul>
-            <li><a hx-get="/home">Home</a></li>
+            <li><strong><a href="#" hx-get="/home">🌌 Event Horizon</a></strong></li>
+        </ul>
+        <ul>
+            <li>
+                <a href="#" hx-get="/home">Home</a>
+            </li>
             {% if user %}
-            <li><a hx-get="/users">Users</a></li>
-            <li><a hx-get="/logout">Log out</a></li>
+            <li><a href="#" hx-get="/users">Users</a></li>
+            <li><a href="#" hx-get="/logout">Log out</a></li>
             {% endif %}
             <li>
-                <div
-                    aria-busy="true"
-                    id="top-spinner"
-                    class="htmx-indicator"
-                ></div>
+                <div aria-busy="true" id="top-spinner" class="htmx-indicator"></div>
             </li>
         </ul>
     </nav>

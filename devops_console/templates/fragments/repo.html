@@ -1,11 +1,6 @@
-<section
-    hx-get="/repo/{{ name }}"
-    hx-target="#details"
-    hx-indicator=".spinner"
-    hx-trigger="load delay:100ms"
->
-    <h3>{{ name }}</h3>
-    <hr>
+<section hx-get="/repo/{{ name }}" hx-target="#details" hx-indicator=".spinner"
+         hx-trigger="load delay:100ms">
+    <h1>{{ name }}</h1>
     <div id="details">
         {% include "fragments/spinner.html" %}
     </div>

@@ -16,6 +16,7 @@ dependencies = [
     "pydantic[email,dotenv] ~= 1.9.1",
     "python-multipart ~= 0.0.5",
     "SQLAlchemy ~= 1.4.40",
+    "sse-starlette ~=1.1.6",
     "uvicorn[standard]",
 ]
 optional-dependencies = { prod = [

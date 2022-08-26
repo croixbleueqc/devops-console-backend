@@ -1,4 +1,4 @@
-from datetime import timedelta, datetime
+from datetime import timedelta
 from devops_console import crud
 
 from devops_console.api.deps import get_db
