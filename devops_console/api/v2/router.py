@@ -5,15 +5,27 @@ from fastapi.responses import HTMLResponse
 
 from .endpoints import auth, bitbucket, html, users, websocket
 
-api_router = APIRouter(
-    prefix=settings.API_V2_STR,
-    dependencies=[Depends(has_valid_token)],
-)
+api_router = APIRouter(prefix=settings.API_V2_STR)
 
 api_router.include_router(auth.router, tags=["token"])
-api_router.include_router(bitbucket.router, prefix="/bb", tags=["bitbucket"])
-api_router.include_router(websocket.router, prefix="/ws", tags=["websocket"])
-api_router.include_router(users.router, prefix="/users", tags=["users"])
+api_router.include_router(
+    bitbucket.router,
+    prefix="/bb",
+    tags=["bitbucket"],
+    dependencies=[Depends(has_valid_token)],
+)
+api_router.include_router(
+    websocket.router,
+    prefix="/ws",
+    tags=["websocket"],
+    dependencies=[Depends(has_valid_token)],
+)
+api_router.include_router(
+    users.router,
+    prefix="/users",
+    tags=["users"],
+    dependencies=[Depends(has_valid_token)],
+)
 
 # frontend
 html_router = APIRouter()

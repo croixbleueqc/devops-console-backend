@@ -1,0 +1,16 @@
+<form hx-post={{action}}>
+    <input
+        type="email"
+        name="username"
+        placeholder="Email"
+    >
+    <input
+        type="password"
+        name="password"
+        placeholder="Password"
+    >
+    <button>Login</button>
+</form>
+<script>
+    htmx.on('form', 'htmx:afterRequest', () => window.location.assign("/"))
+</script>

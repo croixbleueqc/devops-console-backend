@@ -1,31 +1,46 @@
-{% extends "base.html" %}
+<!DOCTYPE html>
+<html lang="fr">
 
-{% block content %}
-<div>
-    <h2>Welcome, {{ user.full_name }}</h2>
-    <hr>
-    <h3>View a repository <span>
-            <select hx-bind="repository" hx-on-change="repositoryChanged">
-                <option value="">select a repository</option>
-            </select>
-        </span></h3>
-</div>
-{% endblock %}
-{% block scripts %}
-<script>
-    window.addEventListener("load", function () {
-        fetch("/api/v2/bb/repos")
-            .then(function (response) {
-                return response.json();
-            }).then(function (data) {
-                var select = document.querySelector("select");
-                data.forEach(function (repo) {
-                    var option = document.createElement("option");
-                    option.value = repo.id;
-                    option.textContent = repo.name;
-                    select.appendChild(option);
-                });
-            });
-    })
-</script>
-{% endblock %}
+<head>
+    <title>Event Horizon</title>
+    <!--htmx-->
+    <script
+        src="https://unpkg.com/htmx.org@1.8.0"
+        integrity="sha384-cZuAZ+ZbwkNRnrKi05G/fjBX+azI9DNOkNYysZ0I/X5ZFgsmMiBXgDZof30F5ofc"
+        crossorigin="anonymous"
+    ></script>
+    <!--css-->
+    <link
+        rel="stylesheet"
+        href="https://unpkg.com/@picocss/pico@latest/css/pico.min.css"
+    >
+</head>
+
+<body
+    hx-target="main"
+    hx-swap="innerHTML"
+>
+    <nav class="container-fluid">
+        <ul>
+            <li><a hx-get="/home">Home</a></li>
+            {% if user %}
+            <li><a hx-get="/users">Users</a></li>
+            <li><a hx-get="/logout">Log out</a></li>
+            {% endif %}
+            <li>
+                <div
+                    aria-busy="true"
+                    id="top-spinner"
+                    class="htmx-indicator"
+                ></div>
+            </li>
+        </ul>
+    </nav>
+    <main class="container">
+        {% if user %}
+        {% include "fragments/home.html" %}
+        {% else %}
+        {% include "fragments/login.html" %}
+        {% endif %}
+    </main>
+</body>

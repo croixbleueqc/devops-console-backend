@@ -7,9 +7,10 @@ from atlassian.errors import ApiError
 from devops_console import schemas
 from devops_console.api.deps import get_current_user
 from devops_console.clients import CoreClient
-from devops_console.core.config import Settings
+from devops_console.core.config import settings
 from fastapi import APIRouter, Depends, HTTPException
 from pydantic import UUID4
+from requests import HTTPError
 
 router = APIRouter()
 
@@ -63,49 +64,49 @@ async def get_repository_by_uuid(
 
 
 @router.get("/repos/{name}", response_model=schemas.Repository)
-async def get_repository_by_name(name: str):
-    return await client.get_repository(repository=name)
+async def get_repository_by_name(
+    name: str, bitbucket: tuple[str, BitbucketSession] = Depends(get_bitbucket_session)
+):
+    plugin_id, session = bitbucket
+    return await client.get_repository(
+        plugin_id=plugin_id, session=session, repository=name
+    )
 
 
 @router.post("/repos")
-async def create_repository(repo: schemas.RepositoryPost):
+async def create_repository(
+    repo: schemas.RepositoryPost,
+    bitbucket: tuple[str, BitbucketSession] = Depends(get_bitbucket_session),
+):
     """
     Create a new repository (if it doesn't exist) and set the webhooks.
     """
-
-    try:
-        responserepo = asyncio.run_coroutine_threadsafe(
-            client.add_repository(
-                repository=repo.dict(),
-                template="empty-repo-for-applications",
-                template_params={},
-                args=None,
-            ),
-            loop=client.loop,
-        ).result(10)
-    except NetworkError as e:
-        logging.error(f"Failed to create repository: {e.details}")
-        raise HTTPException(status_code=e.status, detail=e.details)
+    plugin_id, session = bitbucket
+    responserepo = (
+        client.add_repository(
+            plugin_id=plugin_id,
+            session=session,
+            repository=repo.dict(),
+            template="empty-repo-for-applications",
+            template_params={},
+            args=None,
+        ),
+    )
 
     if not responserepo:
         raise HTTPException(status_code=400, detail="Failed to create repository")
 
     # Set the default webhook
-    try:
-        asyncio.run_coroutine_threadsafe(
-            client.create_webhook_subscription(
-                repo_name=repo.name,
-                url=urljoin(settings.WEBHOOK_HOST, Settings.WEBHOOK_PATH),
-                active=True,
-                events=WEBHOOKS_DEFAULT_EVENTS,
-                description=WEBHOOKS_DEFAULT_DESCRIPTION,
-                args=None,
-            ),
-            client.loop,
-        )
-    except NetworkError as e:
-        logging.error(e)
-        raise HTTPException(status_code=e.status, detail=e.details)
+    await client.create_webhook_subscription(
+        plugin_id=plugin_id,
+        session=session,
+        repo_name=repo.name,
+        url=urljoin(settings.WEBHOOKS_HOST, settings.WEBHOOKS_PATH),
+        active=True,
+        events=settings.WEBHOOKS_DEFAULT_EVENTS,
+        description=settings.WEBHOOKS_DEFAULT_DESCRIPTION,
+        args=None,
+    )
 
     return responserepo
 
@@ -121,15 +122,18 @@ async def delete_repository(uuid: UUID4):
 
 
 @router.get("/repos/create_default_webhooks")
-async def create_default_webhooks():
+async def create_default_webhooks(
+    bitbucket: tuple[str, BitbucketSession] = Depends(get_bitbucket_session)
+):
     """Subscribe to webhooks for each repository (must be idempotent)."""
 
+    plugin_id, session = bitbucket
     # get list of repositories
     try:
-        repos = await client.get_repositories()
-    except NetworkError as e:
+        repos = await client.get_repositories(plugin_id=plugin_id, session=session)
+    except HTTPError as e:
         logging.warn(f"Failed to get list of repositories: {e}")
-        raise HTTPException(status_code=e.status, detail=e.details)
+        raise HTTPException(status_code=e.request.status_code, detail=e)
 
     subscriptions = []
 
