@@ -145,7 +145,7 @@ class CommitStatus(BaseModel):
 class WebhookEvent(BaseModel, extra=Extra.allow):
     """Base class for webhook events"""
 
-    actor: User
+    actor: Account
     repository: PayloadRepository
 
 
