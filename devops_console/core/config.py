@@ -22,15 +22,14 @@ import secrets
 
 from pydantic import AnyHttpUrl, BaseSettings, Field
 
-from devops_console.utils.cfg_sources import json_userconfig_source, vault_secret_source
-
+from ..utils.cfg_sources import json_userconfig_source, vault_secret_source
 from ..schemas.userconfig import UserConfig
 from ..schemas.vault import VaultBitbucket
 from ..schemas.webhooks import WebhookEventKey
 
 
 class Settings(BaseSettings):
-    ENVIRONMENT: str = Field(default="dev", env="ENVIRONMENT")
+    ENVIRONMENT: str = Field(default="development", env="ENVIRONMENT")
     BRANCH_NAME: str = Field(default="undefined", env="BRANCH_NAME")
 
     HOST: AnyHttpUrl = Field(default="http://localhost:5000", env="HOST")
@@ -63,6 +62,9 @@ class Settings(BaseSettings):
     SECRET_KEY: str = Field(default=secrets.token_urlsafe(32), env="SECRET_KEY")
     ACCESS_TOKEN_TTL: int = Field(default=60 * 24 * 7, env="ACCESS_TOKEN_TTL")
     ALGORITHM = "HS256"
+    # used to authenticate as admin in tests and dev
+    DEV_AUTH: bool = Field(default=False, env="DEV_AUTH")
+    DEV_TOKEN = "superdupersecretdevtoken"
 
     # TODO: Finish azure auth config
     APP_CLIENT_ID: str = Field(default="", env="APP_CLIENT_ID")

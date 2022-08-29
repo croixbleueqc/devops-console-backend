@@ -1,15 +1,9 @@
 import json
 from http import HTTPStatus
 
-from devops_console_rest_api.models.webhooks import WebhookEventKey
-from devops_console_rest_api.webhooks_api.api import app
-from fastapi.testclient import TestClient
+from devops_console.schemas import WebhookEventKey
 
-from . import fixtures
-from .fixtures import mock_bitbucket_client
-
-
-client = TestClient(app)
+from .fixtures import client, mock_repopushevent
 
 
 def test_handle_webhook_event_invalid_body():
@@ -26,47 +20,47 @@ def test_handle_webhook_event_invalid_header():
     assert response.status_code == HTTPStatus.BAD_REQUEST
 
 
-def test_handle_webhook_event_repo_push(mock_bitbucket_client):
+def test_handle_webhook_event_repo_push():
 
     response = client.post(
         "/",
         headers={"X-Event-Key": WebhookEventKey.repo_push.value},
-        data=json.dumps(fixtures.mock_repopushevent),
+        data=json.dumps(mock_repopushevent),
     )
 
     assert response.status_code == HTTPStatus.OK
 
 
-def test_handle_webhook_event_repo_build_created(mock_bitbucket_client):
+def test_handle_webhook_event_repo_build_created():
     # TODO: implement
     pass
 
 
-def test_handle_webhook_event_repo_build_updated(mock_bitbucket_client):
+def test_handle_webhook_event_repo_build_updated():
     # TODO: implement
     pass
 
 
-def test_handle_webhook_event_pr_created(mock_bitbucket_client):
+def test_handle_webhook_event_pr_created():
     # TODO: implement
     pass
 
 
-def test_handle_webhook_event_pr_updated(mock_bitbucket_client):
+def test_handle_webhook_event_pr_updated():
     # TODO: implement
     pass
 
 
-def test_handle_webhook_event_pr_approved(mock_bitbucket_client):
+def test_handle_webhook_event_pr_approved():
     # TODO: implement
     pass
 
 
-def test_handle_webhook_event_pr_declined(mock_bitbucket_client):
+def test_handle_webhook_event_pr_declined():
     # TODO: implement
     pass
 
 
-def test_handle_webhook_event_pr_merged(mock_bitbucket_client):
+def test_handle_webhook_event_pr_merged():
     # TODO: implement
     pass

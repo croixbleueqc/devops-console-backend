@@ -1,4 +1,4 @@
-from devops_console.api.deps import has_valid_token
+from devops_console.api.deps import validate_token
 from devops_console.core import settings
 from fastapi import APIRouter, Depends
 from fastapi.responses import HTMLResponse
@@ -12,19 +12,16 @@ api_router.include_router(
     sccs.router,
     prefix="/sccs",
     tags=["sccs"],
-    dependencies=[Depends(has_valid_token)],
 )
 api_router.include_router(
     websocket.router,
     prefix="/ws",
     tags=["websocket"],
-    dependencies=[Depends(has_valid_token)],
 )
 api_router.include_router(
     users.router,
     prefix="/users",
     tags=["users"],
-    dependencies=[Depends(has_valid_token)],
 )
 
 # frontend

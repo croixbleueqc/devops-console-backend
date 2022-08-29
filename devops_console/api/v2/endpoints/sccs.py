@@ -41,7 +41,7 @@ async def home():
 # ----------------------------------------------------------------------------------------------------------------------
 
 
-@router.get("/repos")
+@router.get("/repositories")
 async def get_repositories(
     bitbucket: tuple[str, BitbucketSession] = Depends(get_bitbucket_session),
 ):
@@ -52,7 +52,7 @@ async def get_repositories(
         raise HTTPException(status_code=500, detail=e.reason)
 
 
-@router.get("/repos/{uuid}", response_model=schemas.Repository)
+@router.get("/repositories/{uuid}", response_model=schemas.Repository)
 async def get_repository_by_uuid(
     uuid: UUID4,
     bitbucket: tuple[str, BitbucketSession] = Depends(get_bitbucket_session),
@@ -63,7 +63,7 @@ async def get_repository_by_uuid(
     )
 
 
-@router.get("/repos/{name}", response_model=schemas.Repository)
+@router.get("/repositories/{name}", response_model=schemas.Repository)
 async def get_repository_by_name(
     name: str, bitbucket: tuple[str, BitbucketSession] = Depends(get_bitbucket_session)
 ):
@@ -73,7 +73,7 @@ async def get_repository_by_name(
     )
 
 
-@router.post("/repos")
+@router.post("/repositories")
 async def create_repository(
     repo: schemas.RepositoryPost,
     bitbucket: tuple[str, BitbucketSession] = Depends(get_bitbucket_session),
@@ -111,17 +111,17 @@ async def create_repository(
     return responserepo
 
 
-@router.put("/repos/{uuid}", response_model=schemas.Repository)
+@router.put("/repositories/{uuid}", response_model=schemas.Repository)
 async def update_repository(uuid: UUID4):
     raise NotImplementedError
 
 
-@router.delete("/repos/{uuid}", status_code=204)
+@router.delete("/repositories/{uuid}", status_code=204)
 async def delete_repository(uuid: UUID4):
     raise NotImplementedError
 
 
-@router.get("/repos/create_default_webhooks")
+@router.get("/repositories/create_default_webhooks")
 async def create_default_webhooks(
     bitbucket: tuple[str, BitbucketSession] = Depends(get_bitbucket_session)
 ):
@@ -197,7 +197,7 @@ async def create_default_webhooks(
     return subscriptions
 
 
-@router.get("/repos/remove_default_webhooks")
+@router.get("/repositories/remove_default_webhooks")
 async def remove_default_webhooks():
     """Remove the default webhooks from all repositories."""
 

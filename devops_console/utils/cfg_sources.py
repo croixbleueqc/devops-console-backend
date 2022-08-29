@@ -35,7 +35,7 @@ def json_userconfig_source(
 
     dirpath = "config"
 
-    userconfig = UserConfig.parse_obj(load_configs(dirpath))
+    userconfig = UserConfig.parse_obj(load_json_configs(dirpath))
 
     global _userconfig
     _userconfig = userconfig
@@ -43,10 +43,12 @@ def json_userconfig_source(
     return {"userconfig": userconfig}
 
 
-def load_configs(dirpath):
-    default = load_config_file(dirpath, "default") or {}
-    env = load_config_file(dirpath, os.environ.get("BRANCH_NAME", "undefined")) or {}
-    local = load_config_file(dirpath, "local") or {}
+def load_json_configs(dirpath):
+    default = load_json_config_file(dirpath, "default") or {}
+    env = (
+        load_json_config_file(dirpath, os.environ.get("BRANCH_NAME", "undefined")) or {}
+    )
+    local = load_json_config_file(dirpath, "local") or {}
 
     if all(v == {} for v in [default, env, local]):
         logging.critical("No config files found, exiting")
@@ -65,7 +67,7 @@ def load_configs(dirpath):
     return configs
 
 
-def load_config_file(directory, file_name):
+def load_json_config_file(directory, file_name):
     file_path = f"{directory}/{file_name}.json"
     try:
         d = json.loads(Path(file_path).read_text())

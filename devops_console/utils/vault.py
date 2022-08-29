@@ -9,7 +9,6 @@ env:
 
 import logging
 import os
-import sys
 from typing import Any
 
 from hvac import Client
@@ -42,12 +41,11 @@ class Vault:
 
     DEFAULT_K8S_AUTH_NONPROD = "kubernetes-nonprod"
     DEFAULT_K8S_AUTH_PROD = "kubernetes"
+    token: str | None = None
 
     def __init__(self):
         self.k8s = False
         self.k8s_auth = self.DEFAULT_K8S_AUTH_NONPROD
-        self.token = None
-        self.client = None
 
         self.addr = os.environ.get("VAULT_ADDR", "http://localhost:8200")
         logging.info(f"VAULT_ADDR: {self.addr}")

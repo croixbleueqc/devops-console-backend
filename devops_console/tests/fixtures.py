@@ -1,9 +1,16 @@
 from datetime import datetime, timedelta
-import types
 from uuid import uuid4
-from devops_sccs.ats_cache import ats_cache
+from fastapi.testclient import TestClient
 
-import pytest
+from devops_console.core import settings
+
+from devops_console.main import app
+
+client = TestClient(app)
+
+sccs_path = settings.API_V2_STR + "/sccs"
+
+test_headers = {"Authorization": f"Bearer {settings.DEV_TOKEN}"}
 
 # ----------------------------------------------------------------------------------------------------------------------
 # Mock Bitbucket API resources
@@ -148,89 +155,3 @@ mock_repositorypost = {
 mock_repositoryput = {
     **mock_repositorypost,
 }
-
-# ----------------------------------------------------------------------------------------------------------------------
-# Mock Bitbucket Client
-# ----------------------------------------------------------------------------------------------------------------------
-
-
-@pytest.fixture
-def mock_bitbucket_client(monkeypatch):
-    from devops_console_rest_api.client import bitbucket_client
-
-    @ats_cache()
-    async def get_repository():
-        return "mock success"
-
-    monkeypatch.setattr(
-        bitbucket_client, "get_repository", get_repository, raising=False
-    )
-    # raising=False to avoid raising an exception if the attr is not found
-    # (which will be the case with our hacky runtime client)
-
-    @ats_cache()
-    async def get_repositories():
-        return ["mock success"]
-
-    monkeypatch.setattr(
-        bitbucket_client, "get_repositories", get_repositories, raising=False
-    )
-
-    @ats_cache()
-    async def add_repository():
-        return "mock success"
-
-    monkeypatch.setattr(
-        bitbucket_client, "add_repository", add_repository, raising=False
-    )
-
-    @ats_cache()
-    async def delete_repository():
-        return "mock success"
-
-    monkeypatch.setattr(
-        bitbucket_client, "delete_repository", delete_repository, raising=False
-    )
-
-    @ats_cache()
-    async def get_projects():
-        return [mock_project]
-
-    monkeypatch.setattr(bitbucket_client, "get_projects", get_projects, raising=False)
-
-    @ats_cache()
-    async def get_webhook_subscriptions():
-        return "mock success"
-
-    monkeypatch.setattr(
-        bitbucket_client,
-        "get_webhook_subscriptions",
-        get_webhook_subscriptions,
-        raising=False,
-    )
-
-    @ats_cache()
-    async def create_webhook_subscription():
-        return "mock success"
-
-    monkeypatch.setattr(
-        bitbucket_client,
-        "create_webhook_subscription",
-        create_webhook_subscription,
-        raising=False,
-    )
-
-    @ats_cache()
-    async def delete_webhook_subscription():
-        return "mock success"
-
-    monkeypatch.setattr(
-        bitbucket_client,
-        "delete_webhook_subscription",
-        delete_webhook_subscription,
-        raising=False,
-    )
-
-    monkeypatch.setattr(
-        bitbucket_client, "cd_branches_accepted", ["test"], raising=False
-    )

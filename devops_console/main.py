@@ -59,14 +59,7 @@ init_db(db)
 # initialize core
 core = CoreClient()
 
-app = FastAPI(
-    # swagger_ui_oauth2_redirect_url="/oauth2-redirect",
-    # swagger_ui_init_oauth={
-    #     "usePkceWithAuthorizationCodeGrant": True,
-    #     "clientId": settings.OPENAPI_CLIENT_ID,
-    # },
-)
-
+app = FastAPI()
 
 if settings.BACKEND_CORS_ORIGINS:
     app.add_middleware(
@@ -89,7 +82,7 @@ app.mount(settings.WEBHOOKS_PATH, webhooks_server)
 async def redirect_unauthorized(request: Request, exc):
     if exc.status_code == status.HTTP_401_UNAUTHORIZED:
         # redirect to login page
-        return RedirectResponse(url="/login")
+        return RedirectResponse(url="/login", status_code=exc.status_code)
     raise exc
 
 

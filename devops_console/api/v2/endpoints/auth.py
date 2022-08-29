@@ -37,7 +37,7 @@ def access_token(
     )
 
     # TODO: add refresh token
-    # TODO: remove the cookie? (used with htmx)
+    # TODO: remove the cookie? (only used with htmx)
     response.set_cookie(key="access_token", value=access_token, httponly=True)
     response.headers["HX-Trigger"] = "reload"
 

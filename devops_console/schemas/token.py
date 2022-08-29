@@ -9,4 +9,4 @@ class Token(BaseModel):
 
 class TokenData(BaseModel):
     sub: int | None = None
-    exp: datetime
+    exp: float

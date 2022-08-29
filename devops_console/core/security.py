@@ -2,10 +2,9 @@ from datetime import datetime, timedelta
 
 from fastapi import Request, HTTPException, status
 from fastapi.security import OAuth2PasswordBearer
-from jose import jwt, JWTError
+from jose import jwt
 from passlib.context import CryptContext
 
-from devops_console import schemas
 
 from .config import settings
 
@@ -18,7 +17,7 @@ def create_access_token(data: dict, expires_delta: timedelta | None = None) -> s
         expire = datetime.utcnow() + expires_delta
     else:
         expire = datetime.utcnow() + timedelta(minutes=settings.ACCESS_TOKEN_TTL)
-    to_encode |= {"exp": expire}
+    to_encode |= {"exp": expire.timestamp()}
     encoded_jwt = jwt.encode(
         to_encode, settings.SECRET_KEY, algorithm=settings.ALGORITHM
     )
@@ -26,22 +25,11 @@ def create_access_token(data: dict, expires_delta: timedelta | None = None) -> s
     return encoded_jwt
 
 
-def validate_jwt_payload(token: str) -> schemas.TokenData:
-    try:
-        payload = jwt.decode(
-            token, settings.SECRET_KEY, algorithms=[settings.ALGORITHM]
-        )
-        token_data = schemas.TokenData(**payload)
-        if token_data.exp < datetime.utcnow():
-            raise HTTPException(
-                status_code=status.HTTP_401_UNAUTHORIZED, detail="Token expired"
-            )
-        return token_data
-    except JWTError:
-        raise HTTPException(
-            status_code=status.HTTP_401_UNAUTHORIZED,
-            detail="Could not validate credentials",
-        )
+credentials_exception = HTTPException(
+    status_code=status.HTTP_401_UNAUTHORIZED,
+    detail="Could not validate credentials",
+    headers={"WWW-Authenticate": "Bearer"},
+)
 
 
 def verify_password(plain_password: str, hashed_password: str) -> bool:
@@ -60,9 +48,12 @@ class OAuth2PasswordCookie(OAuth2PasswordBearer):
     def token_name(self) -> str:
         return "access_token"
 
-    async def __call__(self, request: Request) -> str:
+    async def __call__(self, request: Request) -> str | None:
+        # header supercedes cookie
+        if request.headers.get("Authorization"):
+            return await super().__call__(request)
         token = request.cookies.get(self.token_name)
         if not token:
-            raise HTTPException(status_code=401, detail="Not authenticated")
+            raise credentials_exception
 
         return token

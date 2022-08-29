@@ -1,3 +1,6 @@
+from datetime import datetime
+
+from devops_console import crud, schemas
 from fastapi import Depends, HTTPException, status
 from fastapi_azure_auth import SingleTenantAzureAuthorizationCodeBearer
 from fastapi_azure_auth.exceptions import InvalidAuth
@@ -7,11 +10,12 @@ from jose.exceptions import JWTError
 from pydantic import ValidationError
 from sqlalchemy.orm import Session
 
-
 from ..core.config import settings
 from ..core.database import SessionLocal
-from ..core.security import OAuth2PasswordCookie
-from devops_console import schemas, crud
+from ..core.security import (
+    OAuth2PasswordCookie,
+    credentials_exception,
+)
 
 # -----------------------------------------------------------------------------------
 # azure deps
@@ -53,20 +57,16 @@ oauth2_scheme = OAuth2PasswordCookie(tokenUrl=f"{settings.API_V2_STR}/token")
 async def get_current_user(
     db: Session = Depends(get_db), token: str = Depends(oauth2_scheme)
 ):
+    if (
+        settings.ENVIRONMENT == "development"
+        and settings.DEV_AUTH
+        and token == settings.DEV_TOKEN
+    ):
+        superuser = crud.user.get_by_email(db, email=settings.superuser.email)
+        if superuser:
+            return superuser
 
-    credentials_exception = HTTPException(
-        status_code=status.HTTP_401_UNAUTHORIZED,
-        detail="Could not validate credentials",
-        headers={"WWW-Authenticate": "Bearer"},
-    )
-
-    try:
-        payload = jwt.decode(
-            token, settings.SECRET_KEY, algorithms=[settings.ALGORITHM]
-        )
-        token_data = schemas.TokenData(**payload)
-    except (JWTError, ValidationError) as e:
-        raise credentials_exception
+    token_data = validate_token(token)
 
     user = crud.user.get(db, id=token_data.sub)
     if not user:
@@ -75,11 +75,18 @@ async def get_current_user(
     return user
 
 
-async def has_valid_token(token: str = Depends(oauth2_scheme)):
+def validate_token(token: str) -> schemas.TokenData:
+    """Validate token and return payload."""
+
     try:
-        jwt.decode(token, settings.SECRET_KEY, algorithms=[settings.ALGORITHM])
-    except (JWTError, ValidationError) as e:
-        raise HTTPException(
-            status_code=status.HTTP_401_UNAUTHORIZED,
-            detail="Could not validate credentials",
+        payload = jwt.decode(
+            token, settings.SECRET_KEY, algorithms=[settings.ALGORITHM]
         )
+        token_data = schemas.TokenData(**payload)
+        if token_data.exp < datetime.utcnow().timestamp():
+            raise HTTPException(
+                status_code=status.HTTP_401_UNAUTHORIZED, detail="Token expired"
+            )
+        return token_data
+    except (JWTError, ValidationError):
+        raise credentials_exception
