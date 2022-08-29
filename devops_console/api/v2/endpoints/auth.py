@@ -13,8 +13,8 @@ router = APIRouter()
 
 @router.post(
     "/token",
-    status_code=status.HTTP_204_NO_CONTENT,
-    response_class=Response,  # https://github.com/tiangolo/fastapi/issues/4939
+    # status_code=status.HTTP_204_NO_CONTENT,
+    # response_class=Response,  # https://github.com/tiangolo/fastapi/issues/4939
 )
 def access_token(
     response: Response,
@@ -35,8 +35,10 @@ def access_token(
         data={"sub": f"{user.id}"},
         expires_delta=access_token_expires,
     )
-    response.set_cookie(key="access_token", value=access_token, httponly=True)
 
+    # TODO: add refresh token
+    # TODO: remove the cookie? (used with htmx)
+    response.set_cookie(key="access_token", value=access_token, httponly=True)
     response.headers["HX-Trigger"] = "reload"
 
-    return None
+    return {"access_token": access_token, "token_type": "bearer"}

@@ -15,11 +15,6 @@ class BitbucketResource(BaseModel, extra=Extra.allow):
     type: str = ""
 
 
-class User(BaseModel):
-    is_staff: bool
-    account_id: str
-
-
 class Link(BaseModel):
     name: str | None
     href: AnyHttpUrl
@@ -46,7 +41,7 @@ class Author(BitbucketResource):
 
 
 class Participant(BitbucketResource):
-    user: Account | User
+    user: Account
     role: Literal["PARTICIPANT", "REVIEWER"]
     approved: bool
     state: Literal["approved", "changes_requested", "null"]

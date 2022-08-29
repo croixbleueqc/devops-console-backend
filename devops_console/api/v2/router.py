@@ -3,15 +3,15 @@ from devops_console.core import settings
 from fastapi import APIRouter, Depends
 from fastapi.responses import HTMLResponse
 
-from .endpoints import auth, bitbucket, html, users, websocket
+from .endpoints import auth, html, sccs, users, websocket
 
 api_router = APIRouter(prefix=settings.API_V2_STR)
 
 api_router.include_router(auth.router, tags=["token"])
 api_router.include_router(
-    bitbucket.router,
-    prefix="/bb",
-    tags=["bitbucket"],
+    sccs.router,
+    prefix="/sccs",
+    tags=["sccs"],
     dependencies=[Depends(has_valid_token)],
 )
 api_router.include_router(

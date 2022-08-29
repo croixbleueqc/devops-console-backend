@@ -7,7 +7,7 @@ from sse_starlette.sse import EventSourceResponse
 
 from devops_console.api.deps import get_current_user, get_db
 from devops_console.api.v2.endpoints import users
-from devops_console.api.v2.endpoints.bitbucket import get_bitbucket_session
+from devops_console.api.v2.endpoints.sccs import get_bitbucket_session
 from devops_console.clients import CoreClient
 from devops_console.templates import templates
 from devops_console.core import settings

@@ -4,11 +4,11 @@ from typing import Dict, List, Literal, TypedDict
 from pydantic import UUID4, AnyHttpUrl, BaseModel, Extra, Field, HttpUrl
 
 from .bitbucket import (
+    Account,
     BaseCommit,
     BitbucketResource,
     Commit,
     Link,
-    User,
 )
 
 
@@ -39,6 +39,7 @@ class WebhookEventKey(str, Enum):
     repo_push = "repo:push"
     repo_transfer = "repo:transfer"
     repo_updated = "repo:updated"
+    user_account_prop_changed = "user:account_property_changed"
 
 
 class PayloadWorkspace(BaseModel):
@@ -104,7 +105,7 @@ class CommitShort(TypedDict):
     type: Literal["commit"]
     hash: str
     message: str
-    author: User
+    author: Account
     links: Dict[str, Link]
 
 
