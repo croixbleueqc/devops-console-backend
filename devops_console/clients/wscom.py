@@ -70,7 +70,10 @@ class ConnectionManager:
         await websocket.send_json(data)
 
     def disconnect(self, websocket: WebSocket):
-        self.active_connections.remove(websocket)
+        try:
+            self.active_connections.remove(websocket)
+        except ValueError:
+            pass
 
 
 manager = ConnectionManager()
