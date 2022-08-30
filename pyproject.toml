@@ -1,0 +1,30 @@
+[project]
+name = "devops_console"
+version = "2.0.1"
+description = "Monitor and manage your devops environment"
+readme = "README.md"
+requires-python = ">=3.10"
+license = { text = "LGPL-3.0-or-later" }
+authors = [{ name = "Croix Bleue", email = "devops@qc.croixbleue.ca" }]
+dependencies = [
+    "atlassian-python-api ~= 3.26",
+    "fastapi ~= 0.79.0",
+    "fastapi-azure-auth ~= 3.5.0",
+    "hvac ~= 0.11.2",
+    "Jinja2 ~= 3.1.2",
+    "passlib[bcrypt] ~= 1.7.4",
+    "pydantic[email,dotenv] ~= 1.9.1",
+    "python-multipart ~= 0.0.5",
+    "SQLAlchemy ~= 1.4.40",
+    "sse-starlette ~=1.1.6",
+    "uvicorn[standard]",
+    "loguru ~= 0.6.0",
+]
+optional-dependencies = { prod = [
+    "devops-kubernetes @ git+https://github.com/croixbleueqc/python-devops-kubernetes.git@2.0",
+    "devops-sccs @ git+https://github.com/croixbleueqc/python-devops-sccs.git@2.0",
+] }
+
+[build-system]
+requires = ["setuptools", "wheel"]
+build-backend = "setuptools.build_meta"

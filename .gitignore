@@ -1,5 +1,5 @@
 build/
 __pycache__/
 *.egg-info/
-devops_console/config/default.json
 .pytest_cache/
+dist/

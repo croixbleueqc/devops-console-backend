@@ -1,0 +1,19 @@
+{% for env in envs %}
+<article>
+    <header>
+        <hgroup>
+            <h3>
+                <a href="#" hx-get="/repo/{{repo_name}}/cd/{{env.environment}}"
+                   hx-target="main" hx-swap="innerHTML"
+                   hx-indicator="#topspinner">{{ env.environment }}</a>
+            </h3>
+            <h4>Version: {{ env.version }}</h4>
+        </hgroup>
+    </header>
+    <div hx-get="/repo/{{repo_name}}/cd/{{ env.environment }}/versions/?env_version={{ env.version }}"
+         hx-target="this" hx-swap="innerHTML" hx-indicator=".spinner"
+         hx-trigger="load delay:100ms">
+        {% include "fragments/spinner.html" %}
+    </div>
+</article>
+{% endfor %}
