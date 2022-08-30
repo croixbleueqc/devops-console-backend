@@ -1,10 +1,6 @@
-<section hx-get="/repos-options" hx-trigger="load delay:100ms" hx-target="#repo-select"
-         hx-swap="outerHTML" hx-indicator=".spinner">
+<section>
     <hgroup>
         <h1>Welcome, {{ user.full_name }}</h1>
         <h2>Pick a repository to begin</h2>
     </hgroup>
-    <div id="repo-select">
-        {% include "fragments/spinner.html" %}
-    </div>
 </section>

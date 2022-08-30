@@ -17,7 +17,16 @@
     <nav class="container-fluid">
         <ul>
             <li><strong><a href="#" hx-get="/home">🌌 Event Horizon</a></strong></li>
+            <li>
+                <div aria-busy="true" id="top-spinner" class="htmx-indicator"></div>
+            </li>
         </ul>
+        {% if user %}
+        <ul>
+            <li hx-get="/repos-options" hx-trigger="load delay:100ms" hx-target="this"
+                hx-swap="innerHTML" hx-indicator="#top-spinner"></li>
+        </ul>
+        {% endif %}
         <ul>
             <li>
                 <a href="#" hx-get="/home">Home</a>
@@ -26,9 +35,6 @@
             <li><a href="#" hx-get="/users">Users</a></li>
             <li><a href="#" hx-get="/logout">Log out</a></li>
             {% endif %}
-            <li>
-                <div aria-busy="true" id="top-spinner" class="htmx-indicator"></div>
-            </li>
         </ul>
     </nav>
     <main class="container">
