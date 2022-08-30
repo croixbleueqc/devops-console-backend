@@ -134,6 +134,8 @@ async def create_default_webhooks(
     except HTTPError as e:
         logging.warn(f"Failed to get list of repositories: {e}")
         raise HTTPException(status_code=e.request.status_code, detail=e)
+    if not repos:
+        raise HTTPException(status_code=400, detail="No repositories found")
 
     subscriptions = []
 
@@ -148,22 +150,23 @@ async def create_default_webhooks(
             # get list of webhooks for this repo
             try:
                 current_subscriptions = await client.get_webhook_subscriptions(
-                    repo_name=repo.name
+                    plugin_id=plugin_id, session=session, repo_name=repo.name
                 )
-            except NetworkError as e:
+            except ApiError as e:
                 logging.warn(
-                    f"Failed to get webhook subscriptions for {repo.name}: {e.details}"
+                    f"Failed to get webhook subscriptions for {repo.name}: {e.reason}"
                 )
                 return
 
             # check if the webhook is already set
             if any(
                 [
-                    subscription["url"] == WEBHOOKS_URL
+                    subscription["url"]
+                    == urljoin(settings.WEBHOOKS_HOST, settings.WEBHOOKS_PATH)
                     and all(
                         [
                             event in subscription["events"]
-                            for event in WEBHOOKS_DEFAULT_EVENTS
+                            for event in settings.WEBHOOKS_DEFAULT_EVENTS
                         ]
                     )
                     for subscription in current_subscriptions["values"]
@@ -175,16 +178,18 @@ async def create_default_webhooks(
             # create the webhook
             try:
                 new_subscription = await client.create_webhook_subscription(
+                    plugin_id=plugin_id,
+                    session=session,
                     repo_name=repo.name,
-                    url=WEBHOOKS_URL,
+                    url=urljoin(settings.WEBHOOKS_HOST, settings.WEBHOOKS_PATH),
                     active=True,
-                    events=WEBHOOKS_DEFAULT_EVENTS,
-                    description=WEBHOOKS_DEFAULT_DESCRIPTION,
+                    events=settings.WEBHOOKS_DEFAULT_EVENTS,
+                    description=settings.WEBHOOKS_DEFAULT_DESCRIPTION,
                 )
                 logging.warn(f"Subscribed to default webhook for {repo.name}.")
-            except NetworkError as e:
+            except ApiError as e:
                 logging.warn(
-                    f"Failed to create webhook subscription for {repo.name}: {e.details}"
+                    f"Failed to create webhook subscription for {repo.name}: {e.reason}"
                 )
                 return
 
@@ -198,15 +203,22 @@ async def create_default_webhooks(
 
 
 @router.get("/repositories/remove_default_webhooks")
-async def remove_default_webhooks():
+async def remove_default_webhooks(
+    bitbucket: tuple[str, BitbucketSession] = Depends(get_bitbucket_session)
+):
     """Remove the default webhooks from all repositories."""
+
+    plugin_id, session = bitbucket
 
     # get list of repositories
     try:
-        repos = await client.get_repositories()
-    except NetworkError as e:
-        logging.warn(f"Failed to get list of repositories: {e.details}")
+        repos = await client.get_repositories(plugin_id=plugin_id, session=session)
+    except ApiError as e:
+        logging.warn(f"Failed to get list of repositories: {e.reason}")
         return
+
+    if not repos:
+        raise HTTPException(status_code=400, detail="No repositories found")
 
     coros = []
 
@@ -215,11 +227,11 @@ async def remove_default_webhooks():
         async def _remove_default_webhooks(repo):
             try:
                 current_subscriptions = await client.get_webhook_subscriptions(
-                    repo_name=repo.name
+                    plugin_id=plugin_id, session=session, repo_name=repo.name
                 )
-            except NetworkError as e:
+            except HTTPError as e:
                 logging.warn(
-                    f"Failed to get webhook subscriptions for {repo.name}: {e.details}"
+                    f"Failed to get webhook subscriptions for {repo.name}: {e.strerror}"
                 )
                 return
 
@@ -234,13 +246,15 @@ async def remove_default_webhooks():
                 if subscription["url"] == settings.WEBHOOKS_URL:
                     try:
                         await client.delete_webhook_subscription(
+                            plugin_id=plugin_id,
+                            session=session,
                             repo_name=repo.name,
                             subscription_id=subscription["uuid"],
                         )
                         logging.warn(f"Deleted webhook subscription for {repo.name}.")
-                    except NetworkError as e:
+                    except HTTPError as e:
                         logging.warn(
-                            f"Failed to delete webhook subscription for {repo.name}: {e.details}"
+                            f"Failed to delete webhook subscription for {repo.name}: {e.strerror}"
                         )
                         continue
 
@@ -257,9 +271,11 @@ async def remove_default_webhooks():
 
 
 @router.get("/projects", response_model=schemas.Paginated[schemas.Project])
-async def get_projects():
+async def get_projects(
+    bitbucket: tuple[str, BitbucketSession] = Depends(get_bitbucket_session)
+):
+    plugin_id, session = bitbucket
     try:
-        return await client.get_projects()
-    except NetworkError as e:
-        logging.error(f"Failed to get list of projects: {e.details}")
-        raise HTTPException(status_code=e.status, detail=e.details)
+        return await client.get_projects(plugin_id=plugin_id, session=session)
+    except HTTPError as e:
+        raise HTTPException(status_code=400, detail=e.strerror)

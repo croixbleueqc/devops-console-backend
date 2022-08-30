@@ -21,8 +21,8 @@ dependencies = [
     "loguru ~= 0.6.0",
 ]
 optional-dependencies = { prod = [
-    "devops-kubernetes @ git+https://github.com/croixbleueqc/python-devops-kubernetes.git@2.0",
-    "devops-sccs @ git+https://github.com/croixbleueqc/python-devops-sccs.git@2.0",
+    "devops-kubernetes @ git+https://github.com/croixbleueqc/python-devops-kubernetes.git@master",
+    "devops-sccs @ git+https://github.com/croixbleueqc/python-devops-sccs.git@develop",
 ] }
 
 [build-system]
