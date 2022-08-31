@@ -4,6 +4,8 @@ from http import HTTPStatus
 from fastapi import FastAPI, HTTPException, Request
 from requests import JSONDecodeError
 
+from devops_console.clients.client import CoreClient
+
 from ..schemas.webhooks import (
     PRApprovedEvent,
     PRCreatedEvent,
@@ -17,6 +19,9 @@ from ..schemas.webhooks import (
 )
 
 app = FastAPI()
+
+core = CoreClient()
+client = core.sccs
 
 
 @app.post("/", tags=["bitbucket_webhooks"])

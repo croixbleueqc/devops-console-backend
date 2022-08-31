@@ -25,6 +25,8 @@ from ..schemas.userconfig import SCCSConfig
 class Sccs:
     """Sccs Core"""
 
+    cd_branches_accepted: list[str]
+
     def __init__(self, config: SCCSConfig):
         self.config = config
         self.core: SccsClient
@@ -45,7 +47,7 @@ class Sccs:
             logging.exception("Failed to get repository")
             raise
 
-    async def get_repositories(self, plugin_id, session, *args, **kwargs):
+    async def get_repositories(self, plugin_id, session, *args, **kwargs) -> list:
         try:
             async with self.core.context(plugin_id, session) as ctx:
                 return await ctx.get_repositories(*args, **kwargs)
@@ -159,7 +161,7 @@ class Sccs:
         async with self.core.context(plugin_id, session) as ctx:
             return await ctx.compliance_report(args)
 
-    async def get_webhook_subscriptions(self, plugin_id, session, **kwargs):
+    async def get_webhook_subscriptions(self, plugin_id, session, **kwargs) -> dict:
         async with self.core.context(plugin_id, session) as ctx:
             return await ctx.get_webhook_subscriptions(**kwargs)
 

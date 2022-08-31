@@ -129,6 +129,7 @@ async def create_default_webhooks(
 
     plugin_id, session = bitbucket
     # get list of repositories
+    repos: list
     try:
         repos = await client.get_repositories(plugin_id=plugin_id, session=session)
     except HTTPError as e:
@@ -225,6 +226,7 @@ async def remove_default_webhooks(
     for repo in repos:
 
         async def _remove_default_webhooks(repo):
+            current_subscriptions: dict
             try:
                 current_subscriptions = await client.get_webhook_subscriptions(
                     plugin_id=plugin_id, session=session, repo_name=repo.name
@@ -243,7 +245,9 @@ async def remove_default_webhooks(
                 return
 
             for subscription in current_subscriptions["values"]:
-                if subscription["url"] == settings.WEBHOOKS_URL:
+                if subscription["url"] == urljoin(
+                    settings.WEBHOOKS_HOST, settings.WEBHOOKS_PATH
+                ):
                     try:
                         await client.delete_webhook_subscription(
                             plugin_id=plugin_id,
