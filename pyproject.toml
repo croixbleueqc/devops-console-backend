@@ -19,6 +19,7 @@ dependencies = [
     "sse-starlette ~=1.1.6",
     "uvicorn[standard]",
     "loguru ~= 0.6.0",
+    "types-requests ~= 2.28.9",
 ]
 optional-dependencies = { prod = [
     "devops-kubernetes @ git+https://github.com/croixbleueqc/python-devops-kubernetes.git@master",
