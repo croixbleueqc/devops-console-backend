@@ -146,41 +146,29 @@ class Vault:
 BRANCH_NAME = os.environ.get("BRANCH_NAME", "dev")
 
 
-def get_environment_kubeconfigs(config: dict) -> list[dict]:
+def get_environment_kubeconfigs(config: dict, environment: str) -> dict:
     """Get secrets to use Croix Bleue Kubernetes infrastructure
-    Returns a list of dicts in the form:
-    [
-        {
-            "environment": "dev",
-            "kubeconfigs": {
-                "nonprod": "...",
-                "prod": "...",
-                ...
-            },
-        },
-        ...
-    ]
+    Returns a dict in the form:
 
+        {
+            "nonprod": {
+                ...kubeconfig...
+            },
+            ...
+        },
     """
 
     vault = Vault()
     vault.connect()
 
-    configs = []
+    configs = {}
 
-    for name, env in config["environments"].items():
-        envcfg = {
-            "environment": name,
-            "kubeconfigs": {},
-        }
-
-        for cluster in env["clusters"]:
-            kubeconfig = vault.read_secret(
-                env["vault_path"] + "/" + cluster, "bluecross"
-            )
-            envcfg["kubeconfigs"][cluster] = kubeconfig
-
-        configs.append(envcfg)
+    for secret in vault.list_secrets(
+        f'{config["vault_path"]}/{environment}', "bluecross"
+    ):
+        configs[secret] = vault.read_secret(
+            f'{config["vault_path"]}/{environment}/{secret}', "bluecross"
+        )["kubeconfig"]
 
     return configs
 

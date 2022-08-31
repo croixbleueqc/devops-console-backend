@@ -15,8 +15,10 @@
 # You should have received a copy of the GNU Lesser General Public License
 # along with devops-console-backend.  If not, see <https://www.gnu.org/licenses/>.
 
+import os
 from devops_sccs.errors import AccessForbidden
 from devops_kubernetes.client import K8sClient
+from ..core import settings
 
 from ..schemas.userconfig import KubernetesConfig
 
@@ -26,6 +28,9 @@ class Kubernetes(object):
         self.config = config
         self.sccs = sccs
         self.client: K8sClient
+
+        # list cluster names on disk
+        self.clusters = os.listdir(self.config.config_dir)
 
     async def init(self):
         self.client = await K8sClient.create(self.config.dict())
@@ -41,14 +46,11 @@ class Kubernetes(object):
             else environment
         )
 
-        clusters = self.config.environments[env].clusters
-
         namespace = repository + "-" + env if env else repository
 
         async def gen():
             nonlocal namespace
-            nonlocal clusters
-            for cluster in clusters:
+            for cluster in self.clusters:
                 yield {
                     "type": "INFO",
                     "key": "bridge",
@@ -60,7 +62,7 @@ class Kubernetes(object):
                         },
                     },
                 }
-                async with self.client.context(env=env, cluster=cluster) as ctx:
+                async with self.client.context(cluster) as ctx:
                     async for event in ctx.pods(namespace):
                         yield event
 
@@ -78,7 +80,5 @@ class Kubernetes(object):
                 f"You don't have write access on {repository} to delete a pod"
             )
 
-        async with self.client.context(
-            env=environment, cluster=bridge["cluster"]
-        ) as ctx:
+        async with self.client.context(cluster=bridge["cluster"]) as ctx:
             await ctx.delete_pod(pod_name, bridge["namespace"])
