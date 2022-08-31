@@ -34,22 +34,14 @@ class Kubernetes(object):
         """Return a generator iterator of events for the pods of the given repository.
         see core.py in python-devops-kubernetes for the event shape.
         """
-        clusters = self.config.clusters.keys()
 
-        suffixmap = {
-            "accept-2": "accept2",
-            "acceptation": "accept",
-            "development": "dev",
-            "development-2": "dev2",
-            "master": None,
-            "pre-production": "preprod",
-            "production": "prod",
-            "qa": "qa",
-            "quality-assurance-2": "qa2",
-            "training": "formation",
-        }
+        env: str = (
+            self.config.suffix_map[environment]
+            if environment in self.config.suffix_map.keys()
+            else environment
+        )
 
-        env: str = suffixmap[environment] if environment in suffixmap else environment
+        clusters = self.config.environments[env].clusters
 
         namespace = repository + "-" + env if env else repository
 
@@ -68,7 +60,7 @@ class Kubernetes(object):
                         },
                     },
                 }
-                async with self.client.context(cluster=cluster) as ctx:
+                async with self.client.context(env=env, cluster=cluster) as ctx:
                     async for event in ctx.pods(namespace):
                         yield event
 
@@ -86,5 +78,7 @@ class Kubernetes(object):
                 f"You don't have write access on {repository} to delete a pod"
             )
 
-        async with self.client.context(bridge["cluster"]) as ctx:
+        async with self.client.context(
+            env=environment, cluster=bridge["cluster"]
+        ) as ctx:
             await ctx.delete_pod(pod_name, bridge["namespace"])

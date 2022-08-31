@@ -10,8 +10,15 @@ class APIConfig(BaseModel):
     swagger: dict[Literal["url"], str]
 
 
+class K8sEnvironment(BaseModel):
+    vault_path: str
+    clusters: list[str]
+
+
 class KubernetesConfig(BaseModel):
-    clusters: dict[str, dict[Literal["config_file"], str]]
+    environments: dict[str, K8sEnvironment]
+    config_dir: str
+    suffix_map: dict[str, str]
 
 
 class Plugins(BaseModel):
