@@ -29,7 +29,7 @@ from ..schemas.webhooks import WebhookEventKey
 
 
 class Settings(BaseSettings):
-    ENVIRONMENT: str = Field(default="production", env="ENVIRONMENT")
+    ENVIRONMENT: str = Field(default="development", env="ENVIRONMENT")
     BRANCH_NAME: str = Field(default="undefined", env="BRANCH_NAME")
 
     HOST: AnyHttpUrl = Field(default="http://localhost:5000", env="HOST")
