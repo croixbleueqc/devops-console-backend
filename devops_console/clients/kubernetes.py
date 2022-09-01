@@ -37,7 +37,7 @@ class Kubernetes(object):
 
     async def pods_watch(self, sccs_plugin, sccs_session, repository, environment):
         """Return a generator iterator of events for the pods of the given repository.
-        see core.py in python-devops-kubernetes for the event shape.
+        see client.py in python-devops-kubernetes for the event shape.
         """
 
         env: str = (
@@ -48,9 +48,25 @@ class Kubernetes(object):
 
         namespace = repository + "-" + env if env else repository
 
+        # find the clusters that have the namespace
+        pod_clusters: list[str] = []
+        for cluster in self.clusters:
+            try:
+                async with self.client.context(cluster) as ctx:
+                    pods = await ctx.list_pods(namespace)
+                    if len(pods) > 0:
+                        pod_clusters.append(cluster)
+                        break
+            except:
+                pass
+
+        if len(pod_clusters) == 0:
+            raise Exception(f"No cluster found for namespace {namespace}")
+
         async def gen():
             nonlocal namespace
-            for cluster in self.clusters:
+            nonlocal pod_clusters
+            for cluster in pod_clusters:
                 yield {
                     "type": "INFO",
                     "key": "bridge",

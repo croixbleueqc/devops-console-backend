@@ -9,7 +9,6 @@ env:
 
 import logging
 import os
-from typing import Any
 
 from hvac import Client
 from hvac.adapters import Request
@@ -146,16 +145,37 @@ class Vault:
 BRANCH_NAME = os.environ.get("BRANCH_NAME", "dev")
 
 
-def get_environment_kubeconfigs(config: dict, environment: str) -> dict:
-    """Get secrets to use Croix Bleue Kubernetes infrastructure
+def get_path_kubeconfigs(namedpaths: dict[str, str]):
+    """Get kubeconfigs at specific paths in the vault.
     Returns a dict in the form:
-
         {
             "nonprod": {
                 ...kubeconfig...
             },
             ...
-        },
+        }
+    """
+
+    vault = Vault()
+    vault.connect()
+
+    configs = {}
+
+    for name, path in namedpaths.items():
+        configs[name] = vault.read_secret(path, "bluecross")["kubeconfig"]
+
+    return configs
+
+
+def get_environment_kubeconfigs(config: dict, environment: str) -> dict:
+    """Get secrets to use Croix Bleue Kubernetes infrastructure
+    Returns a dict in the form:
+        {
+            "nonprod": {
+                ...kubeconfig...
+            },
+            ...
+        }
     """
 
     vault = Vault()
@@ -164,10 +184,11 @@ def get_environment_kubeconfigs(config: dict, environment: str) -> dict:
     configs = {}
 
     for secret in vault.list_secrets(
-        f'{config["vault_path"]}/{environment}', "bluecross"
+        f'{config["vault_path"]}/devops-console-backend/{environment}', "bluecross"
     ):
         configs[secret] = vault.read_secret(
-            f'{config["vault_path"]}/{environment}/{secret}', "bluecross"
+            f'{config["vault_path"]}/devops-console-backend/{environment}/{secret}',
+            "bluecross",
         )["kubeconfig"]
 
     return configs
