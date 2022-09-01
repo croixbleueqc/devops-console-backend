@@ -12,7 +12,6 @@ class APIConfig(BaseModel):
 
 class KubernetesConfig(BaseModel):
     config_dir: str
-    vault_path: str
     suffix_map: dict[str, str]
 
 

@@ -52,6 +52,10 @@ class Vault:
         self.role = os.environ.get("VAULT_ROLE", "default")
         logging.info(f"VAULT_ROLE: {self.role}")
 
+        self.mount = os.environ.get("VAULT_MOUNT")
+        if self.mount is None:
+            raise Exception("Please set VAULT_MOUNT!")
+
         try:
             self.token = self.get_sa_token_from_pod()
             self.k8s = True
@@ -101,48 +105,43 @@ class Vault:
             raise Exception("Please connect() before.")
         self.client: Client
 
-    def list_secrets(self, path, mount_point="secret"):
+    def list_secrets(self, path):
         """List secrets in the specified path"""
 
         self.assert_valid_client()
 
         list_response = self.client.secrets.kv.v2.list_secrets(
-            path, mount_point=mount_point
+            path, mount_point=self.mount
         )
         return list_response["data"]["keys"]
 
-    def list_secrets_recursive(self, path, mount_point="secret"):
+    def list_secrets_recursive(self, path):
         """List secrets recursively from the specified path"""
 
         self.assert_valid_client()
 
         secrets = {}
 
-        keys = self.list_secrets(path, mount_point=mount_point)
+        keys = self.list_secrets(path)
         for key in keys:
             if key.endswith("/"):
                 # this is a path
-                secrets[key[:-1]] = self.list_secrets_recursive(
-                    path + key, mount_point=mount_point
-                )
+                secrets[key[:-1]] = self.list_secrets_recursive(path + key)
             else:
                 # this is a kv secret
                 secrets[key] = None
 
         return secrets
 
-    def read_secret(self, path, mount_point="secret"):
+    def read_secret(self, path):
         """Read a secret"""
 
         self.assert_valid_client()
 
         response = self.client.secrets.kv.v2.read_secret_version(
-            path, mount_point=mount_point
+            path, mount_point=self.mount
         )
         return response["data"]["data"]
-
-
-BRANCH_NAME = os.environ.get("BRANCH_NAME", "dev")
 
 
 def get_path_kubeconfigs(namedpaths: dict[str, str]):
@@ -162,7 +161,7 @@ def get_path_kubeconfigs(namedpaths: dict[str, str]):
     configs = {}
 
     for name, path in namedpaths.items():
-        configs[name] = vault.read_secret(path, "bluecross")["kubeconfig"]
+        configs[name] = vault.read_secret(path)["kubeconfig"]
 
     return configs
 
@@ -183,12 +182,9 @@ def get_environment_kubeconfigs(config: dict, environment: str) -> dict:
 
     configs = {}
 
-    for secret in vault.list_secrets(
-        f'{config["vault_path"]}/devops-console-backend/{environment}', "bluecross"
-    ):
+    for secret in vault.list_secrets(f"devops-console-backend/{environment}"):
         configs[secret] = vault.read_secret(
-            f'{config["vault_path"]}/devops-console-backend/{environment}/{secret}',
-            "bluecross",
+            f"devops-console-backend/{environment}/{secret}"
         )["kubeconfig"]
 
     return configs
@@ -201,9 +197,7 @@ def get_bb_su_creds(su: SU) -> VaultBitbucket:
     vault = Vault()
     vault.connect()
 
-    vault_bitbucket = VaultBitbucket(
-        **vault.read_secret(su.vault_secret, su.vault_mount)
-    )
+    vault_bitbucket = VaultBitbucket(**vault.read_secret(su.vault_secret))
 
     return vault_bitbucket
 
