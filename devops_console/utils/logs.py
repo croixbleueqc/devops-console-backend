@@ -28,6 +28,9 @@ class InterceptHandler(logging.Handler):
 def setup_logging():
     # intercept everything at the root logger level
     logging.root.handlers = [InterceptHandler()]
+    log_level = settings.LOG_LEVEL or (
+        logging.DEBUG if settings.ENVIRONMENT == "development" else logging.INFO
+    )
     logging.root.setLevel(settings.LOG_LEVEL)
 
     # remove every other logger's handlers
