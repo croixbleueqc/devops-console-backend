@@ -15,8 +15,10 @@
 # You should have received a copy of the GNU Lesser General Public License
 # along with devops-console-backend.  If not, see <https://www.gnu.org/licenses/>.
 
+import os
 from devops_sccs.errors import AccessForbidden
 from devops_kubernetes.client import K8sClient
+from ..core import settings
 
 from ..schemas.userconfig import KubernetesConfig
 
@@ -27,36 +29,44 @@ class Kubernetes(object):
         self.sccs = sccs
         self.client: K8sClient
 
+        # list cluster names on disk
+        self.clusters = os.listdir(self.config.config_dir)
+
     async def init(self):
         self.client = await K8sClient.create(self.config.dict())
 
     async def pods_watch(self, sccs_plugin, sccs_session, repository, environment):
         """Return a generator iterator of events for the pods of the given repository.
-        see core.py in python-devops-kubernetes for the event shape.
+        see client.py in python-devops-kubernetes for the event shape.
         """
-        clusters = self.config.clusters.keys()
 
-        suffixmap = {
-            "accept-2": "accept2",
-            "acceptation": "accept",
-            "development": "dev",
-            "development-2": "dev2",
-            "master": None,
-            "pre-production": "preprod",
-            "production": "prod",
-            "qa": "qa",
-            "quality-assurance-2": "qa2",
-            "training": "formation",
-        }
-
-        env: str = suffixmap[environment] if environment in suffixmap else environment
+        env: str = (
+            self.config.suffix_map[environment]
+            if environment in self.config.suffix_map.keys()
+            else environment
+        )
 
         namespace = repository + "-" + env if env else repository
 
+        # find the clusters that have the namespace
+        pod_clusters: list[str] = []
+        for cluster in self.clusters:
+            try:
+                async with self.client.context(cluster) as ctx:
+                    pods = await ctx.list_pods(namespace)
+                    if len(pods) > 0:
+                        pod_clusters.append(cluster)
+                        break
+            except:
+                pass
+
+        if len(pod_clusters) == 0:
+            raise Exception(f"No cluster found for namespace {namespace}")
+
         async def gen():
             nonlocal namespace
-            nonlocal clusters
-            for cluster in clusters:
+            nonlocal pod_clusters
+            for cluster in pod_clusters:
                 yield {
                     "type": "INFO",
                     "key": "bridge",
@@ -68,7 +78,7 @@ class Kubernetes(object):
                         },
                     },
                 }
-                async with self.client.context(cluster=cluster) as ctx:
+                async with self.client.context(cluster) as ctx:
                     async for event in ctx.pods(namespace):
                         yield event
 
@@ -86,5 +96,5 @@ class Kubernetes(object):
                 f"You don't have write access on {repository} to delete a pod"
             )
 
-        async with self.client.context(bridge["cluster"]) as ctx:
+        async with self.client.context(cluster=bridge["cluster"]) as ctx:
             await ctx.delete_pod(pod_name, bridge["namespace"])

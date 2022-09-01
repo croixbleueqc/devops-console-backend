@@ -11,7 +11,8 @@ class APIConfig(BaseModel):
 
 
 class KubernetesConfig(BaseModel):
-    clusters: dict[str, dict[Literal["config_file"], str]]
+    config_dir: str
+    suffix_map: dict[str, str]
 
 
 class Plugins(BaseModel):

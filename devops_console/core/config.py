@@ -74,7 +74,7 @@ class Settings(BaseSettings):
         "http://localhost:8080",
     ]
 
-    LOG_LEVEL: int = Field(default=logging.INFO, env="LOG_LEVEL")
+    LOG_LEVEL: int | None = Field(default=logging.INFO, env="LOG_LEVEL")
 
     userconfig: UserConfig
 
