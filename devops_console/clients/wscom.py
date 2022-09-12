@@ -56,7 +56,7 @@ class ConnectionManager:
         h = hash(websocket)
         try:
             del self.ws_watchers_map[h][watcher_id]
-        except KeyError:
+        except (KeyError, ValueError):
             pass
 
     async def close_watchers(self, websocket: WebSocket) -> None:
@@ -64,7 +64,10 @@ class ConnectionManager:
         if watchers is not None:
             for watcher_id in watchers.keys():
                 await wscom_watcher_close(websocket, watcher_id)
-                del watchers[watcher_id]
+                try:
+                    del watchers[watcher_id]
+                except (KeyError, ValueError):
+                    pass
 
     async def send_json(self, websocket: WebSocket, data: Any):
         await websocket.send_json(data)
@@ -72,7 +75,7 @@ class ConnectionManager:
     async def disconnect(self, websocket: WebSocket):
         try:
             del self.ws_watchers_map[hash(websocket)]
-        except ValueError:
+        except (KeyError, ValueError):
             pass
 
 
