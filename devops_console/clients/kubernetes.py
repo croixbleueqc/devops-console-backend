@@ -56,16 +56,15 @@ class Kubernetes(object):
                     pods = await ctx.list_pods(namespace)
                     if len(pods) > 0:
                         pod_clusters.append(cluster)
-                        break
-            except:
+            except Exception:
                 pass
-
-        if len(pod_clusters) == 0:
-            raise Exception(f"No cluster found for namespace {namespace}")
 
         async def gen():
             nonlocal namespace
             nonlocal pod_clusters
+            if len(pod_clusters) == 0:
+                return
+
             for cluster in pod_clusters:
                 yield {
                     "type": "INFO",

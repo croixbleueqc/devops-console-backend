@@ -62,7 +62,7 @@ core = CoreClient()
 
 app = FastAPI()
 
-if settings.BACKEND_CORS_ORIGINS:
+if settings.BACKEND_CORS_ORIGINS is not None and len(settings.BACKEND_CORS_ORIGINS) > 0:
     app.add_middleware(
         CORSMiddleware,
         allow_origins=settings.BACKEND_CORS_ORIGINS,

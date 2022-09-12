@@ -1,6 +1,5 @@
-from devops_console.api.deps import validate_token
 from devops_console.core import settings
-from fastapi import APIRouter, Depends
+from fastapi import APIRouter
 from fastapi.responses import HTMLResponse
 
 from .endpoints import auth, html, sccs, users, websocket

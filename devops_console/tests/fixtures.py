@@ -1,16 +1,11 @@
 from datetime import datetime, timedelta
+import os
 from uuid import uuid4
-from fastapi.testclient import TestClient
 
-from devops_console.core import settings
 
-from devops_console.main import app
-
-client = TestClient(app)
-
-sccs_path = settings.API_V2_STR + "/sccs"
-
-test_headers = {"Authorization": f"Bearer {settings.DEV_TOKEN}"}
+sccs_path = os.environ.get("API_V1_PATH", "/api/v1")
+dev_token = os.environ.get("DEV_TOKEN", "superdupersecretdevtoken")
+test_headers = {"Authorization": f"Bearer {dev_token}"}
 
 # ----------------------------------------------------------------------------------------------------------------------
 # Mock Bitbucket API resources
