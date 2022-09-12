@@ -1,17 +1,17 @@
 import contextlib
-from functools import reduce
 import json
 import logging
 import os
-from pathlib import Path
 import sys
+from functools import reduce
+from pathlib import Path
 from typing import Literal
-from pydantic import BaseSettings
 
 from devops_console.schemas.cbq import SU
+from pydantic import BaseSettings
 
-from ..schemas.vault import VaultBitbucket
 from ..schemas import UserConfig
+from ..schemas.vault import VaultBitbucket
 from ..utils.vault import get_bb_su_creds
 
 _userconfig: UserConfig
@@ -72,7 +72,6 @@ def load_json_config_file(directory, file_name):
     try:
         d = json.loads(Path(file_path).read_text())
     except OSError:
-        logging.info(f"Could not load {file_path}")
         return {}
     return d
 

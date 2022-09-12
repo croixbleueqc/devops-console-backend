@@ -34,6 +34,7 @@ class ConnectionManager:
         self.watchers: dict[int, Watchers] = {}
 
     async def connect(self, websocket: WebSocket):
+        logging.debug("New connection")
         await websocket.accept()
         self.active_connections.append(websocket)
 
@@ -125,7 +126,7 @@ async def wscom_generic_handler(websocket: WebSocket, handlers: dict):
                 deeplink, action, path = request_headers.split(":")
             except (AttributeError, ValueError, json.decoder.JSONDecodeError):
                 # Malformed request.
-                logging.error(f"malformed request. ws will be closed")
+                logging.error("malformed request. ws will be closed")
 
                 # Closing the websocket
                 break
@@ -174,7 +175,7 @@ async def wscom_generic_handler(websocket: WebSocket, handlers: dict):
         manager.disconnect(websocket)
         logging.warning("websocket disconnected unexpectedly")
     finally:
-        logging.debug("disconnected")
+        logging.debug("websocket disconnected")
 
         # Closes all watchers for this request
         await manager.close_watchers(websocket)
@@ -199,12 +200,12 @@ async def wscom_watcher_run(websocket, dispatch, data, action, path, body):
     try:
         async for event in (await dispatch(websocket, action, path, body)):
             data["dataResponse"] = event.dict() if hasattr(event, "dict") else event
-            logging.debug("received an event")
+            logging.debug(f"wscom_watcher_run received an event: {event}")
             await manager.send_json(websocket, data)
     except Exception as e:
         data["error"] = repr(e)
         data["dataResponse"] = None
-        logging.exception(repr(e))
+        logging.exception(str(e))
         await manager.send_json(websocket, data)
 
 
@@ -216,7 +217,7 @@ async def wscom_watcher_close(websocket, uniqueId, data=None):
     try:
         task = manager.get_watcher(websocket, uniqueId)
     except KeyError:
-        logging.info(f"{uniqueId}: watcher already closed")
+        logging.warning(f"{uniqueId}: watcher already closed")
         return
 
     if task is None:
@@ -240,10 +241,11 @@ async def wscom_watcher_close(websocket, uniqueId, data=None):
         try:
             await manager.send_json(websocket, data)
         except ConnectionResetError:
-            # Most of the time we can send back an answer but if the application is closing it is possible that ws was disconnected before the send_json.
+            # Most of the time we can send back an answer but if the application is closing it is possible that ws was
+            # disconnected before the send_json.
             pass
 
-    logging.info(f"{uniqueId}: watcher closed")
+    logging.debug(f"{uniqueId}: watcher closed")
 
 
 class DispatcherUnsupportedRequest(Exception):

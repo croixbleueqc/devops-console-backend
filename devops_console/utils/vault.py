@@ -55,6 +55,7 @@ class Vault:
         self.mount = os.environ.get("VAULT_MOUNT")
         if self.mount is None:
             raise Exception("Please set VAULT_MOUNT!")
+        logging.info(f"VAULT_MOUNT: {self.mount}")
 
         try:
             self.token = self.get_sa_token_from_pod()
@@ -182,9 +183,11 @@ def get_environment_kubeconfigs(config: dict, environment: str) -> dict:
 
     configs = {}
 
-    for secret in vault.list_secrets(f"devops-console-backend/{environment}"):
+    logging.debug(f"getting kubeconfigs for environment: {environment}")
+
+    for secret in vault.list_secrets(f"infra/k8s/devops-console-backend/{environment}"):
         configs[secret] = vault.read_secret(
-            f"devops-console-backend/{environment}/{secret}"
+            f"infra/k8s/devops-console-backend/{environment}/{secret}"
         )["kubeconfig"]
 
     return configs

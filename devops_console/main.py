@@ -32,6 +32,7 @@ from .webhooks_server.app import app as webhooks_server
 
 
 def init_db(db: Session) -> None:
+    logging.debug("Initializing database")
     Base.metadata.create_all(bind=engine)
 
     user = crud.user.get_by_email(db, email=settings.superuser.email)
@@ -46,8 +47,8 @@ def init_db(db: Session) -> None:
             bitbucket_app_password=settings.superuser.app_passwords.bitbucket_management,
         )
         su = crud.user.create(db, obj_in=user_create)
-        logging.info(f"Superuser created: {su.email}")
-    logging.info("Database initialized")
+        logging.debug(f"Superuser created: {su.email}")
+    logging.debug("Database initialized")
 
 
 setup_logging()
@@ -69,12 +70,15 @@ if settings.BACKEND_CORS_ORIGINS:
         allow_methods=["*"],
         allow_headers=["*"],
     )
+    logging.debug("Added CORS middleware")
 
 # main API
+logging.debug("Adding API routes")
 app.include_router(router)
 app.include_router(router_v2)
 
 # webhook server mounted as a "subapp" to decouple it from the main API
+logging.debug("Mounting webhook server")
 app.mount(settings.WEBHOOKS_PATH, webhooks_server)
 
 
@@ -88,6 +92,7 @@ async def redirect_unauthorized(request: Request, exc):
 
 @app.on_event("startup")
 async def startup():
+    logging.debug("Running startup tasks")
     for task in core.startup_tasks():
         await task()
     # load OpenID config
@@ -97,6 +102,7 @@ async def startup():
 # shutdown
 @app.on_event("shutdown")
 async def shutdown():
+    logging.debug("Running shutdown tasks")
     for task in core.shutdown_tasks():
         await task()
 
