@@ -10,9 +10,7 @@ router = APIRouter(prefix="/sse")
 
 
 @router.get("/cd")
-async def sse_endpoint(
-    repo_name: str, env_name: str = "", bitbucket_session=Depends(get_bitbucket_session)
-):
+async def sse_endpoint(repo_name: str, env_name: str = "", bitbucket_session=Depends(get_bitbucket_session)):
     plugin_id, session = bitbucket_session
 
     async def gen():

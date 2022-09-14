@@ -41,9 +41,7 @@ async def handle_webhook_event(request: Request):
         body = await request.json()
     except JSONDecodeError as e:
         logging.warning(f"Error parsing JSON: {e}")
-        raise HTTPException(
-            status_code=HTTPStatus.BAD_REQUEST, detail="Error parsing JSON."
-        )
+        raise HTTPException(status_code=HTTPStatus.BAD_REQUEST, detail="Error parsing JSON.")
 
     if type(body) is not dict:
         logging.warning(f"Invalid JSON: {body}")
@@ -83,10 +81,7 @@ async def handle_repo_push(event: RepoPushEvent):
     # determine if the push event touches any of the cached values
     changes_matter = False
     for push_change in event.push["changes"]:
-        if (
-            push_change.new.type == "branch"
-            and push_change.new.name in client.cd_branches_accepted
-        ):
+        if push_change.new.type == "branch" and push_change.new.name in client.cd_branches_accepted:
             changes_matter = True
             break
 

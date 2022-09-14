@@ -15,9 +15,7 @@ def read_users_me(
 
 
 @router.get("/", response_model=list[schemas.User])
-def read_users(
-    db: Session = Depends(get_db), current_user: models.User = Depends(get_current_user)
-):
+def read_users(db: Session = Depends(get_db), current_user: models.User = Depends(get_current_user)):
     users = crud.user.get_many(db)
     return users
 
@@ -43,9 +41,7 @@ def create_user(
 ):
     user = crud.user.get_by_email(db, email=user_in.email)
     if user:
-        raise HTTPException(
-            status_code=status.HTTP_400_BAD_REQUEST, detail="Email already registered"
-        )
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Email already registered")
 
     user = crud.user.create(db, obj_in=user_in)
 

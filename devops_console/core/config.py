@@ -40,9 +40,7 @@ class Settings(BaseSettings):
     AUTH_PATH: str = Field(default="/token", env="AUTH_PATH")
 
     WEBHOOKS_HOST: str = Field(default="localhost:4242", env="WEBHOOKS_HOST")
-    WEBHOOKS_PATH: str = Field(
-        default="/bitbucketcloud/hooks/repo", env="WEBHOOKS_PATH"
-    )
+    WEBHOOKS_PATH: str = Field(default="/bitbucketcloud/hooks/repo", env="WEBHOOKS_PATH")
 
     WEBHOOKS_DEFAULT_EVENTS = [
         WebhookEventKey.repo_push,

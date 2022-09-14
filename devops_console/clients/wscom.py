@@ -173,9 +173,7 @@ async def wscom_generic_handler(websocket: WebSocket, handlers: dict):
             else:
                 logging.info(f"dispatching {request_headers}")
 
-                asyncio.create_task(
-                    wscom_restful_run(websocket, dispatch, data, action, path, body)
-                )
+                asyncio.create_task(wscom_restful_run(websocket, dispatch, data, action, path, body))
 
     except WebSocketDisconnect:
         await manager.disconnect(websocket)
@@ -238,9 +236,7 @@ async def wscom_watcher_close(websocket, uniqueId, data=None):
     except Exception as e:
         if data is not None:
             data["error"] = repr(e)
-        logging.error(
-            f"{uniqueId}: something wrong occured during watcher closing. error: {repr(e)}"
-        )
+        logging.error(f"{uniqueId}: something wrong occured during watcher closing. error: {repr(e)}")
 
     if websocket is not None and data is not None:
         data["dataResponse"] = {"status": "ws:watch:closed"}

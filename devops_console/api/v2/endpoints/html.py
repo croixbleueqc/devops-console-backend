@@ -134,21 +134,15 @@ async def read_repo(request: Request, repo_name: str):
 
 
 @router.get("/repo/{repo_name}")
-async def read_repo_details(
-    request: Request, repo_name: str, bitbucket_session=Depends(get_bitbucket_session)
-):
+async def read_repo_details(request: Request, repo_name: str, bitbucket_session=Depends(get_bitbucket_session)):
     plugin_id, session = bitbucket_session
-    repo = await client.get_repository(
-        plugin_id=plugin_id, session=session, repository=repo_name
-    )
+    repo = await client.get_repository(plugin_id=plugin_id, session=session, repository=repo_name)
     ctx = Context(request, repo=repo)
     return templates.TemplateResponse("fragments/repo-details.html", ctx)
 
 
 @router.get("/repo/{repo_name}/cd")
-async def read_repo_cd(
-    request: Request, repo_name: str, bitbucket_session=Depends(get_bitbucket_session)
-):
+async def read_repo_cd(request: Request, repo_name: str, bitbucket_session=Depends(get_bitbucket_session)):
     plugin_id, session = bitbucket_session
     environment_cfgs = await client.get_continuous_deployment_config(
         plugin_id=plugin_id, session=session, repository=repo_name
@@ -173,9 +167,7 @@ async def read_repo_cd_env(
         environments=[env_name],
     )
 
-    ctx = Context(
-        request, repo_name=repo_name, env_name=env_name, env=environment_cfg[0]
-    )
+    ctx = Context(request, repo_name=repo_name, env_name=env_name, env=environment_cfg[0])
     return templates.TemplateResponse("fragments/repo-cd-env.html", ctx)
 
 

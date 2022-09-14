@@ -54,14 +54,8 @@ def get_db():
 oauth2_scheme = OAuth2PasswordCookie(tokenUrl=f"{settings.API_V2_STR}/token")
 
 
-async def get_current_user(
-    db: Session = Depends(get_db), token: str = Depends(oauth2_scheme)
-):
-    if (
-        settings.ENVIRONMENT == "development"
-        and settings.DEV_AUTH
-        and token == settings.DEV_TOKEN
-    ):
+async def get_current_user(db: Session = Depends(get_db), token: str = Depends(oauth2_scheme)):
+    if settings.ENVIRONMENT == "development" and settings.DEV_AUTH and token == settings.DEV_TOKEN:
         superuser = crud.user.get_by_email(db, email=settings.superuser.email)
         if superuser:
             return superuser
@@ -79,14 +73,10 @@ def validate_token(token: str) -> schemas.TokenData:
     """Validate token and return payload."""
 
     try:
-        payload = jwt.decode(
-            token, settings.SECRET_KEY, algorithms=[settings.ALGORITHM]
-        )
+        payload = jwt.decode(token, settings.SECRET_KEY, algorithms=[settings.ALGORITHM])
         token_data = schemas.TokenData(**payload)
         if token_data.exp < datetime.utcnow().timestamp():
-            raise HTTPException(
-                status_code=status.HTTP_401_UNAUTHORIZED, detail="Token expired"
-            )
+            raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Token expired")
         return token_data
     except (JWTError, ValidationError):
         raise credentials_exception

@@ -45,9 +45,7 @@ def json_userconfig_source(
 
 def load_json_configs(dirpath):
     default = load_json_config_file(dirpath, "default") or {}
-    env = (
-        load_json_config_file(dirpath, os.environ.get("BRANCH_NAME", "undefined")) or {}
-    )
+    env = load_json_config_file(dirpath, os.environ.get("BRANCH_NAME", "undefined")) or {}
     local = load_json_config_file(dirpath, "local") or {}
 
     if all(v == {} for v in [default, env, local]):

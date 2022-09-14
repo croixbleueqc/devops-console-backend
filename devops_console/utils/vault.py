@@ -27,9 +27,7 @@ class IstioRequest(JSONAdapter, Request):
             method = "get"
             url = url + "?list=true"
 
-        return super().request(
-            method, url, headers=headers, raise_exception=raise_exception, **kwargs
-        )
+        return super().request(method, url, headers=headers, raise_exception=raise_exception, **kwargs)
 
 
 class Vault:
@@ -111,9 +109,7 @@ class Vault:
 
         self.assert_valid_client()
 
-        list_response = self.client.secrets.kv.v2.list_secrets(
-            path, mount_point=self.mount
-        )
+        list_response = self.client.secrets.kv.v2.list_secrets(path, mount_point=self.mount)
         return list_response["data"]["keys"]
 
     def list_secrets_recursive(self, path):
@@ -139,9 +135,7 @@ class Vault:
 
         self.assert_valid_client()
 
-        response = self.client.secrets.kv.v2.read_secret_version(
-            path, mount_point=self.mount
-        )
+        response = self.client.secrets.kv.v2.read_secret_version(path, mount_point=self.mount)
         return response["data"]["data"]
 
 
@@ -164,9 +158,7 @@ def get_environment_kubeconfigs(config: dict, environment: str) -> dict:
     logger.info(f"Getting kubeconfigs for environment: {environment}")
 
     for secret in vault.list_secrets(f"infra/k8s/devops-console-backend/{environment}"):
-        configs[secret] = vault.read_secret(
-            f"infra/k8s/devops-console-backend/{environment}/{secret}"
-        )["kubeconfig"]
+        configs[secret] = vault.read_secret(f"infra/k8s/devops-console-backend/{environment}/{secret}")["kubeconfig"]
 
     logger.info(f'Got "{environment}" kubeconfigs: {[*configs.keys()]}')
     return configs

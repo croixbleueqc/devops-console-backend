@@ -41,11 +41,7 @@ class Kubernetes(object):
         see client.py in python-devops-kubernetes for the event shape.
         """
 
-        env: str = (
-            self.config.suffix_map[environment]
-            if environment in self.config.suffix_map.keys()
-            else environment
-        )
+        env: str = self.config.suffix_map[environment] if environment in self.config.suffix_map.keys() else environment
 
         namespace = repository + "-" + env if env else repository
         logging.info(f"Watching pods in namespace: {namespace}")
@@ -89,17 +85,11 @@ class Kubernetes(object):
 
         return gen()
 
-    async def delete_pod(
-        self, sccs_plugin, sccs_session, repository, environment, pod_name
-    ):
-        bridge = await self.sccs.bridge_repository_to_namespace(
-            sccs_plugin, sccs_session, repository, environment
-        )
+    async def delete_pod(self, sccs_plugin, sccs_session, repository, environment, pod_name):
+        bridge = await self.sccs.bridge_repository_to_namespace(sccs_plugin, sccs_session, repository, environment)
 
         if not bridge["repository"]["write_access"]:
-            raise AccessForbidden(
-                f"You don't have write access on {repository} to delete a pod"
-            )
+            raise AccessForbidden(f"You don't have write access on {repository} to delete a pod")
 
         async with self.client.context(cluster=bridge["cluster"]) as ctx:
             await ctx.delete_pod(pod_name, bridge["namespace"])
