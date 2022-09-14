@@ -145,30 +145,6 @@ class Vault:
         return response["data"]["data"]
 
 
-def get_path_kubeconfigs(namedpaths: dict[str, str]):
-    """Get kubeconfigs at specific paths in the vault.
-    Returns a dict in the form:
-        {
-            "nonprod": {
-                ...kubeconfig...
-            },
-            ...
-        }
-    """
-
-    vault = Vault()
-    vault.connect()
-
-    configs = {}
-
-    for name, path in namedpaths.items():
-        configs[name] = vault.read_secret(path)["kubeconfig"]
-
-    logger.info(f"Got kubeconfigs: {[*configs.keys()]}")
-
-    return configs
-
-
 def get_environment_kubeconfigs(config: dict, environment: str) -> dict:
     """Get secrets to use Croix Bleue Kubernetes infrastructure
     Returns a dict in the form:
