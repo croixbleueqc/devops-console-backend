@@ -18,10 +18,9 @@
 import asyncio
 import logging
 import json
-from typing import Any, Type
+from typing import Any
 import weakref
 from fastapi import WebSocket, WebSocketDisconnect
-from pydantic import BaseModel
 
 WATCHERS = "watchers"
 
@@ -30,50 +29,57 @@ Watchers = weakref.WeakValueDictionary[int, asyncio.Task]
 
 class ConnectionManager:
     def __init__(self):
-        self.active_connections: list[WebSocket] = []
-        self.watchers: dict[int, Watchers] = {}
+        self.ws_watchers_map: dict[int, Watchers] = {}
 
     async def connect(self, websocket: WebSocket):
         logging.debug("New connection")
         await websocket.accept()
-        self.active_connections.append(websocket)
+        self.ws_watchers_map[hash(websocket)] = weakref.WeakValueDictionary()
 
     def add_watcher(self, websocket: WebSocket, watcher_id: int, task: asyncio.Task):
         h = hash(websocket)
-        d = self.watchers.get(h, weakref.WeakValueDictionary())
+        d = self.ws_watchers_map.get(h, weakref.WeakValueDictionary())
         d[watcher_id] = task
 
     def get_watcher(self, websocket: WebSocket, watcher_id: int) -> asyncio.Task | None:
         h = hash(websocket)
         try:
-            return self.watchers[h][watcher_id]
+            return self.ws_watchers_map[h][watcher_id]
         except KeyError:
             return None
 
     def get_watchers(self, websocket: WebSocket) -> Watchers | None:
         h = hash(websocket)
-        return self.watchers.get(h, None)
+        return self.ws_watchers_map.get(h, None)
 
     def remove_watcher(self, websocket: WebSocket, watcher_id: int) -> None:
         h = hash(websocket)
         try:
-            del self.watchers[h][watcher_id]
-        except KeyError:
+            del self.ws_watchers_map[h][watcher_id]
+        except (KeyError, ValueError):
             pass
 
     async def close_watchers(self, websocket: WebSocket) -> None:
         watchers = self.get_watchers(websocket)
         if watchers is not None:
             for watcher_id in watchers.keys():
-                wscom_watcher_close(websocket, watcher_id)
+                await wscom_watcher_close(websocket, watcher_id)
+                try:
+                    del watchers[watcher_id]
+                except (KeyError, ValueError):
+                    pass
 
     async def send_json(self, websocket: WebSocket, data: Any):
-        await websocket.send_json(data)
-
-    def disconnect(self, websocket: WebSocket):
         try:
-            self.active_connections.remove(websocket)
-        except ValueError:
+            await websocket.send_json(data)
+        except Exception:
+            logging.error("Error sending data to websocket")
+            pass
+
+    async def disconnect(self, websocket: WebSocket):
+        try:
+            del self.ws_watchers_map[hash(websocket)]
+        except (KeyError, ValueError):
             pass
 
 
@@ -167,12 +173,10 @@ async def wscom_generic_handler(websocket: WebSocket, handlers: dict):
             else:
                 logging.info(f"dispatching {request_headers}")
 
-                asyncio.create_task(
-                    wscom_restful_run(websocket, dispatch, data, action, path, body)
-                )
+                asyncio.create_task(wscom_restful_run(websocket, dispatch, data, action, path, body))
 
     except WebSocketDisconnect:
-        manager.disconnect(websocket)
+        await manager.disconnect(websocket)
         logging.warning("websocket disconnected unexpectedly")
     finally:
         logging.debug("websocket disconnected")
@@ -181,7 +185,7 @@ async def wscom_generic_handler(websocket: WebSocket, handlers: dict):
         await manager.close_watchers(websocket)
 
         # Removes websocket
-        manager.disconnect(websocket)
+        await manager.disconnect(websocket)
 
     return websocket
 
@@ -191,7 +195,7 @@ async def wscom_restful_run(websocket, dispatch, data, action, path, body):
     try:
         data["dataResponse"] = await dispatch(websocket, action, path, body)
     except Exception as e:
-        data["error"] = repr(e)
+        data["error"] = str(e)
     await manager.send_json(websocket, data)
 
 
@@ -203,7 +207,7 @@ async def wscom_watcher_run(websocket, dispatch, data, action, path, body):
             logging.debug(f"wscom_watcher_run received an event: {event}")
             await manager.send_json(websocket, data)
     except Exception as e:
-        data["error"] = repr(e)
+        data["error"] = str(e)
         data["dataResponse"] = None
         logging.exception(str(e))
         await manager.send_json(websocket, data)
@@ -232,9 +236,7 @@ async def wscom_watcher_close(websocket, uniqueId, data=None):
     except Exception as e:
         if data is not None:
             data["error"] = repr(e)
-        logging.error(
-            f"{uniqueId}: something wrong occured during watcher closing. error: {repr(e)}"
-        )
+        logging.error(f"{uniqueId}: something wrong occured during watcher closing. error: {repr(e)}")
 
     if websocket is not None and data is not None:
         data["dataResponse"] = {"status": "ws:watch:closed"}

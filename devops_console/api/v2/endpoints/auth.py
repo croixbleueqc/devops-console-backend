@@ -21,9 +21,7 @@ def access_token(
     db: Session = Depends(get_db),
     form_data: OAuth2PasswordRequestForm = Depends(),
 ):
-    user = crud.user.authenticate(
-        db, email=form_data.username, password=form_data.password
-    )
+    user = crud.user.authenticate(db, email=form_data.username, password=form_data.password)
     if not user:
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED,

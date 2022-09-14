@@ -20,17 +20,13 @@ class InterceptHandler(logging.Handler):
             frame = frame.f_back
             depth += 1
 
-        logger.opt(depth=depth, exception=record.exc_info).log(
-            level, record.getMessage()
-        )
+        logger.opt(depth=depth, exception=record.exc_info).log(level, record.getMessage())
 
 
 def setup_logging():
     # intercept everything at the root logger level
     logging.root.handlers = [InterceptHandler()]
-    log_level = settings.LOG_LEVEL or (
-        logging.DEBUG if settings.ENVIRONMENT == "development" else logging.INFO
-    )
+    log_level = settings.LOG_LEVEL or (logging.DEBUG if settings.ENVIRONMENT == "development" else logging.INFO)
     logging.root.setLevel(settings.LOG_LEVEL)
 
     # remove every other logger's handlers

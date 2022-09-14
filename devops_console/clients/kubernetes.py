@@ -15,10 +15,11 @@
 # You should have received a copy of the GNU Lesser General Public License
 # along with devops-console-backend.  If not, see <https://www.gnu.org/licenses/>.
 
+import logging
 import os
-from devops_sccs.errors import AccessForbidden
+
 from devops_kubernetes.client import K8sClient
-from ..core import settings
+from devops_sccs.errors import AccessForbidden
 
 from ..schemas.userconfig import KubernetesConfig
 
@@ -40,13 +41,10 @@ class Kubernetes(object):
         see client.py in python-devops-kubernetes for the event shape.
         """
 
-        env: str = (
-            self.config.suffix_map[environment]
-            if environment in self.config.suffix_map.keys()
-            else environment
-        )
+        env: str = self.config.suffix_map[environment] if environment in self.config.suffix_map.keys() else environment
 
         namespace = repository + "-" + env if env else repository
+        logging.info(f"Watching pods in namespace: {namespace}")
 
         # find the clusters that have the namespace
         pod_clusters: list[str] = []
@@ -56,16 +54,19 @@ class Kubernetes(object):
                     pods = await ctx.list_pods(namespace)
                     if len(pods) > 0:
                         pod_clusters.append(cluster)
-                        break
-            except:
+            except Exception:
                 pass
 
-        if len(pod_clusters) == 0:
-            raise Exception(f"No cluster found for namespace {namespace}")
+        logging.info(f"{namespace} is in the following clusters: {pod_clusters}")
 
         async def gen():
             nonlocal namespace
             nonlocal pod_clusters
+
+            if len(pod_clusters) == 0:
+                logging.warning(f"No cluster found for namespace {namespace}.")
+                return
+
             for cluster in pod_clusters:
                 yield {
                     "type": "INFO",
@@ -84,17 +85,11 @@ class Kubernetes(object):
 
         return gen()
 
-    async def delete_pod(
-        self, sccs_plugin, sccs_session, repository, environment, pod_name
-    ):
-        bridge = await self.sccs.bridge_repository_to_namespace(
-            sccs_plugin, sccs_session, repository, environment
-        )
+    async def delete_pod(self, sccs_plugin, sccs_session, repository, environment, pod_name):
+        bridge = await self.sccs.bridge_repository_to_namespace(sccs_plugin, sccs_session, repository, environment)
 
         if not bridge["repository"]["write_access"]:
-            raise AccessForbidden(
-                f"You don't have write access on {repository} to delete a pod"
-            )
+            raise AccessForbidden(f"You don't have write access on {repository} to delete a pod")
 
         async with self.client.context(cluster=bridge["cluster"]) as ctx:
             await ctx.delete_pod(pod_name, bridge["namespace"])

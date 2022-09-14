@@ -58,19 +58,13 @@ async def get_repository_by_uuid(
     bitbucket: tuple[str, BitbucketSession] = Depends(get_bitbucket_session),
 ):
     plugin_id, session = bitbucket
-    return await client.get_repository(
-        plugin_id=plugin_id, session=session, args={"uuid": uuid}
-    )
+    return await client.get_repository(plugin_id=plugin_id, session=session, args={"uuid": uuid})
 
 
 @router.get("/repositories/{name}", response_model=schemas.Repository)
-async def get_repository_by_name(
-    name: str, bitbucket: tuple[str, BitbucketSession] = Depends(get_bitbucket_session)
-):
+async def get_repository_by_name(name: str, bitbucket: tuple[str, BitbucketSession] = Depends(get_bitbucket_session)):
     plugin_id, session = bitbucket
-    return await client.get_repository(
-        plugin_id=plugin_id, session=session, repository=name
-    )
+    return await client.get_repository(plugin_id=plugin_id, session=session, repository=name)
 
 
 @router.post("/repositories")
@@ -122,9 +116,7 @@ async def delete_repository(uuid: UUID4):
 
 
 @router.get("/repositories/create_default_webhooks")
-async def create_default_webhooks(
-    bitbucket: tuple[str, BitbucketSession] = Depends(get_bitbucket_session)
-):
+async def create_default_webhooks(bitbucket: tuple[str, BitbucketSession] = Depends(get_bitbucket_session)):
     """Subscribe to webhooks for each repository (must be idempotent)."""
 
     plugin_id, session = bitbucket
@@ -154,22 +146,14 @@ async def create_default_webhooks(
                     plugin_id=plugin_id, session=session, repo_name=repo.name
                 )
             except ApiError as e:
-                logging.warn(
-                    f"Failed to get webhook subscriptions for {repo.name}: {e.reason}"
-                )
+                logging.warn(f"Failed to get webhook subscriptions for {repo.name}: {e.reason}")
                 return
 
             # check if the webhook is already set
             if any(
                 [
-                    subscription["url"]
-                    == urljoin(settings.WEBHOOKS_HOST, settings.WEBHOOKS_PATH)
-                    and all(
-                        [
-                            event in subscription["events"]
-                            for event in settings.WEBHOOKS_DEFAULT_EVENTS
-                        ]
-                    )
+                    subscription["url"] == urljoin(settings.WEBHOOKS_HOST, settings.WEBHOOKS_PATH)
+                    and all([event in subscription["events"] for event in settings.WEBHOOKS_DEFAULT_EVENTS])
                     for subscription in current_subscriptions["values"]
                 ]
             ):
@@ -189,9 +173,7 @@ async def create_default_webhooks(
                 )
                 logging.warn(f"Subscribed to default webhook for {repo.name}.")
             except ApiError as e:
-                logging.warn(
-                    f"Failed to create webhook subscription for {repo.name}: {e.reason}"
-                )
+                logging.warn(f"Failed to create webhook subscription for {repo.name}: {e.reason}")
                 return
 
             subscriptions.append(schemas.WebhookSubscription(**new_subscription))
@@ -204,9 +186,7 @@ async def create_default_webhooks(
 
 
 @router.get("/repositories/remove_default_webhooks")
-async def remove_default_webhooks(
-    bitbucket: tuple[str, BitbucketSession] = Depends(get_bitbucket_session)
-):
+async def remove_default_webhooks(bitbucket: tuple[str, BitbucketSession] = Depends(get_bitbucket_session)):
     """Remove the default webhooks from all repositories."""
 
     plugin_id, session = bitbucket
@@ -232,22 +212,15 @@ async def remove_default_webhooks(
                     plugin_id=plugin_id, session=session, repo_name=repo.name
                 )
             except HTTPError as e:
-                logging.warn(
-                    f"Failed to get webhook subscriptions for {repo.name}: {e.strerror}"
-                )
+                logging.warn(f"Failed to get webhook subscriptions for {repo.name}: {e.strerror}")
                 return
 
-            if (
-                current_subscriptions is None
-                or len(current_subscriptions["values"]) == 0
-            ):
+            if current_subscriptions is None or len(current_subscriptions["values"]) == 0:
                 logging.warn(f"No webhook subscriptions for {repo.name}.")
                 return
 
             for subscription in current_subscriptions["values"]:
-                if subscription["url"] == urljoin(
-                    settings.WEBHOOKS_HOST, settings.WEBHOOKS_PATH
-                ):
+                if subscription["url"] == urljoin(settings.WEBHOOKS_HOST, settings.WEBHOOKS_PATH):
                     try:
                         await client.delete_webhook_subscription(
                             plugin_id=plugin_id,
@@ -257,9 +230,7 @@ async def remove_default_webhooks(
                         )
                         logging.warn(f"Deleted webhook subscription for {repo.name}.")
                     except HTTPError as e:
-                        logging.warn(
-                            f"Failed to delete webhook subscription for {repo.name}: {e.strerror}"
-                        )
+                        logging.warn(f"Failed to delete webhook subscription for {repo.name}: {e.strerror}")
                         continue
 
             logging.info(f"Removed default webhooks from {repo.name}.")
@@ -275,9 +246,7 @@ async def remove_default_webhooks(
 
 
 @router.get("/projects", response_model=schemas.Paginated[schemas.Project])
-async def get_projects(
-    bitbucket: tuple[str, BitbucketSession] = Depends(get_bitbucket_session)
-):
+async def get_projects(bitbucket: tuple[str, BitbucketSession] = Depends(get_bitbucket_session)):
     plugin_id, session = bitbucket
     try:
         return await client.get_projects(plugin_id=plugin_id, session=session)

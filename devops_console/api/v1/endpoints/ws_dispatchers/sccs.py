@@ -41,13 +41,9 @@ async def wscom_dispatcher(request, action, path, body):
                 body["plugin"], body["session"], body["repository"], body.get("args")
             )
         elif path == "/repository/add/contract":
-            return await client.sccs.get_add_repository_contract(
-                body["plugin"], body["session"]
-            )
+            return await client.sccs.get_add_repository_contract(body["plugin"], body["session"])
         elif path == "/repositories/compliance/report":
-            return await client.sccs.compliance_report(
-                body["plugin"], body["session"], body.get("args")
-            )
+            return await client.sccs.compliance_report(body["plugin"], body["session"], body.get("args"))
     elif action == "watch":
         if path == "/repositories":
             return client.sccs.watch_repositories(
@@ -92,8 +88,6 @@ async def wscom_dispatcher(request, action, path, body):
             )
     elif action == "":
         if path == "/passthrough":
-            return await client.sccs.passthrough(
-                body["plugin"], body["session"], body["request"], body.get("args")
-            )
+            return await client.sccs.passthrough(body["plugin"], body["session"], body["request"], body.get("args"))
 
     raise DispatcherUnsupportedRequest(action, path)

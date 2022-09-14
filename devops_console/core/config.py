@@ -40,9 +40,7 @@ class Settings(BaseSettings):
     AUTH_PATH: str = Field(default="/token", env="AUTH_PATH")
 
     WEBHOOKS_HOST: str = Field(default="localhost:4242", env="WEBHOOKS_HOST")
-    WEBHOOKS_PATH: str = Field(
-        default="/bitbucketcloud/hooks/repo", env="WEBHOOKS_PATH"
-    )
+    WEBHOOKS_PATH: str = Field(default="/bitbucketcloud/hooks/repo", env="WEBHOOKS_PATH")
 
     WEBHOOKS_DEFAULT_EVENTS = [
         WebhookEventKey.repo_push,
@@ -64,7 +62,7 @@ class Settings(BaseSettings):
     ALGORITHM = "HS256"
     # used to authenticate as admin in tests and dev
     DEV_AUTH: bool = Field(default=False, env="DEV_AUTH")
-    DEV_TOKEN = "superdupersecretdevtoken"
+    DEV_TOKEN: str = Field(default="superdupersecretdevtoken", env="DEV_TOKEN")
 
     # TODO: Finish azure auth config
     APP_CLIENT_ID: str = Field(default="", env="APP_CLIENT_ID")

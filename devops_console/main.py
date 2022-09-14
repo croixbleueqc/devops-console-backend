@@ -22,7 +22,7 @@ from sqlalchemy.orm import Session
 # from .api.deps import azure_scheme
 from . import crud
 from .api.v1.router import router
-from .api.v2.router import router as router_v2
+from .api.v2.router import main_router as router_v2
 from .clients.client import CoreClient
 from .core.config import settings
 from .core.database import Base, SessionLocal, engine
@@ -62,7 +62,7 @@ core = CoreClient()
 
 app = FastAPI()
 
-if settings.BACKEND_CORS_ORIGINS:
+if settings.BACKEND_CORS_ORIGINS is not None and len(settings.BACKEND_CORS_ORIGINS) > 0:
     app.add_middleware(
         CORSMiddleware,
         allow_origins=settings.BACKEND_CORS_ORIGINS,

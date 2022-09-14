@@ -7,9 +7,9 @@ env:
 - VAULT_ROLE: Role used to login
 """
 
-import logging
 import os
 
+from loguru import logger
 from hvac import Client
 from hvac.adapters import Request
 from hvac.adapters import JSONAdapter
@@ -27,9 +27,7 @@ class IstioRequest(JSONAdapter, Request):
             method = "get"
             url = url + "?list=true"
 
-        return super().request(
-            method, url, headers=headers, raise_exception=raise_exception, **kwargs
-        )
+        return super().request(method, url, headers=headers, raise_exception=raise_exception, **kwargs)
 
 
 class Vault:
@@ -47,31 +45,31 @@ class Vault:
         self.k8s_auth = self.DEFAULT_K8S_AUTH_NONPROD
 
         self.addr = os.environ.get("VAULT_ADDR", "http://localhost:8200")
-        logging.info(f"VAULT_ADDR: {self.addr}")
+        logger.info(f"VAULT_ADDR: {self.addr}")
 
         self.role = os.environ.get("VAULT_ROLE", "default")
-        logging.info(f"VAULT_ROLE: {self.role}")
+        logger.info(f"VAULT_ROLE: {self.role}")
 
         self.mount = os.environ.get("VAULT_MOUNT")
         if self.mount is None:
             raise Exception("Please set VAULT_MOUNT!")
-        logging.info(f"VAULT_MOUNT: {self.mount}")
+        logger.info(f"VAULT_MOUNT: {self.mount}")
 
         try:
             self.token = self.get_sa_token_from_pod()
             self.k8s = True
             if self.role.endswith("-prod"):
                 self.k8s_auth = self.DEFAULT_K8S_AUTH_PROD
-            logging.info(f"Token set from kubernetes [auth: {self.k8s_auth}].")
+            logger.info(f"Token set from kubernetes [auth: {self.k8s_auth}].")
             return
-        except:
+        except Exception:
             pass
 
         try:
             self.token = self.get_token_from_env()
-            logging.info("Token set from env.")
+            logger.info("Token set from env.")
             return
-        except:
+        except Exception:
             pass
 
     def connect(self):
@@ -87,7 +85,7 @@ class Vault:
             raise Exception("Auth failure")
 
         self.client = client
-        logging.info("Vault auth succeeded!")
+        logger.info("Vault auth succeeded!")
 
     def get_sa_token_from_pod(self):
         """Get the SA token from a Pod"""
@@ -111,9 +109,7 @@ class Vault:
 
         self.assert_valid_client()
 
-        list_response = self.client.secrets.kv.v2.list_secrets(
-            path, mount_point=self.mount
-        )
+        list_response = self.client.secrets.kv.v2.list_secrets(path, mount_point=self.mount)
         return list_response["data"]["keys"]
 
     def list_secrets_recursive(self, path):
@@ -139,32 +135,8 @@ class Vault:
 
         self.assert_valid_client()
 
-        response = self.client.secrets.kv.v2.read_secret_version(
-            path, mount_point=self.mount
-        )
+        response = self.client.secrets.kv.v2.read_secret_version(path, mount_point=self.mount)
         return response["data"]["data"]
-
-
-def get_path_kubeconfigs(namedpaths: dict[str, str]):
-    """Get kubeconfigs at specific paths in the vault.
-    Returns a dict in the form:
-        {
-            "nonprod": {
-                ...kubeconfig...
-            },
-            ...
-        }
-    """
-
-    vault = Vault()
-    vault.connect()
-
-    configs = {}
-
-    for name, path in namedpaths.items():
-        configs[name] = vault.read_secret(path)["kubeconfig"]
-
-    return configs
 
 
 def get_environment_kubeconfigs(config: dict, environment: str) -> dict:
@@ -183,13 +155,12 @@ def get_environment_kubeconfigs(config: dict, environment: str) -> dict:
 
     configs = {}
 
-    logging.debug(f"getting kubeconfigs for environment: {environment}")
+    logger.info(f"Getting kubeconfigs for environment: {environment}")
 
     for secret in vault.list_secrets(f"infra/k8s/devops-console-backend/{environment}"):
-        configs[secret] = vault.read_secret(
-            f"infra/k8s/devops-console-backend/{environment}/{secret}"
-        )["kubeconfig"]
+        configs[secret] = vault.read_secret(f"infra/k8s/devops-console-backend/{environment}/{secret}")["kubeconfig"]
 
+    logger.info(f'Got "{environment}" kubeconfigs: {[*configs.keys()]}')
     return configs
 
 
@@ -217,4 +188,4 @@ def write_keys(path: str, private_key: str, public_key: str):
         with open(pub_path, "w") as f:
             f.write(public_key)
     except Exception as e:
-        logging.error(f"Couldn't write files: {e}")
+        logger.error(f"Couldn't write files: {e}")
