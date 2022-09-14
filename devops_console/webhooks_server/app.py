@@ -1,10 +1,12 @@
 import logging
 from http import HTTPStatus
 
-from fastapi import FastAPI, HTTPException, Request
+from fastapi import FastAPI, HTTPException, Request, Depends
 from requests import JSONDecodeError
+from sse_starlette.sse import EventSourceResponse
 
 from devops_console.clients.client import CoreClient
+from devops_console.api.v2.endpoints.sccs import get_bitbucket_session
 
 from ..schemas.webhooks import (
     PRApprovedEvent,

@@ -70,7 +70,11 @@ class ConnectionManager:
                     pass
 
     async def send_json(self, websocket: WebSocket, data: Any):
-        await websocket.send_json(data)
+        try:
+            await websocket.send_json(data)
+        except Exception:
+            logging.error("Error sending data to websocket")
+            pass
 
     async def disconnect(self, websocket: WebSocket):
         try:
@@ -205,7 +209,7 @@ async def wscom_watcher_run(websocket, dispatch, data, action, path, body):
             logging.debug(f"wscom_watcher_run received an event: {event}")
             await manager.send_json(websocket, data)
     except Exception as e:
-        data["error"] = repr(e)
+        data["error"] = str(e)
         data["dataResponse"] = None
         logging.exception(str(e))
         await manager.send_json(websocket, data)

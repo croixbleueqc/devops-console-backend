@@ -22,7 +22,7 @@ from sqlalchemy.orm import Session
 # from .api.deps import azure_scheme
 from . import crud
 from .api.v1.router import router
-from .api.v2.router import router as router_v2
+from .api.v2.router import main_router as router_v2
 from .clients.client import CoreClient
 from .core.config import settings
 from .core.database import Base, SessionLocal, engine

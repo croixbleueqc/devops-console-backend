@@ -15,10 +15,11 @@
 # You should have received a copy of the GNU Lesser General Public License
 # along with devops-console-backend.  If not, see <https://www.gnu.org/licenses/>.
 
+import logging
 import os
-from devops_sccs.errors import AccessForbidden
+
 from devops_kubernetes.client import K8sClient
-from ..core import settings
+from devops_sccs.errors import AccessForbidden
 
 from ..schemas.userconfig import KubernetesConfig
 
@@ -47,6 +48,7 @@ class Kubernetes(object):
         )
 
         namespace = repository + "-" + env if env else repository
+        logging.info(f"Watching pods in namespace: {namespace}")
 
         # find the clusters that have the namespace
         pod_clusters: list[str] = []
@@ -59,10 +61,14 @@ class Kubernetes(object):
             except Exception:
                 pass
 
+        logging.info(f"{namespace} is in the following clusters: {pod_clusters}")
+
         async def gen():
             nonlocal namespace
             nonlocal pod_clusters
+
             if len(pod_clusters) == 0:
+                logging.warning(f"No cluster found for namespace {namespace}.")
                 return
 
             for cluster in pod_clusters:

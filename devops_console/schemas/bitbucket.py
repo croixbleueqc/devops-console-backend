@@ -30,9 +30,9 @@ class Account(BitbucketResource):
     account_status = "active"
     display_name: str = ""
     website: str = ""
-    created_on: datetime
+    created_on: datetime | None
     uuid: UUID4
-    has_2fa_enabled: bool
+    has_2fa_enabled: bool | None
 
 
 class Author(BitbucketResource):

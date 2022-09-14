@@ -49,7 +49,7 @@ class PayloadWorkspace(BaseModel):
     slug: str
     name: str
     uuid: UUID4
-    links: Dict[str, HttpUrl] = {}
+    links: dict[str, str] = {}
 
 
 class PayloadProject(BaseModel):
@@ -58,7 +58,7 @@ class PayloadProject(BaseModel):
     type = "project"
     name: str
     uuid: UUID4
-    links: Dict[str, HttpUrl] = {}
+    links: dict[str, str] = {}
     key: str
 
 
@@ -70,9 +70,9 @@ class PayloadRepository(BaseModel):
     full_name: str
     workspace: PayloadWorkspace
     uuid: UUID4
-    links: Dict[str, HttpUrl] = {}
+    links: dict[str, str] = {}
     project: PayloadProject
-    website: HttpUrl
+    website: HttpUrl | None
     scm: Literal["git", "hg"]
     is_private: bool
 

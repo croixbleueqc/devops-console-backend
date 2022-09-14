@@ -223,23 +223,3 @@ async def deploy_env_version(
     )
 
     return RedirectResponse(f"/repo/{repo_name}/cd/{env_name}")
-
-
-@router.get("/repo/{repo_name}/sse", response_class=EventSourceResponse)
-async def read_repo_sse(
-    request: Request,
-    repo_name: str,
-    env_name: str = "",
-    bitbucket_session=Depends(get_bitbucket_session),
-):
-    plugin_id, session = bitbucket_session
-
-    return EventSourceResponse(
-        client.watch_continuous_deployment_config(
-            plugin_id=plugin_id,
-            session=session,
-            repository=repo_name,
-            environments=[env_name],
-            args=None,
-        )
-    )

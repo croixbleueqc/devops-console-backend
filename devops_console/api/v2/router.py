@@ -1,8 +1,10 @@
 from devops_console.core import settings
 from fastapi import APIRouter
 from fastapi.responses import HTMLResponse
+from sse_starlette.sse import EventSourceResponse
 
-from .endpoints import auth, html, sccs, users, websocket
+from .endpoints import auth, html, sccs, users, websocket, sse
+
 
 api_router = APIRouter(prefix=settings.API_V2_STR)
 
@@ -30,7 +32,15 @@ html_router.include_router(
     default_response_class=HTMLResponse,
 )
 
+# server-sent events
+sse_router = APIRouter()
+sse_router.include_router(
+    sse.router,
+    default_response_class=EventSourceResponse,
+)
 
-router = APIRouter()
-router.include_router(api_router, tags=["api"])
-router.include_router(html_router, tags=["frontend"])
+
+main_router = APIRouter()
+main_router.include_router(api_router, tags=["api"])
+main_router.include_router(html_router, tags=["frontend"])
+main_router.include_router(sse_router, tags=["sse"])
