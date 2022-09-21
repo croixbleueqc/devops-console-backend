@@ -7,11 +7,10 @@ from functools import reduce
 from pathlib import Path
 from typing import Literal
 
-from devops_console.schemas.cbq import SU
 from pydantic import BaseSettings
 
 from ..schemas import UserConfig
-from ..schemas.vault import VaultBitbucket
+from ..schemas.vault import VaultBitbucket, VaultConfig
 from ..utils.vault import get_bb_su_creds
 
 _userconfig: UserConfig
@@ -23,8 +22,8 @@ def vault_secret_source(
     global _userconfig  # OK as long as this function runs after json_userconfig_source
     # TODO determine whether this is the right place to do this
     # TODO also, can we avoid using magic strings?
-    su: SU = SU(**_userconfig.sccs.plugins.config["cbq"]["su"])
-    bb_secrets = get_bb_su_creds(su)
+    config= VaultConfig(**_userconfig.sccs.plugins.config["cbq"]["su"])
+    bb_secrets = get_bb_su_creds(config)
     return {"superuser": bb_secrets}
 
 

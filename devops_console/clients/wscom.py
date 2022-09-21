@@ -154,17 +154,17 @@ async def wscom_generic_handler(websocket: WebSocket, handlers: dict):
                 # Internal dispatch done
                 continue
 
-            dispatch = handlers[deeplink]
+            handler = handlers[deeplink]
 
-            if dispatch is None:
-                data["error"] = f"There is no dispatcher to support {deeplink}"
+            if handler is None:
+                data["error"] = f"There is no handler to support {deeplink}"
                 logging.warning(data["error"])
                 await websocket.send_json(data)
             elif action == "watch":
                 logging.info(f"watching {request_headers}")
 
                 task = asyncio.create_task(
-                    wscom_watcher_run(websocket, dispatch, data, action, path, body),
+                    wscom_watcher_run(websocket, handler, data, action, path, body),
                     name=uniqueId,
                 )
 
@@ -173,7 +173,7 @@ async def wscom_generic_handler(websocket: WebSocket, handlers: dict):
             else:
                 logging.info(f"dispatching {request_headers}")
 
-                asyncio.create_task(wscom_restful_run(websocket, dispatch, data, action, path, body))
+                asyncio.create_task(wscom_restful_run(websocket, handler, data, action, path, body))
 
     except WebSocketDisconnect:
         await manager.disconnect(websocket)
@@ -190,19 +190,19 @@ async def wscom_generic_handler(websocket: WebSocket, handlers: dict):
     return websocket
 
 
-async def wscom_restful_run(websocket, dispatch, data, action, path, body):
+async def wscom_restful_run(websocket, handler, data, action, path, body):
     """RESTful like request"""
     try:
-        data["dataResponse"] = await dispatch(websocket, action, path, body)
+        data["dataResponse"] = await handler(websocket, action, path, body)
     except Exception as e:
         data["error"] = str(e)
     await manager.send_json(websocket, data)
 
 
-async def wscom_watcher_run(websocket, dispatch, data, action, path, body):
+async def wscom_watcher_run(websocket, handler, data, action, path, body):
     """Watch request"""
     try:
-        async for event in (await dispatch(websocket, action, path, body)):
+        async for event in (await handler(websocket, action, path, body)):
             data["dataResponse"] = event.dict() if hasattr(event, "dict") else event
             logging.debug(f"wscom_watcher_run received an event: {event}")
             await manager.send_json(websocket, data)
@@ -236,7 +236,9 @@ async def wscom_watcher_close(websocket, uniqueId, data=None):
     except Exception as e:
         if data is not None:
             data["error"] = repr(e)
-        logging.error(f"{uniqueId}: something wrong occured during watcher closing. error: {repr(e)}")
+        logging.error(
+            f"{uniqueId}: something wrong occured during watcher closing. error: {repr(e)}"
+        )
 
     if websocket is not None and data is not None:
         data["dataResponse"] = {"status": "ws:watch:closed"}

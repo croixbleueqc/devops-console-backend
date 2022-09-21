@@ -15,11 +15,27 @@
 # You should have received a copy of the GNU Lesser General Public License
 # along with devops-console-backend.  If not, see <https://www.gnu.org/licenses/>.
 
-import logging
-
 from devops_sccs.client import SccsClient
+from devops_sccs.schemas.config import SccsConfig
 
-from ..schemas.userconfig import SCCSConfig
+
+def ctx_wrap(wrapped):
+    async def _wrapper(self, plugin_id, credentials, *args, **kwargs):
+        async with self.core.context(plugin_id, credentials) as ctx:
+            method = getattr(ctx, wrapped.__name__)
+            return await method(*args, **kwargs)
+
+    return _wrapper
+
+
+def ctx_wrap_generator(wrapped):
+    async def _wrapper(self, plugin_id, credentials, *args, **kwargs):
+        async with self.core.context(plugin_id, credentials) as ctx:
+            method = getattr(ctx, wrapped.__name__)
+            async for item in await method(*args, **kwargs):
+                yield item
+
+    return _wrapper
 
 
 class Sccs:
@@ -27,122 +43,111 @@ class Sccs:
 
     cd_branches_accepted: list[str]
 
-    def __init__(self, config: SCCSConfig):
+    def __init__(self, config: SccsConfig):
+        self.core = None
         self.config = config
         self.core: SccsClient
 
     async def init(self) -> None:
-        self.core = await SccsClient.create(self.config.dict())
-        """ TODO: propagate models so that we can use them directly rather
-        than having to "dict()" them """
+        self.core = await SccsClient.create(self.config)
 
     def context(self, plugin_id, args):
         return self.core.context(plugin_id, args)
 
-    async def get_repository(self, plugin_id, session, *args, **kwargs):
-        try:
-            async with self.core.context(plugin_id, session) as ctx:
-                return await ctx.get_repository(*args, **kwargs)
-        except:
-            logging.exception("Failed to get repository")
-            raise
+    @ctx_wrap
+    async def get_repository(self, plugin_id, credentials, *args, **kwargs):
+        pass
 
-    async def get_repositories(self, plugin_id, session, *args, **kwargs) -> list:
-        try:
-            async with self.core.context(plugin_id, session) as ctx:
-                return await ctx.get_repositories(*args, **kwargs)
-        except:
-            logging.exception("get repositories")
-            raise
+    @ctx_wrap
+    async def get_repositories(self, plugin_id, credentials, *args, **kwargs):
+        pass
 
-    async def watch_repositories(self, plugin_id, session, *args, **kwargs):
-        async with self.core.context(plugin_id, session) as ctx:
-            async for event in await ctx.watch_repositories(*args, **kwargs):
-                yield event
+    @ctx_wrap_generator
+    async def watch_repositories(self, plugin_id, credentials, *args, **kwargs):
+        pass
 
-    async def passthrough(self, plugin_id, session, request, args):
-        async with self.core.context(plugin_id, session) as ctx:
-            return await ctx.passthrough(request, args)
+    @ctx_wrap
+    async def passthrough(self, plugin_id, credentials, request, *args, **kwargs):
+        pass
 
-    async def get_continuous_deployment_config(self, plugin_id, session, repository, environments=None, args=None):
-        async with self.core.context(plugin_id, session) as ctx:
-            return await ctx.get_continuous_deployment_config(
-                repository=repository, environments=environments, args=args
-            )
-
-    async def watch_continuous_deployment_config(self, plugin_id, session, repository, environments, args):
-        async with self.core.context(plugin_id, session) as ctx:
-            async for event in await ctx.watch_continuous_deployment_config(repository, environments, args=args):
-                yield event
-
-    async def watch_continuous_deployment_versions_available(self, plugin_id, session, repository, args):
-        async with self.core.context(plugin_id, session) as ctx:
-            async for event in await ctx.watch_continuous_deployment_versions_available(repository, args=args):
-                yield event
-
-    async def trigger_continuous_deployment(self, plugin_id, session, repository, environment, version, args):
-        try:
-            async with self.core.context(plugin_id, session) as ctx:
-                return await ctx.trigger_continuous_deployment(repository, environment, version, args)
-        except:
-            logging.exception("trigger_continuous_deployment")
-            raise
-
-    async def get_continuous_deployment_environments_available(self, plugin_id, session, repository, args):
-        async with self.core.context(plugin_id, session) as ctx:
-            return await ctx.get_continuous_deployment_environments_available(repository, args)
-
-    async def watch_continuous_deployment_environments_available(self, plugin_id, session, repository, args):
-        async with self.core.context(plugin_id, session) as ctx:
-            async for event in await ctx.watch_continuous_deployment_environments_available(repository, args=args):
-                yield event
-
-    async def get_continuous_deployment_versions_available(self, plugin_id, session, repository, args=None):
-        async with self.core.context(plugin_id, session) as ctx:
-            return await ctx.get_continuous_deployment_versions_available(repository, args)
-
-    async def bridge_repository_to_namespace(
-        self, plugin_id, session, repository, environment, untrustable=True, args=None
+    @ctx_wrap
+    async def get_continuous_deployment_config(
+            self, plugin_id, credentials, repository, environments=None, *args, **kwargs
     ):
-        async with self.core.context(plugin_id, session) as ctx:
-            return await ctx.bridge_repository_to_namespace(repository, environment)
+        pass
 
-    async def get_add_repository_contract(self, plugin_id, session):
-        async with self.core.context(plugin_id, session) as ctx:
-            return ctx.get_add_repository_contract()
+    @ctx_wrap_generator
+    async def watch_continuous_deployment_config(
+            self, plugin_id, credentials, repository, environments, *args, **kwargs
+    ):
+        pass
 
-    async def add_repository(self, plugin_id, session, repository, template, template_params, args):
-        try:
-            async with self.core.context(plugin_id, session) as ctx:
-                return await ctx.add_repository(repository, template, template_params, args)
-        except:
-            logging.exception("add repository")
-            raise
+    @ctx_wrap_generator
+    async def watch_continuous_deployment_versions_available(
+            self, plugin_id, credentials, repository, *args, **kwargs
+    ):
+        pass
 
-    async def delete_repository(self, plugin_id, session, repo_name):
-        try:
-            async with self.core.context(plugin_id, session) as ctx:
-                return await ctx.delete_repository(repo_name)
-        except:
-            logging.exception("delete repository")
-            raise
+    @ctx_wrap
+    async def trigger_continuous_deployment(
+            self, plugin_id, credentials, repository, environment, version, *args, **kwargs
+    ):
+        pass
 
-    async def compliance_report(self, plugin_id, session, args):
-        async with self.core.context(plugin_id, session) as ctx:
-            return await ctx.compliance_report(args)
+    @ctx_wrap
+    async def get_continuous_deployment_environments_available(
+            self, plugin_id, credentials, repository
+    ):
+        pass
 
-    async def get_webhook_subscriptions(self, plugin_id, session, **kwargs) -> dict:
-        async with self.core.context(plugin_id, session) as ctx:
-            return await ctx.get_webhook_subscriptions(**kwargs)
+    @ctx_wrap_generator
+    async def watch_continuous_deployment_environments_available(
+            self, plugin_id, credentials, repository
+    ):
+        pass
 
-    async def create_webhook_subscription(self, plugin_id, session, **kwargs):
-        async with self.core.context(plugin_id, session) as ctx:
-            return await ctx.create_webhook_subscription(**kwargs)
+    @ctx_wrap
+    async def get_continuous_deployment_versions_available(
+            self, plugin_id, credentials, repository, *args, **kwargs
+    ):
+        pass
 
-    async def delete_webhook_subscription(self, plugin_id, session, **kwargs):
-        async with self.core.context(plugin_id, session) as ctx:
-            return await ctx.delete_webhook_subscription(**kwargs)
+    @ctx_wrap
+    async def bridge_repository_to_namespace(
+            self, plugin_id, credentials, repository, environment, untrustable=True, *args, **kwargs
+    ):
+        pass
 
-    async def get_projects(self, plugin_id, session):
-        async with self.core.context(plugin_id, session) as ctx:
-            return await ctx.get_projects()
+    @ctx_wrap
+    async def get_add_repository_contract(self, plugin_id, credentials):
+        pass
+
+    @ctx_wrap
+    async def add_repository(
+            self, plugin_id, credentials, repository, template, template_params, *args, **kwargs
+    ):
+        pass
+
+    @ctx_wrap
+    async def delete_repository(self, plugin_id, credentials, repo_name):
+        pass
+
+    @ctx_wrap
+    async def compliance_report(self, plugin_id, credentials, *args, **kwargs):
+        pass
+
+    @ctx_wrap
+    async def get_webhook_subscriptions(self, plugin_id, credentials, *args, **kwargs):
+        pass
+
+    @ctx_wrap
+    async def create_webhook_subscription(self, plugin_id, credentials, *args, **kwargs):
+        pass
+
+    @ctx_wrap
+    async def delete_webhook_subscription(self, plugin_id, credentials, *args, **kwargs):
+        pass
+
+    @ctx_wrap
+    async def get_projects(self, plugin_id, credentials):
+        pass

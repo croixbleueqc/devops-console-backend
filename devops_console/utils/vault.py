@@ -13,8 +13,7 @@ from loguru import logger
 from hvac import Client
 from hvac.adapters import Request
 from hvac.adapters import JSONAdapter
-from devops_console.schemas.cbq import SU
-from devops_console.schemas.vault import VaultBitbucket
+from devops_console.schemas.vault import VaultBitbucket, VaultConfig
 
 
 class IstioRequest(JSONAdapter, Request):
@@ -27,7 +26,9 @@ class IstioRequest(JSONAdapter, Request):
             method = "get"
             url = url + "?list=true"
 
-        return super().request(method, url, headers=headers, raise_exception=raise_exception, **kwargs)
+        return super().request(
+            method, url, headers=headers, raise_exception=raise_exception, **kwargs
+        )
 
 
 class Vault:
@@ -39,6 +40,7 @@ class Vault:
     DEFAULT_K8S_AUTH_NONPROD = "kubernetes-nonprod"
     DEFAULT_K8S_AUTH_PROD = "kubernetes"
     token: str | None = None
+    client: Client | None = None
 
     def __init__(self):
         self.k8s = False
@@ -74,6 +76,9 @@ class Vault:
 
     def connect(self):
         """Connect to the Vault"""
+        if isinstance(self.client, Client):
+            return
+
         client = Client(url=self.addr, adapter=IstioRequest)
 
         if self.k8s:
@@ -87,14 +92,16 @@ class Vault:
         self.client = client
         logger.info("Vault auth succeeded!")
 
-    def get_sa_token_from_pod(self):
+    @staticmethod
+    def get_sa_token_from_pod():
         """Get the SA token from a Pod"""
 
         with open("/var/run/secrets/kubernetes.io/serviceaccount/token") as f:
             jwt = f.read()
         return jwt
 
-    def get_token_from_env(self):
+    @staticmethod
+    def get_token_from_env():
         """Get a token set in environment variables"""
 
         return os.environ["VAULT_TOKEN"]
@@ -158,22 +165,22 @@ def get_environment_kubeconfigs(config: dict, environment: str) -> dict:
     logger.info(f"Getting kubeconfigs for environment: {environment}")
 
     for secret in vault.list_secrets(f"infra/k8s/devops-console-backend/{environment}"):
-        configs[secret] = vault.read_secret(f"infra/k8s/devops-console-backend/{environment}/{secret}")["kubeconfig"]
+        configs[secret] = vault.read_secret(
+            f"infra/k8s/devops-console-backend/{environment}/{secret}"
+        )["kubeconfig"]
 
-    logger.info(f'Got "{environment}" kubeconfigs: {[*configs.keys()]}')
+    logger.info(f"Got kubeconfigs: {[*configs.keys()]}")
     return configs
 
 
-def get_bb_su_creds(su: SU) -> VaultBitbucket:
-    if su.skip_vault:
-        return VaultBitbucket(**su.dict())
+def get_bb_su_creds(config: VaultConfig) -> VaultBitbucket:
+    if config.skip_vault:
+        return VaultBitbucket(**config.dict())
 
     vault = Vault()
     vault.connect()
 
-    vault_bitbucket = VaultBitbucket(**vault.read_secret(su.vault_secret))
-
-    return vault_bitbucket
+    return VaultBitbucket(**vault.read_secret(config.vault_secret))
 
 
 def write_keys(path: str, private_key: str, public_key: str):

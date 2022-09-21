@@ -13,3 +13,10 @@ class VaultBitbucket(BaseModel):
     public_key: str
     pwd: str
     username: str
+
+
+class VaultConfig(BaseModel):
+    skip_vault: bool = False
+    tmp: str
+    vault_secret: str
+    vault_mount: str
