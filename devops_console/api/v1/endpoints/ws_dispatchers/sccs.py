@@ -34,13 +34,7 @@ async def wscom_dispatcher(request, action: str, path: str, body: dict):
         if path == "/repositories":
             return await client.get_repositories(plugin_id, credentials)
         elif path == "/repository/cd/config":
-            return await client.get_continuous_deployment_config(
-                plugin_id,
-                credentials,
-                repo_name,
-                environment,
-                **args,
-            )
+            return await client.get_continuous_deployment_config(plugin_id, credentials)
         elif path == "/repository/cd/environments_available":
             return await client.get_continuous_deployment_environments_available(
                 plugin_id, credentials, repo_name, **args
@@ -57,13 +51,8 @@ async def wscom_dispatcher(request, action: str, path: str, body: dict):
                 plugin_id, credentials, **args
             )
         elif path == "/repository/cd/config":
-            return client.watch_continuous_deployment_config(
-                plugin_id,
-                credentials,
-                repo_name,
-                body.get("environments", []),
-                **args,
-            )
+            return client.watch_continuous_deployment_config(plugin_id, credentials, repo_name,
+                                                             body.get("environments", []), **args)
         elif path == "/repository/cd/versions_available":
             return client.watch_continuous_deployment_versions_available(
                 plugin_id, credentials, repo_name, **args
