@@ -1,16 +1,15 @@
-from fastapi import APIRouter, Depends, Request, Form
+from fastapi import APIRouter, Depends, Form, Request
 from fastapi.responses import RedirectResponse
 from pydantic import EmailStr
-from devops_console import models, schemas
 from sqlalchemy.orm import Session
-from sse_starlette.sse import EventSourceResponse
 
+from devops_console import models, schemas
 from devops_console.api.deps import get_current_user, get_db
 from devops_console.api.v2.endpoints import users
 from devops_console.api.v2.endpoints.sccs import get_bitbucket_session
 from devops_console.clients import CoreClient
-from devops_console.templates import templates
 from devops_console.core import settings
+from devops_console.templates import templates
 
 client = CoreClient().sccs
 router = APIRouter()
@@ -24,8 +23,8 @@ class Context(dict):
 
 @router.get("/")
 async def index(
-    request: Request,
-    user: models.User = Depends(get_current_user),
+        request: Request,
+        user: models.User = Depends(get_current_user),
 ):
     ctx = Context(request, user=user)
     return templates.TemplateResponse("index.html", ctx)
@@ -66,15 +65,15 @@ async def create_user(request: Request, user=Depends(get_current_user)):
 
 @router.post("/create-user")
 async def create_user_post(
-    request: Request,
-    db: Session = Depends(get_db),
-    user=Depends(get_current_user),
-    full_name: str = Form(),
-    email: str = Form(),
-    password: str = Form(),
-    plugin_id: str = Form(),
-    bitbucket_username: str = Form(),
-    bitbucket_app_password: str = Form(),
+        request: Request,
+        db: Session = Depends(get_db),
+        user=Depends(get_current_user),
+        full_name: str = Form(),
+        email: str = Form(),
+        password: str = Form(),
+        plugin_id: str = Form(),
+        bitbucket_username: str = Form(),
+        bitbucket_app_password: str = Form(),
 ):
     user_in = schemas.UserCreate(
         full_name=full_name,
@@ -91,9 +90,9 @@ async def create_user_post(
 
 @router.get("/users")
 def read_users(
-    request: Request,
-    db: Session = Depends(get_db),
-    current_user=Depends(get_current_user),
+        request: Request,
+        db: Session = Depends(get_db),
+        current_user=Depends(get_current_user),
 ):
     usrs = users.read_users(db=db, current_user=current_user)
     ctx = Context(request, users=usrs)
@@ -102,10 +101,10 @@ def read_users(
 
 @router.get("/users/{user_id}")
 def read_user(
-    request: Request,
-    user_id: int,
-    db: Session = Depends(get_db),
-    current_user=Depends(get_current_user),
+        request: Request,
+        user_id: int,
+        db: Session = Depends(get_db),
+        current_user=Depends(get_current_user),
 ):
     user = users.read_user(user_id=user_id, db=db, current_user=current_user)
     ctx = Context(request, user=user)
@@ -114,8 +113,8 @@ def read_user(
 
 @router.get("/repos-options")
 async def read_repos(
-    request: Request,
-    bitbucket_session=Depends(get_bitbucket_session),
+        request: Request,
+        bitbucket_session=Depends(get_bitbucket_session),
 ):
     """Returns a list of <option> tags to populate a select element with
     the names of the repositories in the user's account."""
@@ -134,15 +133,17 @@ async def read_repo(request: Request, repo_name: str):
 
 
 @router.get("/repo/{repo_name}")
-async def read_repo_details(request: Request, repo_name: str, bitbucket_session=Depends(get_bitbucket_session)):
+async def read_repo_details(request: Request, repo_name: str,
+                            bitbucket_session=Depends(get_bitbucket_session)):
     plugin_id, session = bitbucket_session
-    repo = await client.get_repository(plugin_id=plugin_id, session=session, repository=repo_name)
+    repo = await client.get_repository(session=session, repo_name=repo_name)
     ctx = Context(request, repo=repo)
     return templates.TemplateResponse("fragments/repo-details.html", ctx)
 
 
 @router.get("/repo/{repo_name}/cd")
-async def read_repo_cd(request: Request, repo_name: str, bitbucket_session=Depends(get_bitbucket_session)):
+async def read_repo_cd(request: Request, repo_name: str,
+                       bitbucket_session=Depends(get_bitbucket_session)):
     plugin_id, session = bitbucket_session
     environment_cfgs = await client.get_continuous_deployment_config(repo_name=repo_name)
 
@@ -152,10 +153,10 @@ async def read_repo_cd(request: Request, repo_name: str, bitbucket_session=Depen
 
 @router.get("/repo/{repo_name}/cd/{env_name}")
 async def read_repo_cd_env(
-    request: Request,
-    repo_name: str,
-    env_name: str,
-    bitbucket_session=Depends(get_bitbucket_session),
+        request: Request,
+        repo_name: str,
+        env_name: str,
+        bitbucket_session=Depends(get_bitbucket_session),
 ):
     plugin_id, session = bitbucket_session
     environment_cfg = await client.get_continuous_deployment_config(repo_name=repo_name,
@@ -167,18 +168,15 @@ async def read_repo_cd_env(
 
 @router.get("/repo/{repo_name}/cd/{env_name}/versions/")
 async def read_repo_cd_versions(
-    request: Request,
-    repo_name: str,
-    env_name: str,
-    env_version: str = "",
-    bitbucket_session=Depends(get_bitbucket_session),
+        request: Request,
+        repo_name: str,
+        env_name: str,
+        env_version: str = "",
+        bitbucket_session=Depends(get_bitbucket_session),
 ):
     plugin_id, session = bitbucket_session
-    versions = await client.get_continuous_deployment_versions_available(
-        plugin_id=plugin_id,
-        session=session,
-        repository=repo_name,
-    )
+    versions = await client.get_continuous_deployment_versions_available(session=session,
+                                                                         repo_name=repo_name)
 
     ctx = Context(
         request,
@@ -192,11 +190,11 @@ async def read_repo_cd_versions(
 
 @router.post("/repo/{repo_name}/cd/{env_name}/deploy/")
 async def deploy_env_version(
-    request: Request,
-    repo_name: str,
-    env_name: str,
-    version: str,
-    bitbucket_session=Depends(get_bitbucket_session),
+        request: Request,
+        repo_name: str,
+        env_name: str,
+        version: str,
+        bitbucket_session=Depends(get_bitbucket_session),
 ):
     plugin_id, session = bitbucket_session
     await client.trigger_continuous_deployment(

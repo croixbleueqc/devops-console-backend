@@ -39,7 +39,7 @@ def ctx_wrap_generator(wrapped):
 
 
 class Sccs:
-    """Sccs Core"""
+    """Responsible for encapsulating the client's methods in a context manager"""
 
     cd_branches_accepted: list[str]
 
@@ -63,7 +63,7 @@ class Sccs:
         pass
 
     @ctx_wrap_generator
-    async def watch_repositories(self, plugin_id, credentials, *args, **kwargs):
+    async def watch_repositories(self, plugin_id, credentials, poll_interval, *args, **kwargs):
         pass
 
     @ctx_wrap
@@ -72,19 +72,19 @@ class Sccs:
 
     @ctx_wrap
     async def get_continuous_deployment_config(
-            self, plugin_id, credentials, repository, environments=None, *args, **kwargs
+            self, plugin_id, credentials, repo_name, environments=None, *args, **kwargs
     ):
         pass
 
     @ctx_wrap_generator
     async def watch_continuous_deployment_config(
-            self, plugin_id, credentials, repository, environments, *args, **kwargs
+            self, plugin_id, credentials, repo_name, environments, poll_interval, *args, **kwargs
     ):
         pass
 
     @ctx_wrap_generator
     async def watch_continuous_deployment_versions_available(
-            self, plugin_id, credentials, repository, *args, **kwargs
+            self, plugin_id, credentials, repo_name, poll_interval, *args, **kwargs
     ):
         pass
 
@@ -96,19 +96,19 @@ class Sccs:
 
     @ctx_wrap
     async def get_continuous_deployment_environments_available(
-            self, plugin_id, credentials, repository
+            self, plugin_id, credentials, repo_name
     ):
         pass
 
     @ctx_wrap_generator
     async def watch_continuous_deployment_environments_available(
-            self, plugin_id, credentials, repository
+            self, plugin_id, credentials, repo_name, poll_interval
     ):
         pass
 
     @ctx_wrap
     async def get_continuous_deployment_versions_available(
-            self, plugin_id, credentials, repository, *args, **kwargs
+            self, plugin_id, credentials, repo_name, *args, **kwargs
     ):
         pass
 
