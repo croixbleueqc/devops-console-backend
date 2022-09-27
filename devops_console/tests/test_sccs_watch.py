@@ -1,7 +1,7 @@
 import pytest
 
 from .fixtures import dev_sccs_credentials, legacy_ws_path, testcore
-from .ws_fixtures import WsDataRequest, WsMessage, WsRequest, WsSession
+from devops_console.schemas.legacy.ws import WsDataRequest, WsMessage, WsRequest, WsSession
 
 testclient = testcore.testclient
 

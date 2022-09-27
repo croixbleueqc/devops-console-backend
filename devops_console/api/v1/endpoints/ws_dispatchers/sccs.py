@@ -20,8 +20,8 @@ from devops_console.clients.wscom import DispatcherUnsupportedRequest
 class Intervals(IntEnum):
     repositories = 3600
     cd = 30
-    cd_versions_available = 30
-    cd_environs_available = 30
+    cd_versions_available = 60
+    cd_environs_available = 60
 
 
 async def wscom_dispatcher(request, action: str, path: str, body: dict):

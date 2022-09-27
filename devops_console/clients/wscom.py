@@ -30,11 +30,13 @@ Watchers = weakref.WeakValueDictionary[int, asyncio.Task]
 class ConnectionManager:
     def __init__(self):
         self.ws_watchers_map: dict[int, Watchers] = {}
+        self.ws_set: set[WebSocket] = set()
 
     async def connect(self, websocket: WebSocket):
         logging.debug("New connection")
         await websocket.accept()
         self.ws_watchers_map[hash(websocket)] = weakref.WeakValueDictionary()
+        self.ws_set.add(websocket)
 
     def add_watcher(self, websocket: WebSocket, watcher_id: int, task: asyncio.Task):
         h = hash(websocket)
@@ -68,6 +70,10 @@ class ConnectionManager:
                     del watchers[watcher_id]
                 except (KeyError, ValueError):
                     pass
+
+    async def broadcast(self, data: str | dict) -> None:
+        for websocket in self.ws_set:
+            await websocket.send_json(data)
 
     async def send_json(self, websocket: WebSocket, data: Any):
         try:
