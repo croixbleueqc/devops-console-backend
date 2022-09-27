@@ -42,11 +42,10 @@ class Sccs:
     """Responsible for encapsulating the client's methods in a context manager"""
 
     cd_branches_accepted: list[str]
+    core: SccsClient
 
     def __init__(self, config: SccsConfig):
-        self.core = None
         self.config = config
-        self.core: SccsClient
 
     async def init(self) -> None:
         self.core = await SccsClient.create(self.config)
@@ -72,49 +71,49 @@ class Sccs:
 
     @ctx_wrap
     async def get_continuous_deployment_config(
-            self, plugin_id, credentials, repo_name, environments=None, *args, **kwargs
+        self, plugin_id, credentials, repo_name, environments=None, *args, **kwargs
     ):
         pass
 
     @ctx_wrap_generator
     async def watch_continuous_deployment_config(
-            self, plugin_id, credentials, repo_name, environments, poll_interval, *args, **kwargs
+        self, plugin_id, credentials, repo_name, environments, poll_interval, *args, **kwargs
     ):
         pass
 
     @ctx_wrap_generator
     async def watch_continuous_deployment_versions_available(
-            self, plugin_id, credentials, repo_name, poll_interval, *args, **kwargs
+        self, plugin_id, credentials, repo_name, poll_interval, *args, **kwargs
     ):
         pass
 
     @ctx_wrap
     async def trigger_continuous_deployment(
-            self, plugin_id, credentials, repository, environment, version, *args, **kwargs
+        self, plugin_id, credentials, repository, environment, version, *args, **kwargs
     ):
         pass
 
     @ctx_wrap
     async def get_continuous_deployment_environments_available(
-            self, plugin_id, credentials, repo_name
+        self, plugin_id, credentials, repo_name
     ):
         pass
 
     @ctx_wrap_generator
     async def watch_continuous_deployment_environments_available(
-            self, plugin_id, credentials, repo_name, poll_interval
+        self, plugin_id, credentials, repo_name, poll_interval
     ):
         pass
 
     @ctx_wrap
     async def get_continuous_deployment_versions_available(
-            self, plugin_id, credentials, repo_name, *args, **kwargs
+        self, plugin_id, credentials, repo_name, *args, **kwargs
     ):
         pass
 
     @ctx_wrap
     async def bridge_repository_to_namespace(
-            self, plugin_id, credentials, repository, environment, untrustable=True, *args, **kwargs
+        self, plugin_id, credentials, repository, environment, untrustable=True, *args, **kwargs
     ):
         pass
 
@@ -124,7 +123,7 @@ class Sccs:
 
     @ctx_wrap
     async def add_repository(
-            self, plugin_id, credentials, repository, template, template_params, *args, **kwargs
+        self, plugin_id, credentials, repository, template, template_params, *args, **kwargs
     ):
         pass
 
