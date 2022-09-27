@@ -1,5 +1,6 @@
 # Copyright 2020 Croix Bleue du Québec
 
+from enum import IntEnum
 from devops_console.clients.client import CoreClient
 from devops_console.clients.wscom import DispatcherUnsupportedRequest
 
@@ -16,12 +17,11 @@ from devops_console.clients.wscom import DispatcherUnsupportedRequest
 # along with devops-console-backend.  If not, see <https://www.gnu.org/licenses/>.
 
 
-intervals = {
-    "repositories": 3600,
-    "cd": 30,
-    "cd_versions_available": 30,
-    "cd_environments_available": 30,
-}
+class Intervals(IntEnum):
+    repositories = 3600
+    cd = 30
+    cd_versions_available = 30
+    cd_environs_available = 30
 
 
 async def wscom_dispatcher(request, action: str, path: str, body: dict):
@@ -37,7 +37,7 @@ async def wscom_dispatcher(request, action: str, path: str, body: dict):
         if path == "/repositories":
             return await client.get_repositories(plugin_id, credentials)
         elif path == "/repository/cd/config":
-            return await client.get_continuous_deployment_config(plugin_id, credentials)
+            return await client.get_continuous_deployment_config(plugin_id, credentials, repo_name)
         elif path == "/repository/cd/environments_available":
             return await client.get_continuous_deployment_environments_available(
                 plugin_id, credentials, repo_name, **args
@@ -45,13 +45,11 @@ async def wscom_dispatcher(request, action: str, path: str, body: dict):
         elif path == "/repository/add/contract":
             return await client.get_add_repository_contract(plugin_id, credentials)
         elif path == "/repositories/compliance/report":
-            return await client.compliance_report(
-                plugin_id, credentials, **args
-            )
+            return await client.compliance_report(plugin_id, credentials, **args)
     elif action == "watch":
         if path == "/repositories":
             return client.watch_repositories(
-                plugin_id, credentials, poll_interval=intervals["repositories"], **args
+                plugin_id, credentials, poll_interval=Intervals.repositories, **args
             )
         elif path == "/repository/cd/config":
             environments = body.get("environments")
@@ -60,27 +58,45 @@ async def wscom_dispatcher(request, action: str, path: str, body: dict):
                 environments = []
 
             return client.watch_continuous_deployment_config(
-                plugin_id, credentials, repo_name, environments, poll_interval=intervals["cd"], **args, )
+                plugin_id,
+                credentials,
+                repo_name,
+                environments,
+                poll_interval=Intervals.cd,
+                **args,
+            )
         elif path == "/repository/cd/versions_available":
             return client.watch_continuous_deployment_versions_available(
-                plugin_id, credentials, repo_name, poll_interval=intervals["cd_versions_available"], **args
+                plugin_id,
+                credentials,
+                repo_name,
+                poll_interval=Intervals.cd_versions_available,
+                **args,
             )
         elif path == "/repository/cd/environments_available":
             return client.watch_continuous_deployment_environments_available(
-                plugin_id, credentials, repo_name, poll_interval=intervals["cd_environments_available"], **args
+                plugin_id,
+                credentials,
+                repo_name,
+                poll_interval=Intervals.cd_environs_available,
+                **args,
             )
     elif action == "write":
         if path == "/repository/cd/trigger":
-            return (await client.trigger_continuous_deployment(
-                plugin_id, credentials, repo_name, environment, body["version"], **args, )).dict()
+            return await client.trigger_continuous_deployment(
+                plugin_id,
+                credentials,
+                repo_name,
+                environment,
+                body["version"],
+                **args,
+            )
         elif path == "/repository/add":
             return await client.add_repository(
                 plugin_id, credentials, repo_name, body["template"], body["template_params"], **args
             )
     elif action == "":
         if path == "/passthrough":
-            return await client.passthrough(
-                plugin_id, credentials, body["request"], **args
-            )
+            return await client.passthrough(plugin_id, credentials, body["request"], **args)
 
     raise DispatcherUnsupportedRequest(action, path)
