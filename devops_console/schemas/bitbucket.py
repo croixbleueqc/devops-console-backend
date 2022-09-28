@@ -24,14 +24,13 @@ class Account(BitbucketResource):
     """An account object"""
 
     links: dict[str, Link] = {}
-    username: str = Field(regex=r"^[a-zA-Z0-9_\-]+$")
-
+    username: str | None = Field(regex=r"^[a-zA-Z0-9_\-]+$")
     nickname: str = ""
     account_status = "active"
     display_name: str = ""
     website: str = ""
     created_on: datetime | None
-    uuid: UUID4
+    uuid: UUID4 | None
     has_2fa_enabled: bool | None
 
 
@@ -63,15 +62,15 @@ class Project(BitbucketResource):
 
 class BaseCommit(BitbucketResource):
     hash: str = Field(regex=r"^[0-9a-f]{7,}?$")
-    date: datetime
-    author: Author
+    date: datetime | None
+    author: Author | None
     message: str = ""
-    summary: BitbucketResource
+    summary: BitbucketResource | None
     parents: "list[BaseCommit]" = []
 
 
 class Commit(BitbucketResource):
-    repository: "Repository"
+    repository: Optional["Repository"]
     participants: list[Participant] = []
 
 

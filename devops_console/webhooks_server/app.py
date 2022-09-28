@@ -9,7 +9,6 @@ from requests import JSONDecodeError
 from devops_console.clients.client import CoreClient
 from devops_console.clients.wscom import manager as ws_manager
 from devops_console.schemas.legacy.ws import WsResponse
-from devops_sccs.typing.cd import EnvironmentConfig
 
 from ..schemas.webhooks import (
     PRApprovedEvent,
@@ -99,18 +98,7 @@ async def handle_repo_push(event: dict):
     except ValidationError as e:
         validation_exception_handler(e)
 
-    # determine if the push event touches any of the cached values
-    changes_matter = False
-    for push_change in repopushevent.push["changes"]:
-        if push_change.new.type == "branch" and push_change.new.name in client.cd_branches_accepted:
-            changes_matter = True
-            break
-
-    # if the push event doesn't touch any of the cached values, we can skip it
-    if not changes_matter:
-        return
-
-    await ws_manager.broadcast(f"repo:push:{repopushevent.repository.name}")
+    await ws_manager.broadcast(f"repo:push:{repopushevent.repository.name}", legacy=True)
 
 
 async def handle_repo_build_created(event: dict):
@@ -122,7 +110,9 @@ async def handle_repo_build_created(event: dict):
     except ValidationError as e:
         validation_exception_handler(e)
 
-    await ws_manager.broadcast(f"repo:build_created:{repobuildstatuscreated.repository.name}")
+    await ws_manager.broadcast(
+        f"repo:build_created:{repobuildstatuscreated.repository.name}", legacy=True
+    )
 
 
 async def handle_repo_build_updated(event: dict):
@@ -134,17 +124,7 @@ async def handle_repo_build_updated(event: dict):
     except ValidationError as e:
         validation_exception_handler(e)
 
-    # TODO: establish protocol for sending build status updates to clients
-    await ws_manager.broadcast(f"repo:build_updated:{repobuildstatusupdated.repository.name}")
-    # legacy
-    await ws_manager.broadcast(
-        WsResponse(
-            "whitecard",
-            {
-                "pullrequest": repobuildstatusupdated.commit_status.links["html"]["href"],
-            },
-        ).json()
-    )
+    await ws_manager.broadcast(f"pr:updated:{repobuildstatusupdated.repository.name}", legacy=True)
 
 
 async def handle_pr_created(event: dict):
@@ -156,7 +136,7 @@ async def handle_pr_created(event: dict):
     except ValidationError as e:
         validation_exception_handler(e)
 
-    await ws_manager.broadcast(f"pr:created:{prcreated.repository.name}")
+    await ws_manager.broadcast(f"pr:created:{prcreated.repository.name}", legacy=True)
 
 
 async def handle_pr_updated(event: dict):
@@ -168,7 +148,7 @@ async def handle_pr_updated(event: dict):
     except ValidationError as e:
         validation_exception_handler(e)
 
-    await ws_manager.broadcast(f"pr:updated:{prupdated.repository.name}")
+    await ws_manager.broadcast(f"pr:updated:{prupdated.repository.name}", legacy=True)
 
 
 async def handle_pr_merged(event: dict):
@@ -180,7 +160,7 @@ async def handle_pr_merged(event: dict):
     except ValidationError as e:
         validation_exception_handler(e)
 
-    await ws_manager.broadcast(f"pr:merged:{prmerged.repository.name}")
+    await ws_manager.broadcast(f"pr:merged:{prmerged.repository.name}", legacy=True)
 
 
 async def handle_pr_approved(event: dict):
@@ -192,7 +172,7 @@ async def handle_pr_approved(event: dict):
     except ValidationError as e:
         validation_exception_handler(e)
 
-    await ws_manager.broadcast(f"pr:approved:{prapproved.repository.name}")
+    await ws_manager.broadcast(f"pr:approved:{prapproved.repository.name}", legacy=True)
 
 
 async def handle_pr_declined(event: dict):
@@ -204,4 +184,4 @@ async def handle_pr_declined(event: dict):
     except ValidationError as e:
         validation_exception_handler(e)
 
-    await ws_manager.broadcast(f"pr:declined:{prdeclined.repository.name}")
+    await ws_manager.broadcast(f"pr:declined:{prdeclined.repository.name}", legacy=True)

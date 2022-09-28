@@ -61,10 +61,6 @@ class Sccs:
     async def get_repositories(self, plugin_id, credentials, *args, **kwargs):
         pass
 
-    @ctx_wrap_generator
-    async def watch_repositories(self, plugin_id, credentials, poll_interval, *args, **kwargs):
-        pass
-
     @ctx_wrap
     async def passthrough(self, plugin_id, credentials, request, *args, **kwargs):
         pass
@@ -72,18 +68,6 @@ class Sccs:
     @ctx_wrap
     async def get_continuous_deployment_config(
         self, plugin_id, credentials, repo_name, environments=None, *args, **kwargs
-    ):
-        pass
-
-    @ctx_wrap_generator
-    async def watch_continuous_deployment_config(
-        self, plugin_id, credentials, repo_name, environments, poll_interval, *args, **kwargs
-    ):
-        pass
-
-    @ctx_wrap_generator
-    async def watch_continuous_deployment_versions_available(
-        self, plugin_id, credentials, repo_name, poll_interval, *args, **kwargs
     ):
         pass
 
@@ -96,12 +80,6 @@ class Sccs:
     @ctx_wrap
     async def get_continuous_deployment_environments_available(
         self, plugin_id, credentials, repo_name
-    ):
-        pass
-
-    @ctx_wrap_generator
-    async def watch_continuous_deployment_environments_available(
-        self, plugin_id, credentials, repo_name, poll_interval
     ):
         pass
 
@@ -149,4 +127,26 @@ class Sccs:
 
     @ctx_wrap
     async def get_projects(self, plugin_id, credentials):
+        pass
+
+    @ctx_wrap_generator
+    async def watch_repositories(self, plugin_id, credentials, poll_interval, *args, **kwargs):
+        pass
+
+    @ctx_wrap_generator
+    async def watch_continuous_deployment_config(
+        self, plugin_id, credentials, repo_name, environments, poll_interval, *args, **kwargs
+    ):
+        pass
+
+    @ctx_wrap_generator
+    async def watch_continuous_deployment_versions_available(
+        self, plugin_id, credentials, repo_name, poll_interval, *args, **kwargs
+    ):
+        pass
+
+    @ctx_wrap_generator
+    async def watch_continuous_deployment_environments_available(
+        self, plugin_id, credentials, repo_name, poll_interval
+    ):
         pass

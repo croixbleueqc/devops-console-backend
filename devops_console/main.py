@@ -78,8 +78,8 @@ app.include_router(router)
 app.include_router(router_v2)
 
 # webhook server mounted as a "subapp" to decouple it from the main API
-logging.debug("Mounting webhook server")
 app.mount(settings.WEBHOOKS_PATH, webhooks_server)
+logging.debug(f"Webhooks server mounted on {settings.WEBHOOKS_PATH} endpoint")
 
 
 @app.exception_handler(HTTPException)

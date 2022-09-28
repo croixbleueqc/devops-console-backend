@@ -22,6 +22,8 @@ from typing import Any
 import weakref
 from fastapi import WebSocket, WebSocketDisconnect
 
+from devops_console.schemas.legacy.ws import WsResponse
+
 WATCHERS = "watchers"
 
 Watchers = weakref.WeakValueDictionary[int, asyncio.Task]
@@ -71,7 +73,11 @@ class ConnectionManager:
                 except (KeyError, ValueError):
                     pass
 
-    async def broadcast(self, data: str | dict) -> None:
+    async def broadcast(self, data: str | dict, legacy: bool = False) -> None:
+        if legacy:
+            data = WsResponse(
+                "whitecard", data_response=data if isinstance(data, dict) else {"message": data}
+            ).json()
         for websocket in self.ws_set:
             await websocket.send_json(data)
 
@@ -85,6 +91,7 @@ class ConnectionManager:
     async def disconnect(self, websocket: WebSocket):
         try:
             del self.ws_watchers_map[hash(websocket)]
+            self.ws_set.remove(websocket)
         except (KeyError, ValueError):
             pass
 
