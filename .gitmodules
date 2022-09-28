@@ -7,3 +7,5 @@
   path = _submodules/python-devops-kubernetes
   url = https://github.com/croixbleueqc/python-devops-kubernetes.git
   branch = master
+[submodule "_submodules/python-devops-sccs/"]
+	branch = develop
