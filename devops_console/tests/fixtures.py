@@ -1,11 +1,49 @@
-from datetime import datetime, timedelta
+import logging
 import os
+from datetime import datetime, timedelta
+import sys
 from uuid import uuid4
 
+from fastapi.testclient import TestClient
+from devops_sccs.typing.credentials import Credentials
+from devops_console import main
 
-sccs_path = os.environ.get("API_V1_PATH", "/api/v1")
+sccs_path = os.environ.get("API_V2_PATH", "/api/v2")
 dev_token = os.environ.get("DEV_TOKEN", "superdupersecretdevtoken")
+
+legacy_ws_path = "/wscom1"
+
+user = os.environ.get("DEV_BB_USER")
+author = os.environ.get("DEV_BB_AUTHOR")
+apikey = os.environ.get("DEV_BB_APIKEY")
+if user is None or author is None or apikey is None:
+    logging.critical("Missing environment variables for devops-sccs")
+    sys.exit(1)
+dev_sccs_credentials = Credentials(user=user, author=author, apikey=apikey)
+
 test_headers = {"Authorization": f"Bearer {dev_token}"}
+
+
+class TestCore:
+    """Initialize a test instance and provide references to useful runtime objects."""
+
+    __instance = None
+
+    def __new__(cls):
+        # Singleton pattern
+        if cls.__instance is None:
+            cls.__instance = super(TestCore, cls).__new__(cls)
+        return cls.__instance
+
+    def __init__(self):
+        self.testcore = main.core
+        with TestClient(main.app) as testclient:
+            self.testclient = testclient
+
+
+# glabal testcore instance
+testcore = TestCore()
+
 
 # ----------------------------------------------------------------------------------------------------------------------
 # Mock Bitbucket API resources

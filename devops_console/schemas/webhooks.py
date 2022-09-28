@@ -8,8 +8,9 @@ from .bitbucket import (
     BaseCommit,
     BitbucketResource,
     Commit,
-    Link,
 )
+
+Links = dict[str, dict[str, str]]
 
 
 class WebhookEventKey(str, Enum):
@@ -49,7 +50,7 @@ class PayloadWorkspace(BaseModel):
     slug: str
     name: str
     uuid: UUID4
-    links: dict[str, str] = {}
+    links: Links = {}
 
 
 class PayloadProject(BaseModel):
@@ -58,7 +59,7 @@ class PayloadProject(BaseModel):
     type = "project"
     name: str
     uuid: UUID4
-    links: dict[str, str] = {}
+    links: Links = {}
     key: str
 
 
@@ -70,7 +71,7 @@ class PayloadRepository(BaseModel):
     full_name: str
     workspace: PayloadWorkspace
     uuid: UUID4
-    links: dict[str, str] = {}
+    links: Links = {}
     project: PayloadProject
     website: HttpUrl | None
     scm: Literal["git", "hg"]
@@ -98,7 +99,7 @@ class ReferenceState(BaseModel):
     type: Literal["branch", "tag"]
     name: str
     target: BaseCommit | Commit
-    links: Dict[str, Link] = {}
+    links: Links = {}
 
 
 class CommitShort(TypedDict):
@@ -106,7 +107,7 @@ class CommitShort(TypedDict):
     hash: str
     message: str
     author: Account
-    links: Dict[str, Link]
+    links: Links
 
 
 class PushChange(BaseModel):
@@ -114,7 +115,7 @@ class PushChange(BaseModel):
 
     new: ReferenceState
     old: ReferenceState
-    links: Dict[str, Link] = {}
+    links: Links = {}
     created: bool
     forced: bool
     closed: bool
@@ -139,13 +140,13 @@ class CommitStatus(BaseModel):
     type = "build"  # Currently, Bitbucket can only associate commit statuses with a build, so the only supported type is build
     created_on: datetime
     updated_on: datetime
-    links: Dict[str, Link] = {}
+    links: Links = {}
 
 
 class WebhookEvent(BaseModel, extra=Extra.allow):
     """Base class for webhook events"""
 
-    actor: Account
+    actor: Account | None
     repository: PayloadRepository
 
 
