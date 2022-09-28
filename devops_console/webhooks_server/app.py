@@ -54,21 +54,21 @@ async def handle_webhook_event(request: Request):
 
     match event_key:
         case WebhookEventKey.repo_push:
-            return await handle_repo_push(event=body)
+            await handle_repo_push(event=body)
         case WebhookEventKey.repo_build_created:
-            return handle_repo_build_created(event=body)
+            await handle_repo_build_created(event=body)
         case WebhookEventKey.repo_build_updated:
-            return handle_repo_build_updated(event=body)
+            await handle_repo_build_updated(event=body)
         case WebhookEventKey.pr_created:
-            return handle_pr_created(event=body)
+            await handle_pr_created(event=body)
         case WebhookEventKey.pr_updated:
-            return handle_pr_updated(event=body)
+            await handle_pr_updated(event=body)
         case WebhookEventKey.pr_approved:
-            return handle_pr_approved(event=body)
+            await handle_pr_approved(event=body)
         case WebhookEventKey.pr_declined:
-            return handle_pr_declined(event=body)
+            await handle_pr_declined(event=body)
         case WebhookEventKey.pr_merged:
-            return handle_pr_merged(event=body)
+            await handle_pr_merged(event=body)
         case _:
             msg = (f"Unsupported event key: {event_key}",)
             logging.warning(msg)
