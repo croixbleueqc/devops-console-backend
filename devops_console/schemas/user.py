@@ -8,6 +8,10 @@ class UserBase(BaseModel):
     bitbucket_username: str
     bitbucket_app_password: str
 
+    @property
+    def author(self):
+        return f"{self.full_name} <{self.email}>"
+
 
 class UserCreate(UserBase):
     password: str

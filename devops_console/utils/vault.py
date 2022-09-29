@@ -39,8 +39,8 @@ class Vault:
 
     DEFAULT_K8S_AUTH_NONPROD = "kubernetes-nonprod"
     DEFAULT_K8S_AUTH_PROD = "kubernetes"
-    token: str | None = None
-    client: Client | None = None  # type: ignore
+    token: str
+    client: Client
 
     def __init__(self):
         self.k8s = False
