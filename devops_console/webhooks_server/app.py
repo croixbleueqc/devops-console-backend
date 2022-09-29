@@ -8,7 +8,6 @@ from requests import JSONDecodeError
 
 from devops_console.clients.client import CoreClient
 from devops_console.clients.wscom import manager as ws_manager
-from devops_console.schemas.legacy.ws import WsResponse
 
 from ..schemas.webhooks import (
     PRApprovedEvent,
