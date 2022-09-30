@@ -24,7 +24,7 @@ def yield_credentials(user: schemas.User = Depends(get_current_user)):
     credz = Credentials(
         user=user.bitbucket_username,
         apikey=user.bitbucket_app_password,
-        author=user.author,
+        author=f"{user.full_name} <{user.email}>",
     )
 
     plugin_id = user.plugin_id

@@ -18,8 +18,7 @@
 from fastapi import APIRouter, WebSocket
 
 from devops_console.clients.wscom import wscom_generic_handler
-from .ws_dispatchers import kubernetes, oauth2
-from .ws_dispatchers import sccs
+from .ws_dispatchers import kubernetes, oauth2, sccs
 
 
 router = APIRouter()

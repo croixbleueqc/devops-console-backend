@@ -20,15 +20,14 @@
 import logging
 import secrets
 
-from pydantic import AnyHttpUrl, BaseSettings, Field
+from pydantic import AnyHttpUrl, BaseModel, Field
 
-from ..utils.cfg_sources import json_userconfig_source, vault_secret_source
 from ..schemas.userconfig import UserConfig
-from ..schemas.vault import VaultBitbucket
+from init.schemas.vault_secrets import BitBucketAdmin
 from ..schemas.webhooks import WebhookEventKey
 
 
-class Settings(BaseSettings):
+class Settings(BaseModel):
     ENVIRONMENT: str = Field(default="development", env="ENVIRONMENT")
     BRANCH_NAME: str = Field(default="undefined", env="BRANCH_NAME")
 
@@ -76,7 +75,7 @@ class Settings(BaseSettings):
 
     userconfig: UserConfig
 
-    superuser: VaultBitbucket
+    superuser: BitBucketAdmin
 
     class Config:
         env_file = ".env"
