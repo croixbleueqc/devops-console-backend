@@ -1,6 +1,6 @@
 from fastapi import APIRouter
 
-from devops_console.core.config import settings
+from devops_console.core import settings
 
 from .endpoints import health, wscom1
 
