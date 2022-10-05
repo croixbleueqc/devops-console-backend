@@ -3,7 +3,8 @@ from loguru import logger
 from pathlib import Path
 import pickle
 
-from .settings import Settings
+from devops_console.core.settings import Settings
+
 
 settings: Settings
 
