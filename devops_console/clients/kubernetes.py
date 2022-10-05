@@ -58,16 +58,16 @@ class Kubernetes(object):
         logging.info(f"{namespace} is in the following clusters: {pod_clusters}")
         return pod_clusters
 
-    async def pods_watch(self, sccs_plugin, sccs_session, repository, environment):
+    async def pods_watch(self, sccs_plugin, sccs_session, repo_name, environment):
         """Return a generator iterator of events for the pods of the given repository.
         see client.py in python-devops-kubernetes for the event shape.
         """
 
-        namespace = self.repo_to_namespace(repository, environment)
+        namespace = self.repo_to_namespace(repo_name, environment)
 
         pod_clusters = await self.get_pod_clusters(namespace)
 
-        write_access = await self.write_access(sccs_plugin, sccs_session, repository)
+        write_access = await self.write_access(sccs_plugin, sccs_session, repo_name)
 
         async def gen():
             nonlocal namespace
@@ -95,10 +95,8 @@ class Kubernetes(object):
 
         return gen()
 
-    async def write_access(self, sccs_plugin, sccs_session, repository):
-        permission = await self.sccs.get_repository_permission(
-            sccs_plugin, sccs_session, repo_name=repository
-        )
+    async def write_access(self, sccs_plugin, sccs_session, repo_name):
+        permission = await self.sccs.get_repository_permission(sccs_plugin, sccs_session, repo_name)
         write_access = permission in ["admin", "write"] if permission is not None else False
         return write_access
 
