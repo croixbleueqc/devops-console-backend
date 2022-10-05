@@ -14,5 +14,5 @@ try:
         settings = pickle.load(f)
     logger.info("Loaded settings from 'settings.pickle'")
 except FileNotFoundError:
-    logger.warning("Pickled settings not found; creating new settings object")
+    logger.warning(f"Pickled settings not found in {settingspickle}; creating new settings object")
     settings = Settings()  # type: ignore
