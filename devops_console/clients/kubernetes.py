@@ -21,10 +21,11 @@ import os
 from devops_kubernetes.client import K8sClient
 from devops_sccs.errors import AccessForbidden
 from ..schemas.userconfig import KubernetesConfig
+from ..clients.sccs import Sccs
 
 
 class Kubernetes(object):
-    def __init__(self, config: KubernetesConfig, sccs):
+    def __init__(self, config: KubernetesConfig, sccs: Sccs):
         self.config = config
         self.sccs = sccs
         self.client: K8sClient
@@ -35,18 +36,15 @@ class Kubernetes(object):
     async def init(self):
         self.client = await K8sClient.create(self.config.dict())
 
-    async def pods_watch(self, sccs_plugin, sccs_session, repository, environment):
-        """Return a generator iterator of events for the pods of the given repository.
-        see client.py in python-devops-kubernetes for the event shape.
-        """
+    def repo_to_namespace(self, repository, environment):
+        env: str = (
+            self.config.suffix_map[environment]
+            if environment in self.config.suffix_map.keys()
+            else environment
+        )
+        return f"{repository}-{env}"
 
-        env: str = self.config.suffix_map[
-            environment] if environment in self.config.suffix_map.keys() else environment
-
-        namespace = repository + "-" + env if env else repository
-        logging.info(f"Watching pods in namespace: {namespace}")
-
-        # find the clusters that have the namespace
+    async def get_pod_clusters(self, namespace) -> list[str]:
         pod_clusters: list[str] = []
         for cluster in self.clusters:
             try:
@@ -58,6 +56,18 @@ class Kubernetes(object):
                 pass
 
         logging.info(f"{namespace} is in the following clusters: {pod_clusters}")
+        return pod_clusters
+
+    async def pods_watch(self, sccs_plugin, sccs_session, repository, environment):
+        """Return a generator iterator of events for the pods of the given repository.
+        see client.py in python-devops-kubernetes for the event shape.
+        """
+
+        namespace = self.repo_to_namespace(repository, environment)
+
+        pod_clusters = await self.get_pod_clusters(namespace)
+
+        write_access = await self.write_access(sccs_plugin, sccs_session, repository)
 
         async def gen():
             nonlocal namespace
@@ -75,7 +85,7 @@ class Kubernetes(object):
                         "cluster": cluster,
                         "namespace": namespace,
                         "repository": {
-                            "write_access": False,
+                            "write_access": write_access,
                         },
                     },
                 }
@@ -85,12 +95,21 @@ class Kubernetes(object):
 
         return gen()
 
-    async def delete_pod(self, sccs_plugin, sccs_session, repository, environment, pod_name):
-        bridge = await self.sccs.bridge_repository_to_namespace(sccs_plugin, sccs_session,
-                                                                repository, environment)
+    async def write_access(self, sccs_plugin, sccs_session, repository):
+        permission = await self.sccs.get_repository_permission(
+            sccs_plugin, sccs_session, repo_name=repository
+        )
+        write_access = permission in ["admin", "write"] if permission is not None else False
+        return write_access
 
-        if not bridge["repository"]["write_access"]:
+    async def delete_pod(self, sccs_plugin, sccs_session, repository, environment, pod_name):
+
+        if not await self.write_access(sccs_plugin, sccs_session, repository):
             raise AccessForbidden(f"You don't have write access on {repository} to delete a pod")
 
-        async with self.client.context(cluster=bridge["cluster"]) as ctx:
-            await ctx.delete_pod(pod_name, bridge["namespace"])
+        namespace = self.repo_to_namespace(repository, environment)
+        clusters = await self.get_pod_clusters(namespace)
+
+        for cluster in clusters:
+            async with self.client.context(cluster=cluster) as ctx:
+                await ctx.delete_pod(pod_name, namespace)
