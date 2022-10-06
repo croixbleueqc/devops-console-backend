@@ -17,46 +17,17 @@ import logging
 from fastapi import FastAPI, HTTPException, Request, status
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import RedirectResponse
-from sqlalchemy.orm import Session
 
 # from .api.deps import azure_scheme
-from . import crud
+from .core import settings
 from .api.v1.router import router
 from .api.v2.router import main_router as router_v2
 from .clients.client import CoreClient
-from .core.config import settings
-from .core.database import Base, SessionLocal, engine
-from .schemas.user import UserCreate
 from .utils.logs import setup_logging
 from .webhooks_server.app import app as webhooks_server
 
 
-def init_db(db: Session) -> None:
-    logging.debug("Initializing database")
-    Base.metadata.create_all(bind=engine)
-
-    user = crud.user.get_by_email(db, email=settings.superuser.email)
-    if not user:
-        # create superuser
-        user_create = UserCreate(
-            full_name="Admin User",
-            email=settings.superuser.email,
-            plugin_id="cbq",
-            password=settings.superuser.pwd,
-            bitbucket_username=settings.superuser.username,
-            bitbucket_app_password=settings.superuser.app_passwords.bitbucket_management,
-        )
-        su = crud.user.create(db, obj_in=user_create)
-        logging.debug(f"Superuser created: {su.email}")
-    logging.debug("Database initialized")
-
-
 setup_logging()
-
-# initialize db
-db = SessionLocal()
-init_db(db)
-
 # initialize core
 core = CoreClient()
 

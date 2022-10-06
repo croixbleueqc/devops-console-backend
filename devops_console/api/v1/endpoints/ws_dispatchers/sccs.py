@@ -19,9 +19,9 @@ from devops_console.clients.wscom import DispatcherUnsupportedRequest
 
 class Intervals(IntEnum):
     repositories = 3600
-    cd = 30
-    cd_versions_available = 60
-    cd_environs_available = 60
+    cd = 3600
+    cd_versions_available = 3600
+    cd_environs_available = 3600
 
 
 async def wscom_dispatcher(request, action: str, path: str, body: dict):
@@ -46,6 +46,7 @@ async def wscom_dispatcher(request, action: str, path: str, body: dict):
             return await client.get_add_repository_contract(plugin_id, credentials)
         elif path == "/repositories/compliance/report":
             return await client.compliance_report(plugin_id, credentials, **args)
+
     elif action == "watch":
         if path == "/repositories":
             return client.watch_repositories(
@@ -81,6 +82,7 @@ async def wscom_dispatcher(request, action: str, path: str, body: dict):
                 poll_interval=Intervals.cd_environs_available,
                 **args,
             )
+
     elif action == "write":
         if path == "/repository/cd/trigger":
             return await client.trigger_continuous_deployment(
