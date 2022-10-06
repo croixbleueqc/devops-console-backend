@@ -58,6 +58,10 @@ class Sccs:
         pass
 
     @ctx_wrap
+    async def get_repository_permission(self, plugin_id, credentials, *args, **kwargs):
+        pass
+
+    @ctx_wrap
     async def get_repositories(self, plugin_id, credentials, *args, **kwargs):
         pass
 
