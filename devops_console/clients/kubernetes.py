@@ -75,6 +75,7 @@ class Kubernetes(object):
 
             if len(pod_clusters) == 0:
                 logging.warning(f"No cluster found for namespace {namespace}.")
+                yield None
                 return
 
             for cluster in pod_clusters:
