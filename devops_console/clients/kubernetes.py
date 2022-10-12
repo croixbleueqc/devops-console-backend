@@ -115,7 +115,7 @@ class Kubernetes(object):
             async with self.client.context(cluster=cluster) as ctx:
                 await ctx.delete_pod(pod_name, namespace)
 
-    async def exclude_namespaces_from_kube_downscaler(self, namespaces: list[str], clusters: list[str] | None = None):
+    async def add_ns_to_exclude_from_kube_downscaler(self, namespaces: list[str], clusters: list[str] | None = None):
         """Prevent selected namespaces from being automatically downscaled."""
 
         if len(namespaces) == 0:
@@ -132,4 +132,23 @@ class Kubernetes(object):
 
         for cluster in clusters or self.clusters:
             async with self.client.context(cluster=cluster) as ctx:
-                await ctx.exclude_namespaces_from_kube_downscaler(namespaces)
+                await ctx.add_ns_to_exclude_from_kube_downscaler(namespaces)
+
+    async def remove_ns_to_exclude_from_kube_downscaler(self, namespaces: list[str], clusters: list[str] | None = None):
+        """Allow selected namespaces to be automatically downscaled."""
+
+        if len(namespaces) == 0:
+            logger.warning("namespaces list is empty!")
+            return
+
+        if clusters is not None:
+            if len(clusters) == 0:
+                clusters = self.clusters
+            else:
+                # ensure clusters are valid
+                if any(cluster not in self.clusters for cluster in clusters):
+                    raise ValueError("Invalid cluster name")
+
+        for cluster in clusters or self.clusters:
+            async with self.client.context(cluster=cluster) as ctx:
+                await ctx.remove_ns_to_exclude_from_kube_downscaler(namespaces)
