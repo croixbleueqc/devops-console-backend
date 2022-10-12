@@ -1,19 +1,17 @@
 from fastapi import APIRouter
-
 # from fastapi.responses import HTMLResponse
 from sse_starlette.sse import EventSourceResponse
 
 from devops_console.core import settings
-
-from .endpoints import sse, websocket
+from .endpoints import sccs, sse, websocket
 
 api_router = APIRouter(prefix=settings.API_V2_STR)
 
-# api_router.include_router(
-#     sccs.router,
-#     prefix="/sccs",
-#     tags=["sccs"],
-# )
+api_router.include_router(
+    sccs.router,
+    prefix="/sccs",
+    tags=["sccs"],
+)
 api_router.include_router(
     websocket.router,
     prefix="/ws",
@@ -34,8 +32,7 @@ sse_router.include_router(
     default_response_class=EventSourceResponse,
 )
 
-
 main_router = APIRouter()
-main_router.include_router(api_router, tags=["api"])
+main_router.include_router(api_router)
 # main_router.include_router(html_router, tags=["frontend"])
 main_router.include_router(sse_router, tags=["sse"])

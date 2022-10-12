@@ -4,6 +4,7 @@ from urllib.parse import urljoin
 
 from atlassian.errors import ApiError
 from fastapi import APIRouter, Depends, HTTPException
+from pydantic import BaseModel
 from requests import HTTPError
 
 from devops_console import schemas
@@ -18,10 +19,13 @@ client = core.sccs
 
 
 # TODO: finish this
-def yield_credentials(session: dict = Depends()):
-    plugin_id = session["plugin_id"]
-    credentials = Credentials(**session["credentials"])
 
+class Session(BaseModel):
+    plugin_id: str
+    credentials: dict
+
+
+def yield_credentials(plugin_id: str, credentials: Credentials) -> tuple[str, Credentials]:
     yield plugin_id, credentials
 
 
@@ -35,8 +39,8 @@ async def home():
 # ----------------------------------------------------------------------------------------------------------------------
 
 @router.get("/repositories/create_default_webhooks")
-async def create_webhooks(repositories: list[str] | None = None, target: str | None = None,
-                          session: tuple[str, Credentials] = Depends(yield_credentials)):
+async def create_webhooks(repositories: list[str] | None, target_url: str | None = None,
+                          session=Depends(yield_credentials)):
     """Subscribe to webhooks for each repository (must be idempotent)."""
 
     plugin_id, credentials = session
@@ -66,7 +70,7 @@ async def create_webhooks(repositories: list[str] | None = None, target: str | N
     # testing this out (there are roughly 400 repos at the time of writing)
     coros = []
 
-    target_url = target if target is not None else urljoin(settings.WEBHOOKS_HOST, settings.WEBHOOKS_PATH)
+    target_url = target_url if target_url is not None else urljoin(settings.WEBHOOKS_HOST, settings.WEBHOOKS_PATH)
 
     for repo in repos:  # type: ignore
 
@@ -132,8 +136,8 @@ async def create_webhooks(repositories: list[str] | None = None, target: str | N
 
 
 @router.get("/repositories/remove_default_webhooks")
-async def remove_webhooks(repositories: list[str] | None = None, target: str | None = None,
-                          session: tuple[str, Credentials] = Depends(yield_credentials)):
+async def remove_webhooks(repositories: list[str] | None = None, target_url: str | None = None,
+                          session=Depends(yield_credentials)):
     """Remove the default webhooks from all repositories."""
 
     plugin_id, credentials = session
@@ -169,7 +173,7 @@ async def remove_webhooks(repositories: list[str] | None = None, target: str | N
 
     coros = []
 
-    target_url = target if target is not None else urljoin(settings.WEBHOOKS_HOST, settings.WEBHOOKS_PATH)
+    target_url = target_url if target_url is not None else urljoin(settings.WEBHOOKS_HOST, settings.WEBHOOKS_PATH)
 
     for repo in repos:  # type: ignore
 
