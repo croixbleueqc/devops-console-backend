@@ -3,30 +3,17 @@ import logging
 from urllib.parse import urljoin
 
 from atlassian.errors import ApiError
-from fastapi import APIRouter, Depends, HTTPException
-from pydantic import BaseModel
+from fastapi import APIRouter, HTTPException
 from requests import HTTPError
 
 from devops_console import schemas
 from devops_console.clients import CoreClient
 from devops_console.core import settings
-from devops_sccs.typing.credentials import Credentials
 
 router = APIRouter()
 
 core = CoreClient()
 client = core.sccs
-
-
-# TODO: finish this
-
-class Session(BaseModel):
-    plugin_id: str
-    credentials: dict
-
-
-def yield_credentials(plugin_id: str, credentials: Credentials) -> tuple[str, Credentials]:
-    yield plugin_id, credentials
 
 
 @router.get("/")
@@ -38,12 +25,10 @@ async def home():
 # Repositories
 # ----------------------------------------------------------------------------------------------------------------------
 
-@router.get("/repositories/create_default_webhooks")
-async def create_webhooks(repositories: list[str] | None, target_url: str | None = None,
-                          session=Depends(yield_credentials)):
+@router.post("/repositories/create_webhooks", tags=["webhooks"])
+async def create_webhooks(plugin_id: str, repositories: list[str] | None = None, target_url: str | None = None):
     """Subscribe to webhooks for each repository (must be idempotent)."""
-
-    plugin_id, credentials = session
+    credentials = None
 
     if repositories is None:
         repositories = []
@@ -51,7 +36,7 @@ async def create_webhooks(repositories: list[str] | None, target_url: str | None
     repos = None
     try:
         if len(repositories) == 0:
-            repos = await client.get_repositories(plugin_id=plugin_id, credentials=credentials)
+            repos = await client.get_repositories(plugin_id=plugin_id)
         else:
             repos = []
             for repo in repositories:
@@ -135,15 +120,17 @@ async def create_webhooks(repositories: list[str] | None, target_url: str | None
     return subscriptions
 
 
-@router.get("/repositories/remove_default_webhooks")
-async def remove_webhooks(repositories: list[str] | None = None, target_url: str | None = None,
-                          session=Depends(yield_credentials)):
+@router.delete("/repositories/remove_webhooks", tags=["webhooks"])
+async def remove_webhooks(plugin_id: str, repositories: list[str] | None = None, target_url: str | None = None):
     """Remove the default webhooks from all repositories."""
 
-    plugin_id, credentials = session
+    credentials = None
 
+    if repositories is None and target_url is None:
+        raise HTTPException(status_code=400, detail="No repositories or target_url provided.")
     if repositories is None:
         repositories = []
+
     # get list of repositories
     repos = None
     try:
@@ -160,24 +147,13 @@ async def remove_webhooks(repositories: list[str] | None = None, target_url: str
         logging.warning("No repositories found.")
         raise HTTPException(status_code=400, detail="No repositories found")
 
-    # get list of repositories
-    repos = None
-    try:
-        repos = await client.get_repositories(plugin_id=plugin_id, credentials=credentials)
-    except ApiError as e:
-        logging.warning(f"Failed to get list of repositories: {e.reason}")
-        return
-    if repos is None or len(repos) == 0:
-        logging.warning("No repositories found.")
-        raise HTTPException(status_code=400, detail="No repositories found")
-
     coros = []
 
     target_url = target_url if target_url is not None else urljoin(settings.WEBHOOKS_HOST, settings.WEBHOOKS_PATH)
 
     for repo in repos:  # type: ignore
 
-        async def _remove_default_webhooks(repo):
+        async def _remove_webhook(repo):
             current_subscriptions = None
             try:
                 current_subscriptions = await client.get_webhook_subscriptions(
@@ -209,12 +185,9 @@ async def remove_webhooks(repositories: list[str] | None = None, target_url: str
                         )
                         continue
 
-            logging.info(f"Removed default webhooks from {repo.name}.")
-
-        coros.append(_remove_default_webhooks(repo))
+        coros.append(_remove_webhook(repo))
 
     await asyncio.gather(*coros)
-
 
 # @router.get("/repositories")
 # async def get_repositories(
@@ -287,10 +260,10 @@ async def remove_webhooks(repositories: list[str] | None = None, target_url: str
 # ------------------------------------------------------------------------------
 
 
-@router.get("/projects")
-async def get_projects(session: tuple[str, Credentials] = Depends(yield_credentials)):
-    plugin_id, credentials = session
-    try:
-        return await client.get_projects(plugin_id=plugin_id, credentials=credentials)
-    except HTTPError as e:
-        raise HTTPException(status_code=400, detail=e.strerror)
+# @router.get("/projects")
+# async def get_projects(session: tuple[str, Credentials] = Depends(yield_credentials)):
+#     plugin_id, credentials = session
+#     try:
+#         return await client.get_projects(plugin_id=plugin_id, credentials=credentials)
+#     except HTTPError as e:
+#         raise HTTPException(status_code=400, detail=e.strerror)
