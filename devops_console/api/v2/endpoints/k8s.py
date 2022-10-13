@@ -7,8 +7,15 @@ client = core.kubernetes
 router = APIRouter()
 
 
-@router.post("/no-dowscale")
-async def exclude_namespaces_from_kube_downscaler(namespaces: list[str], clusters: list[str] | None = None):
+@router.post("/no-downscale")
+async def add_ns_to_exclude_from_kube_downscaler(namespaces: list[str], clusters: list[str] | None = None):
     """Prevent selected namespaces from being automatically downscaled."""
     await client.add_ns_to_exclude_from_kube_downscaler(namespaces, clusters)
+    return {"message": "success"}
+
+
+@router.delete("/no-downscale")
+async def remove_ns_to_exclude_from_kube_downscaler(namespaces: list[str], clusters: list[str] | None = None):
+    """Allow selected namespaces to be automatically downscaled."""
+    await client.remove_ns_to_exclude_from_kube_downscaler(namespaces, clusters)
     return {"message": "success"}
