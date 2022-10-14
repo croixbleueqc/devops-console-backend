@@ -1,9 +1,9 @@
 import asyncio
-import logging
 from urllib.parse import urljoin
 
 from atlassian.errors import ApiError
 from fastapi import APIRouter, HTTPException
+from loguru import logger
 from requests import HTTPError
 
 from devops_console import schemas
@@ -42,10 +42,10 @@ async def create_webhooks(plugin_id: str, repositories: list[str] | None = None,
             for repo in repositories:
                 repos.append(await client.get_repository(plugin_id=plugin_id, credentials=credentials, repo_name=repo))
     except HTTPError as e:
-        logging.warning(f"Failed to get list of repositories: {e}")
+        logger.warning(f"Failed to get list of repositories: {e}")
         raise HTTPException(status_code=e.request.status_code, detail=e)
     if repos is None or len(repos) == 0:
-        logging.warning("No repositories found.")
+        logger.warning("No repositories found.")
         raise HTTPException(status_code=400, detail="No repositories found")
 
     subscriptions = []
@@ -65,12 +65,12 @@ async def create_webhooks(plugin_id: str, repositories: list[str] | None = None,
             try:
                 current_subscriptions = await client.get_webhook_subscriptions(
                     plugin_id=plugin_id, credentials=credentials, repo_name=repo.name
-                )
+                    )
             except ApiError as e:
-                logging.warning(f"Failed to get webhook subscriptions for {repo.name}: {e.reason}")
+                logger.warning(f"Failed to get webhook subscriptions for {repo.name}: {e.reason}")
                 return
             if current_subscriptions is None or len(current_subscriptions) == 0:
-                logging.warning(f"No webhook subscriptions found for {repo.name}.")
+                logger.warning(f"No webhook subscriptions found for {repo.name}.")
                 return
 
             # check if the webhook is already set
@@ -81,12 +81,12 @@ async def create_webhooks(plugin_id: str, repositories: list[str] | None = None,
                             [
                                 event in subscription["events"]
                                 for event in settings.WEBHOOKS_DEFAULT_EVENTS
-                            ]
-                        )
+                                ]
+                            )
                         for subscription in current_subscriptions["values"]
-                    ]
-            ):
-                logging.warning(f"Webhook subscription already exists for {repo.name}.")
+                        ]
+                    ):
+                logger.warning(f"Webhook subscription already exists for {repo.name}.")
                 return
 
             # create the webhook
@@ -100,15 +100,15 @@ async def create_webhooks(plugin_id: str, repositories: list[str] | None = None,
                     active=True,
                     events=settings.WEBHOOKS_DEFAULT_EVENTS,
                     description=settings.WEBHOOKS_DEFAULT_DESCRIPTION,
-                )
-                logging.warning(f"Subscribed to default webhook for {repo.name}.")
+                    )
+                logger.warning(f"Subscribed to default webhook for {repo.name}.")
             except ApiError as e:
-                logging.warning(
+                logger.warning(
                     f"Failed to create webhook subscription for {repo.name}: {e.reason}"
-                )
+                    )
                 return
             if new_subscription is None or len(new_subscription) == 0:
-                logging.warning(f"Failed to create webhook subscription for {repo.name}.")
+                logger.warning(f"Failed to create webhook subscription for {repo.name}.")
                 return
 
             subscriptions.append(schemas.WebhookSubscription(**new_subscription))
@@ -141,10 +141,10 @@ async def remove_webhooks(plugin_id: str, repositories: list[str] | None = None,
             for repo in repositories:
                 repos.append(await client.get_repository(plugin_id=plugin_id, credentials=credentials, repo_name=repo))
     except HTTPError as e:
-        logging.warning(f"Failed to get list of repositories: {e}")
+        logger.warning(f"Failed to get list of repositories: {e}")
         raise HTTPException(status_code=e.request.status_code, detail=e)
     if repos is None or len(repos) == 0:
-        logging.warning("No repositories found.")
+        logger.warning("No repositories found.")
         raise HTTPException(status_code=400, detail="No repositories found")
 
     coros = []
@@ -158,15 +158,15 @@ async def remove_webhooks(plugin_id: str, repositories: list[str] | None = None,
             try:
                 current_subscriptions = await client.get_webhook_subscriptions(
                     plugin_id=plugin_id, credentials=credentials, repo_name=repo.name
-                )
+                    )
             except HTTPError as e:
-                logging.warning(
+                logger.info(
                     f"Failed to get webhook subscriptions for {repo.name}: {e.strerror}"
-                )
+                    )
                 return
 
             if current_subscriptions is None or len(current_subscriptions["values"]) == 0:
-                logging.warning(f"No webhook subscriptions for {repo.name}.")
+                logger.info(f"No webhook subscriptions for {repo.name}.")
                 return
 
             for subscription in current_subscriptions["values"]:
@@ -177,13 +177,14 @@ async def remove_webhooks(plugin_id: str, repositories: list[str] | None = None,
                             credentials=credentials,
                             repo_name=repo.name,
                             subscription_id=subscription["uuid"],
-                        )
-                        logging.warning(f"Deleted webhook subscription for {repo.name}.")
+                            )
+                        logger.info(f"Deleted webhook subscription for {repo.name}.")
                     except HTTPError as e:
-                        logging.warning(
+                        logger.warning(
                             f"Failed to delete webhook subscription for {repo.name}: {e.strerror}"
-                        )
+                            )
                         continue
+                logger.debug(f"Webhook subscription for {repo.name} not found.")
 
         coros.append(_remove_webhook(repo))
 
