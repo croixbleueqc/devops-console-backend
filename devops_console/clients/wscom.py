@@ -174,8 +174,6 @@ async def wscom_generic_handler(websocket: WebSocket, handlers: dict):
                 logging.warning(data["error"])
                 await websocket.send_json(data)
             elif action == "watch":
-                logging.info(f"watching {request_headers}")
-
                 task = asyncio.create_task(
                     wscom_watcher_run(websocket, handler, data, action, path, body),
                     name=uniqueId,
@@ -184,8 +182,6 @@ async def wscom_generic_handler(websocket: WebSocket, handlers: dict):
                 manager.add_watcher(websocket, uniqueId, task)
 
             else:
-                logging.info(f"dispatching {request_headers}")
-
                 asyncio.create_task(wscom_restful_run(websocket, handler, data, action, path, body))
 
     except WebSocketDisconnect:
@@ -216,8 +212,8 @@ async def wscom_watcher_run(websocket, handler, data, action, path, body):
     """Watch request"""
     try:
         async for event in (await handler(websocket, action, path, body)):
-            data["dataResponse"] = event.dict() if hasattr(event, "dict") else event
             logging.debug(f"wscom_watcher_run received an event: {event}")
+            data["dataResponse"] = event.dict() if hasattr(event, "dict") else event
             await manager.send_json(websocket, data)
     except Exception as e:
         data["error"] = str(e)

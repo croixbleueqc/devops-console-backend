@@ -17,15 +17,18 @@
 # along with devops-console-backend.  If not, see <https://www.gnu.org/licenses/>.
 
 
-import logging
+from functools import reduce
 import secrets
+import os
+import sys
 
+from pathlib import Path
 from pydantic import AnyHttpUrl, BaseSettings, Field
+from loguru import logger
 
-from ..utils.cfg_sources import json_userconfig_source, vault_secret_source
 from ..schemas.userconfig import UserConfig
-from ..schemas.vault import VaultBitbucket
 from ..schemas.webhooks import WebhookEventKey
+from ..utils.helpers import deep_replace, read_json_file
 
 
 class Settings(BaseSettings):
@@ -42,7 +45,7 @@ class Settings(BaseSettings):
     WEBHOOKS_HOST: str = Field(default="localhost:4242", env="WEBHOOKS_HOST")
     WEBHOOKS_PATH: str = Field(default="/bitbucketcloud/hooks/repo", env="WEBHOOKS_PATH")
 
-    WEBHOOKS_DEFAULT_EVENTS = [
+    WEBHOOKS_DEFAULT_EVENTS = (
         WebhookEventKey.repo_push,
         WebhookEventKey.repo_build_created,
         WebhookEventKey.repo_build_updated,
@@ -51,7 +54,7 @@ class Settings(BaseSettings):
         WebhookEventKey.pr_approved,
         WebhookEventKey.pr_declined,
         WebhookEventKey.pr_merged,
-    ]
+    )
 
     WEBHOOKS_DEFAULT_DESCRIPTION = "Default webhook created via DevOps Console"
 
@@ -72,27 +75,50 @@ class Settings(BaseSettings):
         "http://localhost:8080",
     ]
 
-    LOG_LEVEL: int | None = Field(default=logging.INFO, env="LOG_LEVEL")
+    LOG_LEVEL: int | None = Field(default="INFO", env="LOG_LEVEL")
 
     userconfig: UserConfig
 
-    superuser: VaultBitbucket
-
     class Config:
         env_file = ".env"
-        env_file_encoding = "utf-8"
         case_sensitive = True
 
-        # https://pydantic-docs.helpmanual.io/usage/settings/#adding-sources
         @classmethod
         def customise_sources(cls, init_settings, env_settings, file_secret_settings):
             return (
                 init_settings,
-                json_userconfig_source,
-                vault_secret_source,
+                userconfig_src,
                 env_settings,
                 file_secret_settings,
             )
 
 
-settings = Settings()  # type: ignore
+def userconfig_src(settings: BaseSettings):
+    """Reads from JSON files found in the "config" directory."""
+
+    env = os.environ.get("BRANCH_NAME", "undefined")
+
+    dirpath = Path.cwd() / "config"
+
+    default_json = dirpath.joinpath("default.json")
+    env_json = dirpath.joinpath(env + ".json")
+    local_json = dirpath.joinpath("local.json")
+
+    if all(not f.exists() for f in [default_json, env_json, local_json]):
+        logger.critical("No config files found, exiting")
+        sys.exit(1)
+
+    (default_dict, env_dict, local_json_dict) = map(
+        read_json_file, [default_json, env_json, local_json]
+    )
+
+    # Order is important inside the list (last one is the most important)
+    dicts = list(filter(lambda x: x != {}, [default_dict, env_dict, local_json_dict]))
+    merged: dict = reduce(lambda a, b: a | b, dicts)
+
+    # replace all 'env' with BRANCH_NAME
+    configs = deep_replace(merged, env=env)
+
+    userconfig = UserConfig.parse_obj(configs)
+
+    return {"userconfig": userconfig}

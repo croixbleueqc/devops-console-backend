@@ -18,13 +18,18 @@
 import logging
 import os
 
+from kubernetes_asyncio.client import V1PodStatus
+from loguru import logger
+
 from devops_kubernetes.client import K8sClient
 from devops_sccs.errors import AccessForbidden
+from ..clients.sccs import Sccs
 from ..schemas.userconfig import KubernetesConfig
 
 
 class Kubernetes(object):
-    def __init__(self, config: KubernetesConfig, sccs):
+
+    def __init__(self, config: KubernetesConfig, sccs: Sccs):
         self.config = config
         self.sccs = sccs
         self.client: K8sClient
@@ -35,18 +40,15 @@ class Kubernetes(object):
     async def init(self):
         self.client = await K8sClient.create(self.config.dict())
 
-    async def pods_watch(self, sccs_plugin, sccs_session, repository, environment):
-        """Return a generator iterator of events for the pods of the given repository.
-        see client.py in python-devops-kubernetes for the event shape.
-        """
+    def repo_to_namespace(self, repository, environment):
+        env: str = (
+            self.config.suffix_map[environment]
+            if environment in self.config.suffix_map.keys()
+            else environment
+        )
+        return f"{repository}-{env}"
 
-        env: str = self.config.suffix_map[
-            environment] if environment in self.config.suffix_map.keys() else environment
-
-        namespace = repository + "-" + env if env else repository
-        logging.info(f"Watching pods in namespace: {namespace}")
-
-        # find the clusters that have the namespace
+    async def get_pod_clusters(self, namespace) -> list[str]:
         pod_clusters: list[str] = []
         for cluster in self.clusters:
             try:
@@ -58,6 +60,18 @@ class Kubernetes(object):
                 pass
 
         logging.info(f"{namespace} is in the following clusters: {pod_clusters}")
+        return pod_clusters
+
+    async def pods_watch(self, sccs_plugin, sccs_session, repo_name, environment):
+        """Return a generator iterator of events for the pods of the given repository.
+        see client.py in python-devops-kubernetes for the event shape.
+        """
+
+        namespace = self.repo_to_namespace(repo_name, environment)
+
+        pod_clusters = await self.get_pod_clusters(namespace)
+
+        write_access = await self.write_access(sccs_plugin, sccs_session, repo_name)
 
         async def gen():
             nonlocal namespace
@@ -65,6 +79,7 @@ class Kubernetes(object):
 
             if len(pod_clusters) == 0:
                 logging.warning(f"No cluster found for namespace {namespace}.")
+                yield None
                 return
 
             for cluster in pod_clusters:
@@ -75,22 +90,86 @@ class Kubernetes(object):
                         "cluster": cluster,
                         "namespace": namespace,
                         "repository": {
-                            "write_access": False,
+                            "write_access": write_access,
+                            },
                         },
-                    },
-                }
+                    }
                 async with self.client.context(cluster) as ctx:
                     async for event in ctx.pods(namespace):
                         yield event
 
         return gen()
 
-    async def delete_pod(self, sccs_plugin, sccs_session, repository, environment, pod_name):
-        bridge = await self.sccs.bridge_repository_to_namespace(sccs_plugin, sccs_session,
-                                                                repository, environment)
+    async def write_access(self, sccs_plugin, sccs_session, repo_name):
+        permission = await self.sccs.get_repository_permission(sccs_plugin, sccs_session, repo_name)
+        write_access = permission in ["admin", "write"] if permission is not None else False
+        return write_access
 
-        if not bridge["repository"]["write_access"]:
+    async def delete_pod(self, sccs_plugin, sccs_session, repository, environment, pod_name):
+
+        if not await self.write_access(sccs_plugin, sccs_session, repository):
             raise AccessForbidden(f"You don't have write access on {repository} to delete a pod")
 
-        async with self.client.context(cluster=bridge["cluster"]) as ctx:
-            await ctx.delete_pod(pod_name, bridge["namespace"])
+        namespace = self.repo_to_namespace(repository, environment)
+        clusters = await self.get_pod_clusters(namespace)
+
+        for cluster in clusters:
+            async with self.client.context(cluster=cluster) as ctx:
+                await ctx.delete_pod(pod_name, namespace)
+
+    async def add_ns_to_exclude_from_kube_downscaler(
+            self,
+            namespaces: list[str],
+            clusters: list[str] | None = None
+            ):
+        """Prevent selected namespaces from being automatically downscaled."""
+
+        if len(namespaces) == 0:
+            logger.warning("namespaces list is empty!")
+            return
+
+        if clusters is not None:
+            if len(clusters) == 0:
+                clusters = self.clusters
+            else:
+                # ensure clusters are valid
+                if any(cluster not in self.clusters for cluster in clusters):
+                    raise ValueError("Invalid cluster name")
+
+        for cluster in clusters or self.clusters:
+            async with self.client.context(cluster=cluster) as ctx:
+                await ctx.add_ns_to_exclude_from_kube_downscaler(namespaces)
+
+    async def remove_ns_to_exclude_from_kube_downscaler(
+            self,
+            namespaces: list[str],
+            clusters: list[str] | None = None
+            ):
+        """Allow selected namespaces to be automatically downscaled."""
+
+        if len(namespaces) == 0:
+            logger.warning("namespaces list is empty!")
+            return
+
+        if clusters is not None:
+            if len(clusters) == 0:
+                clusters = self.clusters
+            else:
+                # ensure clusters are valid
+                if any(cluster not in self.clusters for cluster in clusters):
+                    raise ValueError("Invalid cluster name")
+
+        for cluster in clusters or self.clusters:
+            async with self.client.context(cluster=cluster) as ctx:
+                await ctx.remove_ns_to_exclude_from_kube_downscaler(namespaces)
+
+    async def get_deployment_status(self, namespace, cluster) -> list[V1PodStatus]:
+        if cluster:
+            async with self.client.context(cluster=cluster) as ctx:
+                return await ctx.get_deployment_status(namespace)
+        else:
+            statuses = []
+            for cluster in self.clusters:
+                async with self.client.context(cluster=cluster) as ctx:
+                    statuses.extend(await ctx.get_deployment_status(namespace))
+            return statuses

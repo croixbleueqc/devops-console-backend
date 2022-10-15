@@ -54,7 +54,11 @@ class Sccs:
         return self.core.context(plugin_id, args)
 
     @ctx_wrap
-    async def get_repository(self, plugin_id, credentials, *args, **kwargs):
+    async def get_repository(self, plugin_id, credentials, repo_name, *args, **kwargs):
+        pass
+
+    @ctx_wrap
+    async def get_repository_permission(self, plugin_id, credentials, *args, **kwargs):
         pass
 
     @ctx_wrap
@@ -67,31 +71,31 @@ class Sccs:
 
     @ctx_wrap
     async def get_continuous_deployment_config(
-        self, plugin_id, credentials, repo_name, environments=None, *args, **kwargs
+            self, plugin_id, credentials, repo_name, environments=None, *args, **kwargs
     ):
         pass
 
     @ctx_wrap
     async def trigger_continuous_deployment(
-        self, plugin_id, credentials, repository, environment, version, *args, **kwargs
+            self, plugin_id, credentials, repository, environment, version, *args, **kwargs
     ):
         pass
 
     @ctx_wrap
     async def get_continuous_deployment_environments_available(
-        self, plugin_id, credentials, repo_name
+            self, plugin_id, credentials, repo_name
     ):
         pass
 
     @ctx_wrap
     async def get_continuous_deployment_versions_available(
-        self, plugin_id, credentials, repo_name, *args, **kwargs
+            self, plugin_id, credentials, repo_name, *args, **kwargs
     ):
         pass
 
     @ctx_wrap
     async def bridge_repository_to_namespace(
-        self, plugin_id, credentials, repository, environment, untrustable=True, *args, **kwargs
+            self, plugin_id, credentials, repository, environment, untrustable=True, *args, **kwargs
     ):
         pass
 
@@ -101,7 +105,7 @@ class Sccs:
 
     @ctx_wrap
     async def add_repository(
-        self, plugin_id, credentials, repository, template, template_params, *args, **kwargs
+            self, plugin_id, credentials, repository, template, template_params, *args, **kwargs
     ):
         pass
 
@@ -114,7 +118,7 @@ class Sccs:
         pass
 
     @ctx_wrap
-    async def get_webhook_subscriptions(self, plugin_id, credentials, *args, **kwargs):
+    async def get_webhook_subscriptions(self, plugin_id, credentials, repo_name: str, *args, **kwargs):
         pass
 
     @ctx_wrap
@@ -135,18 +139,18 @@ class Sccs:
 
     @ctx_wrap_generator
     async def watch_continuous_deployment_config(
-        self, plugin_id, credentials, repo_name, environments, poll_interval, *args, **kwargs
+            self, plugin_id, credentials, repo_name, environments, poll_interval, *args, **kwargs
     ):
         pass
 
     @ctx_wrap_generator
     async def watch_continuous_deployment_versions_available(
-        self, plugin_id, credentials, repo_name, poll_interval, *args, **kwargs
+            self, plugin_id, credentials, repo_name, poll_interval, *args, **kwargs
     ):
         pass
 
     @ctx_wrap_generator
     async def watch_continuous_deployment_environments_available(
-        self, plugin_id, credentials, repo_name, poll_interval
+            self, plugin_id, credentials, repo_name, poll_interval
     ):
         pass

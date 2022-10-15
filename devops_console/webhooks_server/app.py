@@ -8,7 +8,6 @@ from requests import JSONDecodeError
 
 from devops_console.clients.client import CoreClient
 from devops_console.clients.wscom import manager as ws_manager
-
 from ..schemas.webhooks import (
     PRApprovedEvent,
     PRCreatedEvent,
@@ -19,7 +18,7 @@ from ..schemas.webhooks import (
     RepoBuildStatusUpdated,
     RepoPushEvent,
     WebhookEventKey,
-)
+    )
 
 app = FastAPI()
 
@@ -27,7 +26,7 @@ core = CoreClient()
 client = core.sccs
 
 
-@app.post("/", tags=["bitbucket_webhooks"])
+@app.post("", tags=["bitbucket_webhooks"])
 async def handle_webhook_event(request: Request):
     """Receive and respond to a Bitbucket webhook event.
 
@@ -48,7 +47,7 @@ async def handle_webhook_event(request: Request):
         logging.warning(f"Invalid JSON: {body}")
         raise HTTPException(status_code=HTTPStatus.BAD_REQUEST, detail="Invalid JSON")
 
-    logging.debug(f"\nWebhook body:\n\n{json.dumps(body, indent=2)}\n\n")
+    logging.debug(f"\nWebhook body:\n\n{json.dumps(body)}\n\n")
 
     match event_key:
         case WebhookEventKey.repo_push:
@@ -73,14 +72,14 @@ async def handle_webhook_event(request: Request):
             raise HTTPException(
                 status_code=HTTPStatus.BAD_REQUEST,
                 detail=msg,
-            )
+                )
 
 
 def validation_exception_handler(e: ValidationError):
     logging.warning(f"Error validating webhook event: {e}")
     raise HTTPException(
         status_code=HTTPStatus.BAD_REQUEST, detail="Error validating webhook event."
-    )
+        )
 
 
 # TODO invalidate appropriate caches on in these handlers
@@ -111,7 +110,7 @@ async def handle_repo_build_created(event: dict):
 
     await ws_manager.broadcast(
         f"repo:build_created:{repobuildstatuscreated.repository.name}", legacy=True
-    )
+        )
 
 
 async def handle_repo_build_updated(event: dict):

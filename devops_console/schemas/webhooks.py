@@ -3,7 +3,7 @@ from enum import Enum
 from typing import Dict, List, Literal, TypedDict
 from pydantic import UUID4, AnyHttpUrl, BaseModel, Extra, Field, HttpUrl
 
-from .bitbucket import (
+from devops_sccs.plugins.schemas.bitbucket import (
     Account,
     BaseCommit,
     BitbucketResource,
