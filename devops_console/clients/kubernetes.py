@@ -18,6 +18,7 @@
 import logging
 import os
 
+from kubernetes_asyncio.client import V1PodStatus
 from loguru import logger
 
 from devops_kubernetes.client import K8sClient
@@ -27,6 +28,7 @@ from ..schemas.userconfig import KubernetesConfig
 
 
 class Kubernetes(object):
+
     def __init__(self, config: KubernetesConfig, sccs: Sccs):
         self.config = config
         self.sccs = sccs
@@ -89,9 +91,9 @@ class Kubernetes(object):
                         "namespace": namespace,
                         "repository": {
                             "write_access": write_access,
+                            },
                         },
-                    },
-                }
+                    }
                 async with self.client.context(cluster) as ctx:
                     async for event in ctx.pods(namespace):
                         yield event
@@ -115,7 +117,11 @@ class Kubernetes(object):
             async with self.client.context(cluster=cluster) as ctx:
                 await ctx.delete_pod(pod_name, namespace)
 
-    async def add_ns_to_exclude_from_kube_downscaler(self, namespaces: list[str], clusters: list[str] | None = None):
+    async def add_ns_to_exclude_from_kube_downscaler(
+            self,
+            namespaces: list[str],
+            clusters: list[str] | None = None
+            ):
         """Prevent selected namespaces from being automatically downscaled."""
 
         if len(namespaces) == 0:
@@ -134,7 +140,11 @@ class Kubernetes(object):
             async with self.client.context(cluster=cluster) as ctx:
                 await ctx.add_ns_to_exclude_from_kube_downscaler(namespaces)
 
-    async def remove_ns_to_exclude_from_kube_downscaler(self, namespaces: list[str], clusters: list[str] | None = None):
+    async def remove_ns_to_exclude_from_kube_downscaler(
+            self,
+            namespaces: list[str],
+            clusters: list[str] | None = None
+            ):
         """Allow selected namespaces to be automatically downscaled."""
 
         if len(namespaces) == 0:
@@ -152,3 +162,14 @@ class Kubernetes(object):
         for cluster in clusters or self.clusters:
             async with self.client.context(cluster=cluster) as ctx:
                 await ctx.remove_ns_to_exclude_from_kube_downscaler(namespaces)
+
+    async def get_deployment_status(self, namespace, cluster) -> list[V1PodStatus]:
+        if cluster:
+            async with self.client.context(cluster=cluster) as ctx:
+                return await ctx.get_deployment_status(namespace)
+        else:
+            statuses = []
+            for cluster in self.clusters:
+                async with self.client.context(cluster=cluster) as ctx:
+                    statuses.extend(await ctx.get_deployment_status(namespace))
+            return statuses
