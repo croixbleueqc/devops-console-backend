@@ -16,10 +16,11 @@
 # along with devops-console-backend.  If not, see <https://www.gnu.org/licenses/>.
 
 import asyncio
-import logging
 import json
-from typing import Any
+import logging
 import weakref
+from typing import Any
+
 from fastapi import WebSocket, WebSocketDisconnect
 
 from devops_console.schemas.legacy.ws import WsResponse
@@ -77,7 +78,7 @@ class ConnectionManager:
         if legacy:
             data = WsResponse(
                 "whitecard", data_response=data if isinstance(data, dict) else {"message": data}
-            ).json()
+                ).json()
         for websocket in self.ws_set:
             await websocket.send_json(data)
 
@@ -136,7 +137,6 @@ async def wscom_generic_handler(websocket: WebSocket, handlers: dict):
     try:
         while True:
             data = await websocket.receive_json()
-            logging.debug(f"received message: {data}")
             try:
                 uniqueId = data["uniqueId"]
                 request_headers = data.pop("request")
@@ -177,7 +177,7 @@ async def wscom_generic_handler(websocket: WebSocket, handlers: dict):
                 task = asyncio.create_task(
                     wscom_watcher_run(websocket, handler, data, action, path, body),
                     name=uniqueId,
-                )
+                    )
 
                 manager.add_watcher(websocket, uniqueId, task)
 
@@ -247,7 +247,7 @@ async def wscom_watcher_close(websocket, uniqueId, data=None):
             data["error"] = repr(e)
         logging.error(
             f"{uniqueId}: something wrong occured during watcher closing. error: {repr(e)}"
-        )
+            )
 
     if websocket is not None and data is not None:
         data["dataResponse"] = {"status": "ws:watch:closed"}
@@ -266,7 +266,7 @@ class DispatcherUnsupportedRequest(Exception):
         Exception.__init__(
             self,
             f"Dispatcher does not support {action}:{path} with provided dataRequest",
-        )
+            )
 
 
 class DeepLinkAlreadySet(Exception):
@@ -274,7 +274,7 @@ class DeepLinkAlreadySet(Exception):
         Exception.__init__(
             self,
             f"The deeplink {deeplink} is already registred for {dispatchers_app_key}",
-        )
+            )
 
 
 def wscom_setup(app, dispatchers_app_key, deeplink, dispatch):
