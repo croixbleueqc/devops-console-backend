@@ -73,9 +73,7 @@ class Settings(BaseSettings):
     OPENAPI_CLIENT_ID: str = Field(default="", env="OPENAPI_CLIENT_ID")
     BACKEND_CORS_ORIGINS: list[str | AnyHttpUrl] = [
         "http://localhost:8080",
-    ]
-
-    LOG_LEVEL: int | None = Field(default="INFO", env="LOG_LEVEL")
+        ]
 
     userconfig: UserConfig
 

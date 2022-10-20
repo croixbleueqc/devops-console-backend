@@ -86,8 +86,7 @@ if __name__ == "__main__":
             "devops_console.main:app",
             host="0.0.0.0",
             port=5000,
-            log_level=settings.LOG_LEVEL,
+            )
         )
-    )
 
     uvicorn.run("main:app", reload=True, port=5000)
