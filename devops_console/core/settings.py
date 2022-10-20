@@ -17,14 +17,14 @@
 # along with devops-console-backend.  If not, see <https://www.gnu.org/licenses/>.
 
 
-from functools import reduce
-import secrets
 import os
+import secrets
 import sys
-
+from functools import reduce
 from pathlib import Path
-from pydantic import AnyHttpUrl, BaseSettings, Field
+
 from loguru import logger
+from pydantic import AnyHttpUrl, BaseSettings, Field
 
 from ..schemas.userconfig import UserConfig
 from ..schemas.webhooks import WebhookEventKey
@@ -54,7 +54,7 @@ class Settings(BaseSettings):
         WebhookEventKey.pr_approved,
         WebhookEventKey.pr_declined,
         WebhookEventKey.pr_merged,
-    )
+        )
 
     WEBHOOKS_DEFAULT_DESCRIPTION = "Default webhook created via DevOps Console"
 
@@ -88,7 +88,7 @@ class Settings(BaseSettings):
                 userconfig_src,
                 env_settings,
                 file_secret_settings,
-            )
+                )
 
 
 def userconfig_src(settings: BaseSettings):
@@ -108,7 +108,7 @@ def userconfig_src(settings: BaseSettings):
 
     (default_dict, env_dict, local_json_dict) = map(
         read_json_file, [default_json, env_json, local_json]
-    )
+        )
 
     # Order is important inside the list (last one is the most important)
     dicts = list(filter(lambda x: x != {}, [default_dict, env_dict, local_json_dict]))

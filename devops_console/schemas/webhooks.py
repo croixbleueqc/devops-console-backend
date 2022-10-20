@@ -1,6 +1,7 @@
 from datetime import datetime
 from enum import Enum
 from typing import Dict, List, Literal, TypedDict
+
 from pydantic import UUID4, AnyHttpUrl, BaseModel, Extra, Field, HttpUrl
 
 from devops_sccs.plugins.schemas.bitbucket import (
@@ -8,7 +9,7 @@ from devops_sccs.plugins.schemas.bitbucket import (
     BaseCommit,
     BitbucketResource,
     Commit,
-)
+    )
 
 Links = dict[str, dict[str, str]]
 

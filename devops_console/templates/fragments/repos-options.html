@@ -2,6 +2,6 @@
         style="font-size: 0.825rem">
     <option value="">select a repository</option>
     {% for repo in repos|sort(attribute="name") %}
-    <option value="{{ repo.name }}">{{ repo.name }}</option>
+        <option value="{{ repo.name }}">{{ repo.name }}</option>
     {% endfor %}
 </select>

@@ -26,7 +26,11 @@ async def home():
 # ----------------------------------------------------------------------------------------------------------------------
 
 @router.post("/repositories/create_webhooks", tags=["webhooks"])
-async def create_webhooks(plugin_id: str, repositories: list[str] | None = None, target_url: str | None = None):
+async def create_webhooks(
+        plugin_id: str,
+        repositories: list[str] | None = None,
+        target_url: str | None = None
+        ):
     """Subscribe to webhooks for each repository (must be idempotent)."""
     credentials = None
 
@@ -40,7 +44,13 @@ async def create_webhooks(plugin_id: str, repositories: list[str] | None = None,
         else:
             repos = []
             for repo in repositories:
-                repos.append(await client.get_repository(plugin_id=plugin_id, credentials=credentials, repo_name=repo))
+                repos.append(
+                    await client.get_repository(
+                        plugin_id=plugin_id,
+                        credentials=credentials,
+                        repo_name=repo
+                        )
+                    )
     except HTTPError as e:
         logger.warning(f"Failed to get list of repositories: {e}")
         raise HTTPException(status_code=e.request.status_code, detail=e)
@@ -55,7 +65,10 @@ async def create_webhooks(plugin_id: str, repositories: list[str] | None = None,
     # testing this out (there are roughly 400 repos at the time of writing)
     coros = []
 
-    target_url = target_url if target_url is not None else urljoin(settings.WEBHOOKS_HOST, settings.WEBHOOKS_PATH)
+    target_url = target_url if target_url is not None else urljoin(
+        settings.WEBHOOKS_HOST,
+        settings.WEBHOOKS_PATH
+        )
 
     for repo in repos:  # type: ignore
 
@@ -76,7 +89,10 @@ async def create_webhooks(plugin_id: str, repositories: list[str] | None = None,
             # check if the webhook is already set
             if any(
                     [
-                        subscription["url"] == urljoin(settings.WEBHOOKS_HOST, settings.WEBHOOKS_PATH)
+                        subscription["url"] == urljoin(
+                            settings.WEBHOOKS_HOST,
+                            settings.WEBHOOKS_PATH
+                            )
                         and all(
                             [
                                 event in subscription["events"]
@@ -121,7 +137,11 @@ async def create_webhooks(plugin_id: str, repositories: list[str] | None = None,
 
 
 @router.delete("/repositories/remove_webhooks", tags=["webhooks"])
-async def remove_webhooks(plugin_id: str, repositories: list[str] | None = None, target_url: str | None = None):
+async def remove_webhooks(
+        plugin_id: str,
+        repositories: list[str] | None = None,
+        target_url: str | None = None
+        ):
     """Remove the default webhooks from all repositories."""
 
     credentials = None
@@ -139,7 +159,13 @@ async def remove_webhooks(plugin_id: str, repositories: list[str] | None = None,
         else:
             repos = []
             for repo in repositories:
-                repos.append(await client.get_repository(plugin_id=plugin_id, credentials=credentials, repo_name=repo))
+                repos.append(
+                    await client.get_repository(
+                        plugin_id=plugin_id,
+                        credentials=credentials,
+                        repo_name=repo
+                        )
+                    )
     except HTTPError as e:
         logger.warning(f"Failed to get list of repositories: {e}")
         raise HTTPException(status_code=e.request.status_code, detail=e)
@@ -149,7 +175,10 @@ async def remove_webhooks(plugin_id: str, repositories: list[str] | None = None,
 
     coros = []
 
-    target_url = target_url if target_url is not None else urljoin(settings.WEBHOOKS_HOST, settings.WEBHOOKS_PATH)
+    target_url = target_url if target_url is not None else urljoin(
+        settings.WEBHOOKS_HOST,
+        settings.WEBHOOKS_PATH
+        )
 
     for repo in repos:  # type: ignore
 

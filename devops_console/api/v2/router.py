@@ -11,19 +11,19 @@ api_router.include_router(
     sccs.router,
     prefix="/sccs",
     tags=["sccs"],
-)
+    )
 
 api_router.include_router(
     websocket.router,
     prefix="/ws",
     tags=["websocket"],
-)
+    )
 
 api_router.include_router(
     k8s.router,
     prefix="/k8s",
     tags=["k8s"],
-)
+    )
 
 # # frontend
 # html_router = APIRouter()
@@ -37,7 +37,7 @@ sse_router = APIRouter()
 sse_router.include_router(
     sse.router,
     default_response_class=EventSourceResponse,
-)
+    )
 
 main_router = APIRouter()
 main_router.include_router(api_router)

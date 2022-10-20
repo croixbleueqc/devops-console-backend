@@ -1,9 +1,9 @@
 import json
 from http import HTTPStatus
+
 from fastapi.testclient import TestClient
+
 from devops_console.main import app
-
-
 from .fixtures import sccs_path, test_headers
 
 
@@ -31,7 +31,7 @@ def test_get_repository_by_uuid_not_found():
         nonexistingrepouuid = "{f8f8f8f8-f8f8-f8f8-f8f8-f8f8f8f8f8f8}"
         response = client.get(
             sccs_path + f"/repositories/{nonexistingrepouuid}", headers=test_headers
-        )
+            )
         assert response.status_code == HTTPStatus.NOT_FOUND
 
 
@@ -64,7 +64,7 @@ def test_create_repo_invalid_payload():
     with TestClient(app) as client:
         response = client.post(
             sccs_path + "/repositories", headers=test_headers, data=json.dumps({})
-        )
+            )
         assert response.status_code == HTTPStatus.BAD_REQUEST
 
 
@@ -81,7 +81,7 @@ def test_update_repo_invalid_payload():
     with TestClient(app) as client:
         response = client.put(
             sccs_path + "/repositories/test", headers=test_headers, data=json.dumps({})
-        )
+            )
         assert response.status_code == HTTPStatus.BAD_REQUEST
 
 

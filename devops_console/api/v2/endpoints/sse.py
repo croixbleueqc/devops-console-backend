@@ -1,6 +1,6 @@
-from devops_console.clients.client import CoreClient
-
 from fastapi import APIRouter, Depends
+
+from devops_console.clients.client import CoreClient
 
 client = CoreClient().sccs
 

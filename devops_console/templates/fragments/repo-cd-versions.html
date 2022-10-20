@@ -1,9 +1,9 @@
 <select name="version" hx-post="/repo/{{ repo_name }}/cd/{{ env_name }}/deploy/"
         hx-target="main" hx-swap="innerHTML">
     {% for version in versions|sort(attribute="build", reverse=true) %}
-    <option value="{{version.version}}"
-            {% if (version.version == env_version) %}selected{% endif %}>
-        {{ version.build }}: {{ version.version }}
-    </option>
+        <option value="{{ version.version }}"
+                {% if (version.version == env_version) %}selected{% endif %}>
+            {{ version.build }}: {{ version.version }}
+        </option>
     {% endfor %}
 </select>
