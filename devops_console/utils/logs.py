@@ -1,7 +1,10 @@
 import logging
 import sys
-from ..core import settings
+
 from loguru import logger
+
+from ..core import settings
+
 
 # see: https://pawamoy.github.io/posts/unify-logging-for-a-gunicorn-uvicorn-app/#uvicorn-only-version
 
@@ -26,9 +29,7 @@ class InterceptHandler(logging.Handler):
 def setup_logging():
     # intercept everything at the root logger level
     logging.root.handlers = [InterceptHandler()]
-    log_level = settings.LOG_LEVEL or (
-        logging.DEBUG if settings.ENVIRONMENT == "development" else logging.INFO
-    )
+    log_level = logging.DEBUG if settings.ENVIRONMENT == "development" else logging.INFO
     logging.root.setLevel(log_level)
 
     # remove every other logger's handlers
