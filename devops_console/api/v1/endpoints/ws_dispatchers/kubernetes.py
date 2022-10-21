@@ -29,7 +29,7 @@ async def wscom_dispatcher(request, action, path, body):
                 body["sccs_session"],
                 body["repository"],
                 body["environment"],
-            )
+                )
     elif action == "delete":
         if path == "/pod":
             return await core.kubernetes.delete_pod(
@@ -38,6 +38,6 @@ async def wscom_dispatcher(request, action, path, body):
                 body["repository"],
                 body["environment"],
                 body["name"],
-            )
+                )
 
     raise DispatcherUnsupportedRequest(action, path)

@@ -1,10 +1,10 @@
 import os
-from loguru import logger
-from pathlib import Path
 import pickle
+from pathlib import Path
+
+from loguru import logger
 
 from devops_console.core.settings import Settings
-
 
 settings: Settings
 

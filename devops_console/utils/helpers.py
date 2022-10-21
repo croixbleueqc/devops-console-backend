@@ -1,8 +1,8 @@
 import contextlib
 import json
+from pathlib import Path
 
 from loguru import logger
-from pathlib import Path
 
 
 def read_json_file(path: Path) -> dict:

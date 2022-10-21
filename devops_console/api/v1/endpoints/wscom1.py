@@ -20,14 +20,13 @@ from fastapi import APIRouter, WebSocket
 from devops_console.clients.wscom import wscom_generic_handler
 from .ws_dispatchers import kubernetes, oauth2, sccs
 
-
 router = APIRouter()
 
 handlers = {
     "k8s": kubernetes.wscom_dispatcher,
     "oauth2": oauth2.wscom_dispatcher,
     "sccs": sccs.wscom_dispatcher,
-}
+    }
 
 
 @router.websocket("/wscom1")

@@ -1,23 +1,23 @@
 <div>
     <table>
         <thead>
-            <tr>
-                <th>Full Name</th>
-                <th>Email</th>
-                <th>Plugin ID</th>
-                <th>Bitbucket Username</th>
-                <th>Bitbucket App Password</th>
-            </tr>
+        <tr>
+            <th>Full Name</th>
+            <th>Email</th>
+            <th>Plugin ID</th>
+            <th>Bitbucket Username</th>
+            <th>Bitbucket App Password</th>
+        </tr>
         </thead>
         <tbody>
-            {% for user in users %}
+        {% for user in users %}
             <tr>
-                <td>{{user.full_name}}</td>
-                <td>{{user.email}}</td>
-                <td>{{user.plugin_id}}</td>
-                <td>{{user.bitbucket_username}}</td>
-                <td>{{user.bitbucket_app_password}}</td>
+                <td>{{ user.full_name }}</td>
+                <td>{{ user.email }}</td>
+                <td>{{ user.plugin_id }}</td>
+                <td>{{ user.bitbucket_username }}</td>
+                <td>{{ user.bitbucket_app_password }}</td>
             </tr>
-            {% endfor %}
+        {% endfor %}
         </tbody>
 </div>

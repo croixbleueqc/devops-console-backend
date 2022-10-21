@@ -1,8 +1,10 @@
 # Copyright 2020 Croix Bleue du Québec
 
 from enum import IntEnum
+
 from devops_console.clients.client import CoreClient
 from devops_console.clients.wscom import DispatcherUnsupportedRequest
+
 
 # This file is part of devops-console-backend.
 # devops-console-backend is free software: you can redistribute it and/or modify
@@ -41,7 +43,7 @@ async def wscom_dispatcher(request, action: str, path: str, body: dict):
         elif path == "/repository/cd/environments_available":
             return await client.get_continuous_deployment_environments_available(
                 plugin_id, credentials, repo_name, **args
-            )
+                )
         elif path == "/repository/add/contract":
             return await client.get_add_repository_contract(plugin_id, credentials)
         elif path == "/repositories/compliance/report":
@@ -51,7 +53,7 @@ async def wscom_dispatcher(request, action: str, path: str, body: dict):
         if path == "/repositories":
             return client.watch_repositories(
                 plugin_id, credentials, poll_interval=Intervals.repositories, **args
-            )
+                )
         elif path == "/repository/cd/config":
             environments = body.get("environments")
 
@@ -65,7 +67,7 @@ async def wscom_dispatcher(request, action: str, path: str, body: dict):
                 environments,
                 poll_interval=Intervals.cd,
                 **args,
-            )
+                )
         elif path == "/repository/cd/versions_available":
             return client.watch_continuous_deployment_versions_available(
                 plugin_id,
@@ -73,7 +75,7 @@ async def wscom_dispatcher(request, action: str, path: str, body: dict):
                 repo_name,
                 poll_interval=Intervals.cd_versions_available,
                 **args,
-            )
+                )
         elif path == "/repository/cd/environments_available":
             return client.watch_continuous_deployment_environments_available(
                 plugin_id,
@@ -81,7 +83,7 @@ async def wscom_dispatcher(request, action: str, path: str, body: dict):
                 repo_name,
                 poll_interval=Intervals.cd_environs_available,
                 **args,
-            )
+                )
 
     elif action == "write":
         if path == "/repository/cd/trigger":
@@ -92,11 +94,11 @@ async def wscom_dispatcher(request, action: str, path: str, body: dict):
                 environment,
                 body["version"],
                 **args,
-            )
+                )
         elif path == "/repository/add":
             return await client.add_repository(
                 plugin_id, credentials, repo_name, body["template"], body["template_params"], **args
-            )
+                )
     elif action == "":
         if path == "/passthrough":
             return await client.passthrough(plugin_id, credentials, body["request"], **args)

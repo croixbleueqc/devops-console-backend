@@ -1,7 +1,7 @@
 from __future__ import annotations
 
-from dataclasses import dataclass
 import json
+from dataclasses import dataclass
 
 from devops_sccs.typing.credentials import Credentials
 
@@ -35,7 +35,7 @@ class WsSession:
             user=credentials.user,
             apikey=credentials.apikey,
             author=credentials.author,
-        )
+            )
 
     def dict(self) -> dict:
         return {
@@ -43,7 +43,7 @@ class WsSession:
             "user": self.user,
             "apikey": self.apikey,
             "author": self.author,
-        }
+            }
 
 
 @dataclass
@@ -65,7 +65,7 @@ class WsDataRequest:
             "environments": self.environments,
             "version": self.version,
             "args": self.args,
-        }
+            }
 
 
 @dataclass
@@ -81,15 +81,15 @@ class WsMessage:
                 "uniqueId": self.unique_id,
                 "request": str(self.request),
                 "dataRequest": self.data_request.dict() if self.data_request else None,
-            }
-        )
+                }
+            )
 
     def dict(self) -> dict:
         return {
             "uniqueId": self.unique_id,
             "request": str(self.request),
             "dataRequest": self.data_request.dict() if self.data_request else None,
-        }
+            }
 
 
 @dataclass
@@ -104,15 +104,15 @@ class WsResponse:
                 {
                     "uniqueId": self.unique_id,
                     "dataResponse": self.data_response,
-                }
-            )
+                    }
+                )
         elif self.error is not None:
             return json.dumps(
                 {
                     "uniqueId": self.unique_id,
                     "error": self.error,
-                }
-            )
+                    }
+                )
 
         raise ValueError("No dataResponse or error in response")
 
@@ -125,4 +125,4 @@ class WsResponse:
             data["uniqueId"],
             data.get("dataResponse", None),
             data.get("error", None),
-        )
+            )

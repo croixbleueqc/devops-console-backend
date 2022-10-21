@@ -1,7 +1,7 @@
 import pytest
 
-from .fixtures import dev_sccs_credentials, legacy_ws_path, testcore
 from devops_console.schemas.legacy.ws import WsDataRequest, WsMessage, WsRequest, WsSession
+from .fixtures import dev_sccs_credentials, legacy_ws_path, testcore
 
 testclient = testcore.testclient
 
@@ -17,7 +17,7 @@ def test_ws_watch_repositories():
     data_request = WsDataRequest(
         plugin_id="cbq",
         session=WsSession.from_credentials(dev_sccs_credentials),
-    )
+        )
     msg = WsMessage(unique_id=uid, request=request, data_request=data_request)
     with testclient.websocket_connect(legacy_ws_path) as ws:
         ws.send_json(msg.dict())
@@ -37,7 +37,7 @@ def test_ws_watch_continuous_deployment_config():
         plugin_id="cbq",
         session=WsSession.from_credentials(dev_sccs_credentials),
         repository="aiobitbucket-wip",
-    )
+        )
     msg = WsMessage(unique_id=uid, request=request, data_request=data_request)
     with testclient.websocket_connect(legacy_ws_path) as ws:
         ws.send_json(msg.dict())
@@ -57,7 +57,7 @@ def test_ws_watch_continuous_deployment_versions_available():
         plugin_id="cbq",
         session=WsSession.from_credentials(dev_sccs_credentials),
         repository="aiobitbucket-wip",
-    )
+        )
     msg = WsMessage(unique_id=uid, request=request, data_request=data_request)
     with testclient.websocket_connect(legacy_ws_path) as ws:
         ws.send_json(msg.dict())
@@ -77,7 +77,7 @@ def test_ws_watch_continuous_deployment_environments_available():
         plugin_id="cbq",
         session=WsSession.from_credentials(dev_sccs_credentials),
         repository="aiobitbucket-wip",
-    )
+        )
     msg = WsMessage(unique_id=uid, request=request, data_request=data_request)
     with testclient.websocket_connect(legacy_ws_path) as ws:
         ws.send_json(msg.dict())

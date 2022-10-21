@@ -18,14 +18,13 @@ from fastapi import FastAPI, HTTPException, Request, status
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import RedirectResponse
 
-# from .api.deps import azure_scheme
-from .core import settings
 from .api.v1.router import router
 from .api.v2.router import main_router as router_v2
 from .clients.client import CoreClient
+# from .api.deps import azure_scheme
+from .core import settings
 from .utils.logs import setup_logging
 from .webhooks_server.app import app as webhooks_server
-
 
 setup_logging()
 # initialize core
@@ -40,7 +39,7 @@ if settings.BACKEND_CORS_ORIGINS is not None and len(settings.BACKEND_CORS_ORIGI
         allow_credentials=True,
         allow_methods=["*"],
         allow_headers=["*"],
-    )
+        )
     logging.debug("Added CORS middleware")
 
 # main API
