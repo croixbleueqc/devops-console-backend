@@ -22,6 +22,7 @@ import weakref
 from typing import Any
 
 from fastapi import WebSocket, WebSocketDisconnect
+from requests import HTTPError
 
 from devops_console.schemas.legacy.ws import WsResponse
 
@@ -183,8 +184,10 @@ async def wscom_generic_handler(websocket: WebSocket, handlers: dict):
             else:
                 asyncio.create_task(wscom_restful_run(websocket, handler, data, action, path, body))
 
-    except WebSocketDisconnect:
+    except (WebSocketDisconnect, HTTPError) as e:
         await manager.disconnect(websocket)
+        if isinstance(e, HTTPError):
+            logging.error(e)
     finally:
         # Closes all watchers for this request
         await manager.close_watchers(websocket)
