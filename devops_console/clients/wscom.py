@@ -36,7 +36,6 @@ class ConnectionManager:
         self.ws_set: set[WebSocket] = set()
 
     async def connect(self, websocket: WebSocket):
-        logging.debug("New connection")
         await websocket.accept()
         self.ws_watchers_map[hash(websocket)] = weakref.WeakValueDictionary()
         self.ws_set.add(websocket)
@@ -85,8 +84,8 @@ class ConnectionManager:
     async def send_json(self, websocket: WebSocket, data: Any):
         try:
             await websocket.send_json(data)
-        except Exception:
-            logging.error("Error sending data to websocket")
+        except Exception as e:
+            logging.error(f"Error sending data to websocket: {e}")
             pass
 
     async def disconnect(self, websocket: WebSocket):
@@ -132,8 +131,6 @@ async def wscom_generic_handler(websocket: WebSocket, handlers: dict):
     """
     await manager.connect(websocket)
 
-    logging.debug("websocket connected")
-
     try:
         while True:
             data = await websocket.receive_json()
@@ -141,6 +138,8 @@ async def wscom_generic_handler(websocket: WebSocket, handlers: dict):
                 uniqueId = data["uniqueId"]
                 request_headers = data.pop("request")
                 body = data.pop("dataRequest")
+
+                logging.debug(f"RECEIVED WS REQUEST: {request_headers}")
 
                 deeplink, action, path = request_headers.split(":")
             except (AttributeError, ValueError, json.decoder.JSONDecodeError):
@@ -186,10 +185,7 @@ async def wscom_generic_handler(websocket: WebSocket, handlers: dict):
 
     except WebSocketDisconnect:
         await manager.disconnect(websocket)
-        logging.warning("websocket disconnected unexpectedly")
     finally:
-        logging.debug("websocket disconnected")
-
         # Closes all watchers for this request
         await manager.close_watchers(websocket)
 
@@ -212,7 +208,6 @@ async def wscom_watcher_run(websocket, handler, data, action, path, body):
     """Watch request"""
     try:
         async for event in (await handler(websocket, action, path, body)):
-            logging.debug(f"wscom_watcher_run received an event: {event}")
             data["dataResponse"] = event.dict() if hasattr(event, "dict") else event
             await manager.send_json(websocket, data)
     except Exception as e:
@@ -230,7 +225,6 @@ async def wscom_watcher_close(websocket, uniqueId, data=None):
     try:
         task = manager.get_watcher(websocket, uniqueId)
     except KeyError:
-        logging.warning(f"{uniqueId}: watcher already closed")
         return
 
     if task is None:
@@ -257,8 +251,6 @@ async def wscom_watcher_close(websocket, uniqueId, data=None):
             # Most of the time we can send back an answer but if the application is closing it is possible that ws was
             # disconnected before the send_json.
             pass
-
-    logging.debug(f"{uniqueId}: watcher closed")
 
 
 class DispatcherUnsupportedRequest(Exception):
