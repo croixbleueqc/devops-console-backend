@@ -3,7 +3,7 @@ from fastapi import APIRouter
 from sse_starlette.sse import EventSourceResponse
 
 from devops_console.core import settings
-from .endpoints import sccs, sse, websocket, k8s
+from .endpoints import sccs, sse, websocket, k8s, admin
 
 api_router = APIRouter(prefix=settings.API_V2_STR)
 
@@ -23,6 +23,11 @@ api_router.include_router(
     k8s.router,
     prefix="/k8s",
     tags=["k8s"],
+    )
+
+api_router.include_router(
+    admin.router,
+    tags=["admin"],
     )
 
 # # frontend
