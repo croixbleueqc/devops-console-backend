@@ -26,7 +26,7 @@ core = CoreClient()
 client = core.sccs
 
 
-@app.post("", tags=["bitbucket_webhooks"])
+@app.post("/", tags=["bitbucket_webhooks"])
 async def handle_webhook_event(request: Request):
     """Receive and respond to a Bitbucket webhook event.
 
