@@ -9,7 +9,15 @@ router = APIRouter(prefix="/admin")
 
 
 @router.delete("/cache/clear")
-async def clear_cache():
+async def clear_cache(are_you_sure: bool = False):
+    """Deletes ALL keys in the cache."""
+
+    if not are_you_sure:
+        raise HTTPException(
+            status_code=400,
+            detail="You must set the 'are_you_sure' query parameter to true to clear the cache."
+            )
+
     try:
         await cache.clear()
         return {"message": "Cache cleared"}
@@ -17,21 +25,23 @@ async def clear_cache():
         return HTTPException(status_code=500, detail=str(e))
 
 
-@router.delete("/cache/clear/by_key/")
+@router.delete("/cache/clear/by_function_signature/{function_name}")
 async def clear_cache_key(
-        name: str,
+        function_name: str,
         args: tuple[str] = (),
         kwargs: dict = None,
         ):
+    """Deletes a key in the cache by function signature. The function must be registered in the
+    cache_key_fns dictionary. If the function is not found it the dictionary, the function's name
+    will be used as the key."""
+
     if kwargs is None:
         kwargs = {}
 
-    # try to get the key from a cache key function
-    if name in cache_key_fns:
-        key = cache_key_fns[name](*args, **kwargs)
-    # if there isn't a function by that name, just use the given name as the key
+    if function_name in cache_key_fns:
+        key = cache_key_fns[function_name](*args, **kwargs)
     else:
-        key = name
+        key = function_name
 
     try:
         n = await cache.delete(key)
@@ -46,9 +56,7 @@ async def clear_cache_key(
 
 @router.delete("/cache/clear/by_namespace/{namespace}")
 async def clear_cache_namespace(namespace: str):
-    """Clear all cache keys with the given namespace.
-    WARNING!!! This may be a very time-consuming operation, depending on the size of the cache.
-    """
+    """Clear all cache keys with the given namespace. """
 
     try:
         n = await cache.delete_namespace(namespace)
@@ -56,6 +64,6 @@ async def clear_cache_namespace(namespace: str):
         raise HTTPException(status_code=500, detail=str(e))
 
     if n > 0:
-        return {"message": f"Cache namespace {namespace} cleared"}
+        return {"message": f"Cleared {n} keys in namespace {namespace}"}
     else:
         raise HTTPException(status_code=404, detail=f"Cache namespace {namespace} not found")
