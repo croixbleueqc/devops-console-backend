@@ -33,7 +33,7 @@ async def wscom_dispatcher(request, action: str, path: str, body: dict):
     credentials = body.get("session")
     repo_name = body.get("repository")
     environment = body.get("environment")
-    args = body.get("args") or {}
+    kwargs = body.get("args") or {}
 
     if action == "read":
         if path == "/repositories":
@@ -42,17 +42,17 @@ async def wscom_dispatcher(request, action: str, path: str, body: dict):
             return await client.get_continuous_deployment_config(plugin_id, credentials, repo_name)
         elif path == "/repository/cd/environments_available":
             return await client.get_continuous_deployment_environments_available(
-                plugin_id, credentials, repo_name, **args
+                plugin_id, credentials, repo_name, **kwargs
                 )
         elif path == "/repository/add/contract":
             return await client.get_add_repository_contract(plugin_id, credentials)
         elif path == "/repositories/compliance/report":
-            return await client.compliance_report(plugin_id, credentials, **args)
+            return await client.compliance_report(plugin_id, credentials, **kwargs)
 
     elif action == "watch":
         if path == "/repositories":
             return client.watch_repositories(
-                plugin_id, credentials, poll_interval=Intervals.repositories, **args
+                plugin_id, credentials, poll_interval=Intervals.repositories, **kwargs
                 )
         elif path == "/repository/cd/config":
             environments = body.get("environments")
@@ -63,18 +63,18 @@ async def wscom_dispatcher(request, action: str, path: str, body: dict):
             return client.watch_continuous_deployment_config(
                 plugin_id,
                 credentials,
+                Intervals.cd,
                 repo_name,
                 environments,
-                poll_interval=Intervals.cd,
-                **args,
+                kwargs
                 )
         elif path == "/repository/cd/versions_available":
             return client.watch_continuous_deployment_versions_available(
                 plugin_id,
                 credentials,
-                repo_name,
                 poll_interval=Intervals.cd_versions_available,
-                **args,
+                repo_name=repo_name,
+                **kwargs
                 )
         elif path == "/repository/cd/environments_available":
             return client.watch_continuous_deployment_environments_available(
@@ -82,7 +82,7 @@ async def wscom_dispatcher(request, action: str, path: str, body: dict):
                 credentials,
                 repo_name,
                 poll_interval=Intervals.cd_environs_available,
-                **args,
+                **kwargs,
                 )
 
     elif action == "write":
@@ -93,14 +93,19 @@ async def wscom_dispatcher(request, action: str, path: str, body: dict):
                 repo_name,
                 environment,
                 body["version"],
-                **args,
+                **kwargs,
                 )
         elif path == "/repository/add":
             return await client.add_repository(
-                plugin_id, credentials, repo_name, body["template"], body["template_params"], **args
+                plugin_id,
+                credentials,
+                repo_name,
+                body["template"],
+                body["template_params"],
+                **kwargs
                 )
     elif action == "":
         if path == "/passthrough":
-            return await client.passthrough(plugin_id, credentials, body["request"], **args)
+            return await client.passthrough(plugin_id, credentials, body["request"], **kwargs)
 
     raise DispatcherUnsupportedRequest(action, path)
