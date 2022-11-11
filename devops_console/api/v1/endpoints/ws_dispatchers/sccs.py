@@ -93,7 +93,6 @@ async def wscom_dispatcher(request, action: str, path: str, body: dict):
                 repo_name,
                 environment,
                 body["version"],
-                kwargs,
                 )
         elif path == "/repository/add":
             return await client.add_repository(

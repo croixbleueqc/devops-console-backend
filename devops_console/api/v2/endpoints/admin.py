@@ -28,7 +28,7 @@ async def clear_cache(are_you_sure: bool = False):
 @router.delete("/cache/clear/by_function_signature/{function_name}")
 async def clear_cache_key(
         function_name: str,
-        args: tuple[str] = (),
+        args: tuple = (),
         kwargs: dict = None,
         ):
     """Deletes a key in the cache by function signature. The function must be registered in the

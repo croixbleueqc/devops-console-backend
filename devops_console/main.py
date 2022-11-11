@@ -14,9 +14,8 @@
 # limitations under the License.
 import logging
 
-from fastapi import FastAPI, HTTPException, Request, status
+from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
-from fastapi.responses import RedirectResponse
 
 from .api.v1.router import router
 from .api.v2.router import main_router as router_v2
@@ -52,12 +51,12 @@ app.mount(settings.WEBHOOKS_PATH, webhooks_server)
 logging.debug(f"Webhooks server mounted on {settings.WEBHOOKS_PATH} endpoint")
 
 
-@app.exception_handler(HTTPException)
-async def redirect_unauthorized(request: Request, exc):
-    if exc.status_code == status.HTTP_401_UNAUTHORIZED:
-        # redirect to login page
-        return RedirectResponse(url="/login")
-    raise exc
+# @app.exception_handler(HTTPException)
+# async def redirect_unauthorized(request: Request, exc):
+#     if exc.status_code == status.HTTP_401_UNAUTHORIZED:
+#         # redirect to login page
+#         return RedirectResponse(url="/login")
+#     raise exc
 
 
 @app.on_event("startup")

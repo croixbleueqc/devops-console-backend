@@ -47,7 +47,7 @@ async def handle_webhook_event(request: Request):
         logging.warning(f"Invalid JSON: {body}")
         raise HTTPException(status_code=HTTPStatus.BAD_REQUEST, detail="Invalid JSON")
 
-    logging.debug(f"\nWebhook body:\n\n{json.dumps(body)}\n\n")
+    logging.debug(f"Webhook body: {json.dumps(body)}")
 
     match event_key:
         case WebhookEventKey.repo_push:
