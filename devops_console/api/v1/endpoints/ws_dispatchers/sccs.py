@@ -87,13 +87,13 @@ async def wscom_dispatcher(request, action: str, path: str, body: dict):
 
     elif action == "write":
         if path == "/repository/cd/trigger":
-            return await client.trigger_continuous_deployment(
+            return (await client.trigger_continuous_deployment(
                 plugin_id,
                 credentials,
                 repo_name,
                 environment,
                 body["version"],
-                )
+                )).dict()
         elif path == "/repository/add":
             return await client.add_repository(
                 plugin_id,
