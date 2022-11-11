@@ -24,6 +24,17 @@ async def home():
 # ----------------------------------------------------------------------------------------------------------------------
 # Repositories
 # ----------------------------------------------------------------------------------------------------------------------
+def sanitize_webhook_target_url(url):
+    target_url = url if url is not None else urljoin(
+        settings.WEBHOOKS_HOST,
+        settings.WEBHOOKS_PATH
+        )
+    if settings.WEBHOOKS_PATH not in target_url:
+        target_url = urljoin(target_url, settings.WEBHOOKS_PATH)
+    if not target_url.endswith("/"):
+        target_url += "/"
+    return target_url
+
 
 @router.post("/repositories/create_webhooks", tags=["webhooks"])
 async def create_webhooks(
@@ -65,10 +76,7 @@ async def create_webhooks(
     # testing this out (there are roughly 400 repos at the time of writing)
     coros = []
 
-    target_url = target_url if target_url is not None else urljoin(
-        settings.WEBHOOKS_HOST,
-        settings.WEBHOOKS_PATH
-        )
+    target_url = sanitize_webhook_target_url(target_url)
 
     for repo in repos:  # type: ignore
 
@@ -175,10 +183,7 @@ async def remove_webhooks(
 
     coros = []
 
-    target_url = target_url if target_url is not None else urljoin(
-        settings.WEBHOOKS_HOST,
-        settings.WEBHOOKS_PATH
-        )
+    target_url = sanitize_webhook_target_url(target_url)
 
     for repo in repos:  # type: ignore
 

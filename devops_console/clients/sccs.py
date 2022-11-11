@@ -77,7 +77,7 @@ class Sccs:
 
     @ctx_wrap
     async def trigger_continuous_deployment(
-            self, plugin_id, credentials, repository, environment, version, *args, **kwargs
+            self, plugin_id, credentials, repo_name, environment, version
             ):
         pass
 
@@ -146,7 +146,7 @@ class Sccs:
 
     @ctx_wrap_generator
     async def watch_continuous_deployment_config(
-            self, plugin_id, credentials, repo_name, environments, poll_interval, *args, **kwargs
+            self, plugin_id, credentials, poll_interval, repo_name, environments, kwargs
             ):
         pass
 
