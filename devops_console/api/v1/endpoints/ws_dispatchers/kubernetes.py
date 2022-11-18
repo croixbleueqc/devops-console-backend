@@ -20,7 +20,7 @@ from devops_console.clients.client import CoreClient
 from devops_console.clients.wscom import DispatcherUnsupportedRequest
 
 
-async def wscom_dispatcher(request, action, path, body):
+async def wscom_dispatcher(action, path, body):
     core = CoreClient()
     if action == "watch":
         if path == "/pods":

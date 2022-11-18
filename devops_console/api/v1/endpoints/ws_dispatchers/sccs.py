@@ -2,6 +2,8 @@
 
 from enum import IntEnum
 
+from anyio.streams.memory import MemoryObjectSendStream
+
 from devops_console.clients.client import CoreClient
 from devops_console.clients.wscom import DispatcherUnsupportedRequest
 
@@ -26,20 +28,31 @@ class Intervals(IntEnum):
     cd_environs_available = 3600
 
 
-async def wscom_dispatcher(request, action: str, path: str, body: dict):
+async def wscom_dispatcher(
+        action: str,
+        path: str,
+        body: dict,
+        send_stream: MemoryObjectSendStream | None = None,
+        ):
     client = CoreClient().sccs
 
     plugin_id = body.get("plugin")
     credentials = body.get("session")
     repo_name = body.get("repository")
     environment = body.get("environment")
+    environments = body.get("environments", [])
     kwargs = body.get("args") or {}
 
     if action == "read":
         if path == "/repositories":
             return await client.get_repositories(plugin_id, credentials)
         elif path == "/repository/cd/config":
-            return await client.get_continuous_deployment_config(plugin_id, credentials, repo_name)
+            return await client.get_continuous_deployment_config(
+                plugin_id,
+                credentials,
+                repo_name,
+                environments
+                )
         elif path == "/repository/cd/environments_available":
             return await client.get_continuous_deployment_environments_available(
                 plugin_id, credentials, repo_name, **kwargs
@@ -50,41 +63,42 @@ async def wscom_dispatcher(request, action: str, path: str, body: dict):
             return await client.compliance_report(plugin_id, credentials, **kwargs)
 
     elif action == "watch":
+        if send_stream is None:
+            raise DispatcherUnsupportedRequest("No send stream provided")
+
         if path == "/repositories":
-            return client.watch_repositories(
-                plugin_id, credentials, poll_interval=Intervals.repositories, **kwargs
+            await client.watch_repositories(
+                plugin_id,
+                credentials,
+                Intervals.repositories,
+                send_stream,
                 )
         elif path == "/repository/cd/config":
-            environments = body.get("environments")
-
-            if environments is None:
-                environments = []
-
-            return client.watch_continuous_deployment_config(
+            await client.watch_continuous_deployment_config(
                 plugin_id,
                 credentials,
                 Intervals.cd,
+                send_stream,
                 repo_name,
                 environments,
-                kwargs
                 )
         elif path == "/repository/cd/versions_available":
-            return client.watch_continuous_deployment_versions_available(
+            await client.watch_continuous_deployment_versions_available(
                 plugin_id,
                 credentials,
-                poll_interval=Intervals.cd_versions_available,
-                repo_name=repo_name,
-                **kwargs
+                Intervals.cd_versions_available,
+                send_stream,
+                repo_name,
                 )
         elif path == "/repository/cd/environments_available":
-            return client.watch_continuous_deployment_environments_available(
+            await client.watch_continuous_deployment_environments_available(
                 plugin_id,
                 credentials,
+                Intervals.cd_environs_available,
+                send_stream,
                 repo_name,
-                poll_interval=Intervals.cd_environs_available,
-                **kwargs,
                 )
-
+        return
     elif action == "write":
         if path == "/repository/cd/trigger":
             return (await client.trigger_continuous_deployment(
