@@ -62,7 +62,7 @@ class Kubernetes(object):
         logging.info(f"{namespace} is in the following clusters: {pod_clusters}")
         return pod_clusters
 
-    async def pods_watch(self, sccs_plugin, sccs_session, repo_name, environment):
+    async def pods_watch(self, sccs_plugin, sccs_session, repo_name, environment, send_stream):
         """Return a generator iterator of events for the pods of the given repository.
         see client.py in python-devops-kubernetes for the event shape.
         """
@@ -73,17 +73,13 @@ class Kubernetes(object):
 
         write_access = await self.write_access(sccs_plugin, sccs_session, repo_name)
 
-        async def gen():
-            nonlocal namespace
-            nonlocal pod_clusters
+        if len(pod_clusters) == 0:
+            logging.warning(f"No cluster found for namespace {namespace}.")
+            return
 
-            if len(pod_clusters) == 0:
-                logging.warning(f"No cluster found for namespace {namespace}.")
-                yield None
-                return
-
-            for cluster in pod_clusters:
-                yield {
+        for cluster in pod_clusters:
+            await send_stream.send(
+                {
                     "type": "INFO",
                     "key": "bridge",
                     "value": {
@@ -94,11 +90,10 @@ class Kubernetes(object):
                             },
                         },
                     }
-                async with self.client.context(cluster) as ctx:
-                    async for event in ctx.pods(namespace):
-                        yield event
-
-        return gen()
+                )
+            async with self.client.context(cluster) as ctx:
+                async for event in ctx.pods(namespace):
+                    await send_stream.send(event)
 
     async def write_access(self, sccs_plugin, sccs_session, repo_name):
         permission = await self.sccs.get_repository_permission(sccs_plugin, sccs_session, repo_name)
