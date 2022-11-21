@@ -25,7 +25,7 @@ dependencies = [
 ]
 optional-dependencies = { prod = [
     "devops-kubernetes @ git+https://github.com/croixbleueqc/python-devops-kubernetes.git@master",
-    "devops-sccs @ git+https://github.com/croixbleueqc/python-devops-sccs.git@bug/cd-status-not-updating",
+    "devops-sccs @ git+https://github.com/croixbleueqc/python-devops-sccs.git@develop",
 ] }
 
 [build-system]
