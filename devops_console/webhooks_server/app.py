@@ -106,6 +106,9 @@ def clear_cd_cache(repository_name: str):
     key = cache_key_fns["get_continuous_deployment_config"](repository_name, [])
     cache.delete(key)
 
+    # clear watcher caches
+    cache.delete_namespace("watcher:get_continuous_deployment_config")
+
 
 async def handle_repo_build_created(event: dict):
     logging.info('Handling "repo:build_created" webhook event')

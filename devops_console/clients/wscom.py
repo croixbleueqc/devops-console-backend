@@ -223,13 +223,14 @@ async def wscom_watcher_run(websocket, handler, data, action, path, body):
         except Exception as e:
             data["error"] = str(e)
             await manager.send_json(websocket, data)
+            raise
 
     send_stream, receive_stream = create_memory_object_stream()
 
-    async with send_stream:
-        async with create_task_group() as tg:
-            tg.start_soon(receive_handler_events, receive_stream)
-            tg.start_soon(handler, action, path, body, send_stream)
+    async with create_task_group() as tg:
+        tg.start_soon(receive_handler_events, receive_stream)
+        async with send_stream:
+            await handler(action, path, body, send_stream)
 
 
 async def wscom_watcher_close(websocket, uniqueId, data=None):
