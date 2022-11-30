@@ -8,6 +8,7 @@ from requests import JSONDecodeError
 
 from devops_console.clients.client import CoreClient
 from devops_console.clients.wscom import manager as ws_manager
+from devops_sccs.context import Context
 from devops_sccs.plugins.cache_keys import cache_key_fns
 from devops_sccs.redis import RedisCache
 from ..schemas.webhooks import (
@@ -103,11 +104,11 @@ async def handle_repo_push(event: dict):
 
 
 def clear_cd_cache(repository_name: str):
-    key = cache_key_fns["get_continuous_deployment_config"](repository_name, [])
+    pass
+    key = cache_key_fns["get_continuous_deployment_config"](repository_name, None)
     cache.delete(key)
-
-    # clear watcher caches
-    cache.delete_namespace("watcher:get_continuous_deployment_config")
+    # key = "watcher:get_continuous_deployment_config"
+    # cache.delete_namespace(key)
 
 
 async def handle_repo_build_created(event: dict):
@@ -131,9 +132,13 @@ async def handle_repo_build_updated(event: dict):
         repobuildstatusupdated = RepoBuildStatusUpdated(**event)
     except ValidationError as e:
         validation_exception_handler(e)
+    repo_name = repobuildstatusupdated.repository.name
 
-    clear_cd_cache(repobuildstatusupdated.repository.name)
-    await ws_manager.broadcast(f"pr:updated:{repobuildstatusupdated.repository.name}", legacy=True)
+    clear_cd_cache(repo_name)
+    await ws_manager.broadcast(f"pr:updated:{repo_name}", legacy=True)
+    await core.sccs.core.scheduler.notify(
+        (Context.UUID_WATCH_CONTINOUS_DEPLOYMENT_CONFIG, repo_name)
+        )
 
 
 async def handle_pr_created(event: dict):

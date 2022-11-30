@@ -2,6 +2,7 @@
 
 from enum import IntEnum
 
+from anyio import Event
 from anyio.streams.memory import MemoryObjectSendStream
 
 from devops_console.clients.client import CoreClient
@@ -33,6 +34,7 @@ async def wscom_dispatcher(
         path: str,
         body: dict,
         send_stream: MemoryObjectSendStream | None = None,
+        cancel_event: Event | None = None,
         ):
     client = CoreClient().sccs
 
@@ -63,15 +65,17 @@ async def wscom_dispatcher(
             return await client.compliance_report(plugin_id, credentials, **kwargs)
 
     elif action == "watch":
-        if send_stream is None:
-            raise DispatcherUnsupportedRequest("No send stream provided")
-
+        if send_stream is None or cancel_event is None:
+            raise DispatcherUnsupportedRequest(
+                "Watch requests must be made with a send stream and a cancel event"
+                )
         if path == "/repositories":
             await client.watch_repositories(
                 plugin_id,
                 credentials,
                 Intervals.repositories,
                 send_stream,
+                cancel_event,
                 )
         elif path == "/repository/cd/config":
             await client.watch_continuous_deployment_config(
@@ -79,6 +83,7 @@ async def wscom_dispatcher(
                 credentials,
                 Intervals.cd,
                 send_stream,
+                cancel_event,
                 repo_name,
                 environments,
                 )
@@ -88,6 +93,7 @@ async def wscom_dispatcher(
                 credentials,
                 Intervals.cd_versions_available,
                 send_stream,
+                cancel_event,
                 repo_name,
                 )
         elif path == "/repository/cd/environments_available":
@@ -96,6 +102,7 @@ async def wscom_dispatcher(
                 credentials,
                 Intervals.cd_environs_available,
                 send_stream,
+                cancel_event,
                 repo_name,
                 )
         return

@@ -1,5 +1,4 @@
 # Copyright 2020 Croix Bleue du Québec
-from anyio import create_task_group
 from fastapi import APIRouter, WebSocket
 
 from devops_console.clients.wscom import wscom_generic_handler
@@ -29,8 +28,4 @@ handlers = {
 @router.websocket("/wscom1")
 async def wscom1_handler(websocket: WebSocket):
     """Websocket Com1"""
-
-    async with create_task_group() as tg:
-        result = await wscom_generic_handler(tg, websocket, handlers)
-
-    return result
+    return await wscom_generic_handler(websocket, handlers)

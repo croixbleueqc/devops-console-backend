@@ -1,4 +1,5 @@
 # Copyright 2020 Croix Bleue du Québec
+from anyio import Event
 from anyio.streams.memory import MemoryObjectSendStream
 
 from devops_console.clients.client import CoreClient
@@ -21,18 +22,22 @@ from devops_console.clients.wscom import DispatcherUnsupportedRequest
 async def wscom_dispatcher(
         action, path, body,
         send_stream: MemoryObjectSendStream | None = None,
+        cancel_event: Event | None = None,
         ):
     core = CoreClient()
     if action == "watch":
-        if send_stream is None:
-            raise DispatcherUnsupportedRequest("No send stream provided")
+        if send_stream is None or cancel_event is None:
+            raise DispatcherUnsupportedRequest(
+                "Watch requests must be made with a send stream and a cancel event"
+                )
         if path == "/pods":
             await core.kubernetes.pods_watch(
                 body["sccs_plugin"],
                 body["sccs_session"],
                 body["repository"],
                 body["environment"],
-                send_stream
+                send_stream,
+                cancel_event,
                 )
         return
     elif action == "delete":
