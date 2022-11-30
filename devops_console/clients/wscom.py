@@ -171,16 +171,25 @@ async def wscom_generic_handler(websocket: WebSocket, handlers: dict):
                         body
                         )
         except (WebSocketDisconnect, HTTPError) as e:
-            # Removes websocket
-            await manager.disconnect(websocket)
+            cancel_all_watchers()
             if isinstance(e, HTTPError):
                 logging.error(e)
+        finally:
+            tg.cancel_scope.cancel()
+            await manager.disconnect(websocket)
 
     return websocket
 
 
 def format_result_for_send(a):
     return a.dict() if hasattr(a, "dict") else a
+
+
+def cancel_all_watchers():
+    global cancel_events
+    for cancel_event in cancel_events.values():
+        cancel_event.set()
+    cancel_events.clear()
 
 
 async def wscom_restful_run(websocket, handler, data, action, path, body):
