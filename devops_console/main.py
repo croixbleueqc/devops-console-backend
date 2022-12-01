@@ -13,6 +13,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 import logging
+from urllib.parse import urljoin
 
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
@@ -48,7 +49,9 @@ app.include_router(router_v2)
 
 # webhook server mounted as a "subapp" to decouple it from the main API
 app.mount(settings.WEBHOOKS_PATH, webhooks_server)
-logging.debug(f"Webhooks server mounted on {settings.WEBHOOKS_PATH} endpoint")
+logging.debug(
+    f"Webhooks server listening on {urljoin(settings.WEBHOOKS_HOST, settings.WEBHOOKS_PATH)}"
+    )
 
 
 # @app.exception_handler(HTTPException)

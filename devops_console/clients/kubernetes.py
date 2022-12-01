@@ -18,6 +18,7 @@
 import logging
 import os
 
+from anyio import create_task_group
 from kubernetes_asyncio.client import V1PodStatus
 from loguru import logger
 
@@ -62,7 +63,15 @@ class Kubernetes(object):
         logging.info(f"{namespace} is in the following clusters: {pod_clusters}")
         return pod_clusters
 
-    async def pods_watch(self, sccs_plugin, sccs_session, repo_name, environment):
+    async def pods_watch(
+            self,
+            sccs_plugin,
+            sccs_session,
+            repo_name,
+            environment,
+            send_stream,
+            cancel_event
+            ):
         """Return a generator iterator of events for the pods of the given repository.
         see client.py in python-devops-kubernetes for the event shape.
         """
@@ -73,32 +82,33 @@ class Kubernetes(object):
 
         write_access = await self.write_access(sccs_plugin, sccs_session, repo_name)
 
-        async def gen():
-            nonlocal namespace
-            nonlocal pod_clusters
+        if len(pod_clusters) == 0:
+            logging.warning(f"No cluster found for namespace {namespace}.")
+            return
 
-            if len(pod_clusters) == 0:
-                logging.warning(f"No cluster found for namespace {namespace}.")
-                yield None
-                return
-
+        async def send_events():
             for cluster in pod_clusters:
-                yield {
-                    "type": "INFO",
-                    "key": "bridge",
-                    "value": {
-                        "cluster": cluster,
-                        "namespace": namespace,
-                        "repository": {
-                            "write_access": write_access,
+                await send_stream.send(
+                    {
+                        "type": "INFO",
+                        "key": "bridge",
+                        "value": {
+                            "cluster": cluster,
+                            "namespace": namespace,
+                            "repository": {
+                                "write_access": write_access,
+                                },
                             },
-                        },
-                    }
+                        }
+                    )
                 async with self.client.context(cluster) as ctx:
                     async for event in ctx.pods(namespace):
-                        yield event
+                        await send_stream.send(event)
 
-        return gen()
+        async with create_task_group() as tg:
+            tg.start_soon(send_events)
+            await cancel_event.wait()
+            tg.cancel_scope.cancel()
 
     async def write_access(self, sccs_plugin, sccs_session, repo_name):
         permission = await self.sccs.get_repository_permission(sccs_plugin, sccs_session, repo_name)

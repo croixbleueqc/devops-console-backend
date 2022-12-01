@@ -19,7 +19,7 @@ async def clear_cache(are_you_sure: bool = False):
             )
 
     try:
-        await cache.clear()
+        cache.clear()
         return {"message": "Cache cleared"}
     except Exception as e:
         return HTTPException(status_code=500, detail=str(e))
@@ -44,7 +44,7 @@ async def clear_cache_key(
         key = function_name
 
     try:
-        n = await cache.delete(key)
+        n = cache.delete(key)
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
 
@@ -59,7 +59,7 @@ async def clear_cache_namespace(namespace: str):
     """Clear all cache keys with the given namespace. """
 
     try:
-        n = await cache.delete_namespace(namespace)
+        n = cache.delete_namespace(namespace)
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
 

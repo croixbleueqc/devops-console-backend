@@ -8,6 +8,7 @@ license = { text = "LGPL-3.0-or-later" }
 authors = [{ name = "Croix Bleue", email = "devops@qc.croixbleue.ca" }]
 dependencies = [
     "atlassian-python-api ~= 3.26",
+    "anyio",
     "fastapi ~= 0.79.0",
     "fastapi-azure-auth ~= 3.5.0",
     "hvac ~= 0.11.2",

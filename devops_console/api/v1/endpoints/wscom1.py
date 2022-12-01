@@ -1,24 +1,20 @@
 # Copyright 2020 Croix Bleue du Québec
-
-# This file is part of devops-console-backend.
-
-# devops-console-backend is free software: you can redistribute it and/or modify
-# it under the terms of the GNU Lesser General Public License as published by
-# the Free Software Foundation, either version 3 of the License, or
-# (at your option) any later version.
-
-# devops-console-backend is distributed in the hope that it will be useful,
-# but WITHOUT ANY WARRANTY; without even the implied warranty of
-# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-# GNU Lesser General Public License for more details.
-
-# You should have received a copy of the GNU Lesser General Public License
-# along with devops-console-backend.  If not, see <https://www.gnu.org/licenses/>.
-
 from fastapi import APIRouter, WebSocket
 
 from devops_console.clients.wscom import wscom_generic_handler
 from .ws_dispatchers import kubernetes, oauth2, sccs
+
+# This file is part of devops-console-backend.
+# devops-console-backend is free software: you can redistribute it and/or modify
+# it under the terms of the GNU Lesser General Public License as published by
+# the Free Software Foundation, either version 3 of the License, or
+# (at your option) any later version.
+# devops-console-backend is distributed in the hope that it will be useful,
+# but WITHOUT ANY WARRANTY; without even the implied warranty of
+# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+# GNU Lesser General Public License for more details.
+# You should have received a copy of the GNU Lesser General Public License
+# along with devops-console-backend.  If not, see <https://www.gnu.org/licenses/>.
 
 router = APIRouter()
 
@@ -32,5 +28,4 @@ handlers = {
 @router.websocket("/wscom1")
 async def wscom1_handler(websocket: WebSocket):
     """Websocket Com1"""
-
     return await wscom_generic_handler(websocket, handlers)

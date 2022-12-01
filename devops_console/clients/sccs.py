@@ -140,24 +140,36 @@ class Sccs:
     async def get_projects(self, plugin_id, credentials):
         pass
 
-    @ctx_wrap_generator
-    async def watch_repositories(self, plugin_id, credentials, poll_interval, *args, **kwargs):
+    @ctx_wrap
+    async def watch_repositories(
+            self,
+            plugin_id,
+            credentials,
+            poll_interval,
+            send_stream,
+            ):
         pass
 
-    @ctx_wrap_generator
+    @ctx_wrap
     async def watch_continuous_deployment_config(
-            self, plugin_id, credentials, poll_interval, repo_name, environments, kwargs
+            self,
+            plugin_id,
+            credentials,
+            poll_interval,
+            send_stream,
+            repo_name,
+            environments,
             ):
         pass
 
-    @ctx_wrap_generator
+    @ctx_wrap
     async def watch_continuous_deployment_versions_available(
-            self, plugin_id, credentials, repo_name, poll_interval, *args, **kwargs
+            self, plugin_id, credentials, poll_interval, send_stream, repo_name
             ):
         pass
 
-    @ctx_wrap_generator
+    @ctx_wrap
     async def watch_continuous_deployment_environments_available(
-            self, plugin_id, credentials, repo_name, poll_interval
+            self, plugin_id, credentials, poll_interval, send_stream, repo_name,
             ):
         pass

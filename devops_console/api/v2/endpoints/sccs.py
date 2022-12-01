@@ -1,6 +1,6 @@
-import asyncio
 from urllib.parse import urljoin
 
+from anyio import create_task_group
 from atlassian.errors import ApiError
 from fastapi import APIRouter, HTTPException
 from loguru import logger
@@ -137,9 +137,8 @@ async def create_webhooks(
 
             subscriptions.append(schemas.WebhookSubscription(**new_subscription))
 
-        coros.append(_subscribe_if_not_set(repo))
-
-    await asyncio.gather(*coros)
+        async with create_task_group() as tg:
+            tg.start_soon(_subscribe_if_not_set, repo)
 
     return subscriptions
 
@@ -220,9 +219,8 @@ async def remove_webhooks(
                         continue
                 logger.debug(f"Webhook subscription for {repo.name} not found.")
 
-        coros.append(_remove_webhook(repo))
-
-    await asyncio.gather(*coros)
+        async with create_task_group() as tg:
+            tg.start_soon(_remove_webhook, repo)
 
 # @router.get("/repositories")
 # async def get_repositories(

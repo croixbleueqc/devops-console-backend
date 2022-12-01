@@ -15,64 +15,30 @@
 # You should have received a copy of the GNU Lesser General Public License
 # along with devops-console-backend.  If not, see <https://www.gnu.org/licenses/>.
 
-import asyncio
 import json
 import logging
-import weakref
 from typing import Any
 
-from fastapi import WebSocket, WebSocketDisconnect
+from anyio import (
+    create_memory_object_stream,
+    create_task_group,
+    Event,
+    )
+from fastapi import WebSocket
 from requests import HTTPError
+from starlette.websockets import WebSocketDisconnect
+from websockets.exceptions import ConnectionClosed
 
 from devops_console.schemas.legacy.ws import WsResponse
-
-WATCHERS = "watchers"
-
-Watchers = weakref.WeakValueDictionary[int, asyncio.Task]
 
 
 class ConnectionManager:
     def __init__(self):
-        self.ws_watchers_map: dict[int, Watchers] = {}
         self.ws_set: set[WebSocket] = set()
 
     async def connect(self, websocket: WebSocket):
         await websocket.accept()
-        self.ws_watchers_map[hash(websocket)] = weakref.WeakValueDictionary()
         self.ws_set.add(websocket)
-
-    def add_watcher(self, websocket: WebSocket, watcher_id: int, task: asyncio.Task):
-        h = hash(websocket)
-        d = self.ws_watchers_map.get(h, weakref.WeakValueDictionary())
-        d[watcher_id] = task
-
-    def get_watcher(self, websocket: WebSocket, watcher_id: int) -> asyncio.Task | None:
-        h = hash(websocket)
-        try:
-            return self.ws_watchers_map[h][watcher_id]
-        except KeyError:
-            return None
-
-    def get_watchers(self, websocket: WebSocket) -> Watchers | None:
-        h = hash(websocket)
-        return self.ws_watchers_map.get(h, None)
-
-    def remove_watcher(self, websocket: WebSocket, watcher_id: int) -> None:
-        h = hash(websocket)
-        try:
-            del self.ws_watchers_map[h][watcher_id]
-        except (KeyError, ValueError):
-            pass
-
-    async def close_watchers(self, websocket: WebSocket) -> None:
-        watchers = self.get_watchers(websocket)
-        if watchers is not None:
-            for watcher_id in watchers.keys():
-                await wscom_watcher_close(websocket, watcher_id)
-                try:
-                    del watchers[watcher_id]
-                except (KeyError, ValueError):
-                    pass
 
     async def broadcast(self, data: str | dict, legacy: bool = False) -> None:
         if legacy:
@@ -87,17 +53,20 @@ class ConnectionManager:
             await websocket.send_json(data)
         except Exception as e:
             logging.error(f"Error sending data to websocket: {e}")
-            pass
+            raise
+        except ConnectionClosed:
+            await self.disconnect(websocket)
 
     async def disconnect(self, websocket: WebSocket):
         try:
-            del self.ws_watchers_map[hash(websocket)]
+            # del self.ws_watchers_map[hash(websocket)]
             self.ws_set.remove(websocket)
         except (KeyError, ValueError):
             pass
 
 
 manager = ConnectionManager()
+cancel_events = {}
 
 
 async def wscom_generic_handler(websocket: WebSocket, handlers: dict):
@@ -130,129 +99,146 @@ async def wscom_generic_handler(websocket: WebSocket, handlers: dict):
     - "ws:watch:close" : Ask the server to close a watcher for the current websocket
 
     """
+
+    global manager
+    global cancel_events
+
     await manager.connect(websocket)
 
-    try:
-        while True:
-            data = await websocket.receive_json()
-            try:
-                uniqueId = data["uniqueId"]
-                request_headers = data.pop("request")
-                body = data.pop("dataRequest")
+    async with create_task_group() as tg:
+        try:
+            while True:
+                try:
+                    data = await websocket.receive_json()
+                    unique_id = data["uniqueId"]
+                    request_headers = data.pop("request")
+                    body = data.pop("dataRequest")
 
-                logging.debug(f"RECEIVED WS REQUEST: {request_headers}")
+                    logging.debug(f"RECEIVED WS REQUEST: {request_headers}")
 
-                deeplink, action, path = request_headers.split(":")
-            except (AttributeError, ValueError, json.decoder.JSONDecodeError):
-                # Malformed request.
-                logging.error("malformed request. ws will be closed")
+                    deeplink, action, path = request_headers.split(":")
+                except (AttributeError, ValueError, json.decoder.JSONDecodeError):
+                    # Malformed request.
+                    logging.error("malformed request. ws will be closed")
 
-                # Closing the websocket
-                break
-
-            if deeplink == "ws":
-                if request_headers == "ws:ctl:close":
                     # Closing the websocket
                     break
 
-                elif request_headers == "ws:watch:close":
-                    # Closing a watcher for this websocket
-                    asyncio.create_task(wscom_watcher_close(websocket, uniqueId))
+                if deeplink == "ws":
+                    if request_headers == "ws:ctl:close":
+                        # Closing the websocket
+                        break
 
-                else:
-                    data["error"] = f"The server doesn't support {request_headers}"
+                    elif request_headers == "ws:watch:close":
+                        # Closing a watcher for this websocket
+                        tg.start_soon(wscom_watcher_close, websocket, unique_id, data)
+
+                    else:
+                        data["error"] = f"The server doesn't support {request_headers}"
+                        logging.warning(data["error"])
+                        await websocket.send_json(data)
+
+                    # Internal dispatch done
+                    continue
+
+                handler = handlers[deeplink]
+
+                if handler is None:
+                    data["error"] = f"There is no handler to support {deeplink}"
                     logging.warning(data["error"])
                     await websocket.send_json(data)
-
-                # Internal dispatch done
-                continue
-
-            handler = handlers[deeplink]
-
-            if handler is None:
-                data["error"] = f"There is no handler to support {deeplink}"
-                logging.warning(data["error"])
-                await websocket.send_json(data)
-            elif action == "watch":
-                task = asyncio.create_task(
-                    wscom_watcher_run(websocket, handler, data, action, path, body),
-                    name=uniqueId,
-                    )
-
-                manager.add_watcher(websocket, uniqueId, task)
-
-            else:
-                asyncio.create_task(wscom_restful_run(websocket, handler, data, action, path, body))
-
-    except (WebSocketDisconnect, HTTPError) as e:
-        await manager.disconnect(websocket)
-        if isinstance(e, HTTPError):
-            logging.error(e)
-    finally:
-        # Closes all watchers for this request
-        await manager.close_watchers(websocket)
-
-        # Removes websocket
-        await manager.disconnect(websocket)
+                elif action == "watch":
+                    cancel_event = cancel_events.get(unique_id, Event())
+                    cancel_events[unique_id] = cancel_event
+                    tg.start_soon(
+                        wscom_watcher_run,
+                        websocket,
+                        handler,
+                        data,
+                        action,
+                        path,
+                        body,
+                        cancel_event,
+                        )
+                else:
+                    tg.start_soon(
+                        wscom_restful_run,
+                        websocket,
+                        handler,
+                        data,
+                        action,
+                        path,
+                        body
+                        )
+        except (WebSocketDisconnect, HTTPError) as e:
+            cancel_all_watchers()
+            if isinstance(e, HTTPError):
+                logging.error(e)
+        finally:
+            tg.cancel_scope.cancel()
+            await manager.disconnect(websocket)
 
     return websocket
+
+
+def format_result_for_send(a):
+    return a.dict() if hasattr(a, "dict") else a
+
+
+def cancel_all_watchers():
+    global cancel_events
+    for cancel_event in cancel_events.values():
+        cancel_event.set()
+    cancel_events.clear()
 
 
 async def wscom_restful_run(websocket, handler, data, action, path, body):
     """RESTful like request"""
     try:
-        data["dataResponse"] = await handler(websocket, action, path, body)
+        result = await handler(action, path, body)
+        data["dataResponse"] = format_result_for_send(result)
+        await manager.send_json(websocket, data)
     except Exception as e:
         data["error"] = str(e)
-    await manager.send_json(websocket, data)
-
-
-async def wscom_watcher_run(websocket, handler, data, action, path, body):
-    """Watch request"""
-    try:
-        async for event in (await handler(websocket, action, path, body)):
-            data["dataResponse"] = event.dict() if hasattr(event, "dict") else event
-            await manager.send_json(websocket, data)
-    except Exception as e:
-        data["error"] = str(e)
-        data["dataResponse"] = None
-        logging.exception(str(e))
         await manager.send_json(websocket, data)
 
 
-async def wscom_watcher_close(websocket, uniqueId, data=None):
-    """Closes a watcher
+async def wscom_watcher_run(websocket, handler, data, action, path, body, cancel_event):
+    """Watch request"""
 
-    ws and data are needed to send back a closed answer
-    """
-    try:
-        task = manager.get_watcher(websocket, uniqueId)
-    except KeyError:
+    async def receive_handler_events(receive_stream):
+        try:
+            async with receive_stream:
+                async for event in receive_stream:
+                    data["dataResponse"] = event.dict() if hasattr(event, "dict") else event
+                    await manager.send_json(websocket, data)
+        except Exception as e:
+            data["error"] = str(e)
+            await manager.send_json(websocket, data)
+            raise
+
+    send_stream, receive_stream = create_memory_object_stream()
+
+    async with create_task_group() as tg:
+        tg.start_soon(receive_handler_events, receive_stream)
+        tg.start_soon(handler, action, path, body, send_stream, cancel_event)
+
+
+async def wscom_watcher_close(websocket, unique_id, data=None):
+    cancel_event = cancel_events.get(unique_id)
+    if cancel_event is not None:
+        cancel_event.set()
+        del cancel_events[unique_id]
+    else:
         return
-
-    if task is None:
-        return
-
-    task.cancel()
-
-    try:
-        await task
-    except asyncio.CancelledError:
-        pass
-    except Exception as e:
-        if data is not None:
-            data["error"] = repr(e)
-        logging.error(
-            f"{uniqueId}: something wrong occured during watcher closing. error: {repr(e)}"
-            )
 
     if websocket is not None and data is not None:
         data["dataResponse"] = {"status": "ws:watch:closed"}
         try:
             await manager.send_json(websocket, data)
         except ConnectionResetError:
-            # Most of the time we can send back an answer but if the application is closing it is possible that ws was
-            # disconnected before the send_json.
+            # Most of the time we can send back an answer but if the application is closing it is
+            # possible that ws was disconnected before the send_json.
             pass
 
 
