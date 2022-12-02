@@ -51,7 +51,7 @@ async def create_webhooks(
     repos = None
     try:
         if len(repositories) == 0:
-            repos = await client.get_repositories(plugin_id=plugin_id)
+            repos = await client.get_repositories(plugin_id=plugin_id, credentials=credentials)
         else:
             repos = []
             for repo in repositories:
