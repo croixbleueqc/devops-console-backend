@@ -78,66 +78,67 @@ async def create_webhooks(
 
     target_url = sanitize_webhook_target_url(target_url)
 
-    for repo in repos:  # type: ignore
+    async with create_task_group() as tg:
+        for repo in repos:  # type: ignore
+            async def _subscribe_if_not_set(repo):
+                # get list of webhooks for this repo
+                current_subscriptions = None
+                try:
+                    current_subscriptions = await client.get_webhook_subscriptions(
+                        plugin_id=plugin_id, credentials=credentials, repo_name=repo.name
+                        )
+                except ApiError as e:
+                    logger.warning(
+                        f"Failed to get webhook subscriptions for {repo.name}: {e.reason}"
+                        )
+                    return
+                if current_subscriptions is None or len(current_subscriptions) == 0:
+                    logger.warning(f"No webhook subscriptions found for {repo.name}.")
+                    return
 
-        async def _subscribe_if_not_set(repo):
-            # get list of webhooks for this repo
-            current_subscriptions = None
-            try:
-                current_subscriptions = await client.get_webhook_subscriptions(
-                    plugin_id=plugin_id, credentials=credentials, repo_name=repo.name
-                    )
-            except ApiError as e:
-                logger.warning(f"Failed to get webhook subscriptions for {repo.name}: {e.reason}")
-                return
-            if current_subscriptions is None or len(current_subscriptions) == 0:
-                logger.warning(f"No webhook subscriptions found for {repo.name}.")
-                return
+                # check if the webhook is already set
+                if any(
+                        [
+                            subscription["url"] == urljoin(
+                                settings.WEBHOOKS_HOST,
+                                settings.WEBHOOKS_PATH
+                                )
+                            and all(
+                                [
+                                    event in subscription["events"]
+                                    for event in settings.WEBHOOKS_DEFAULT_EVENTS
+                                    ]
+                                )
+                            for subscription in current_subscriptions["values"]
+                            ]
+                        ):
+                    logger.warning(f"Webhook subscription already exists for {repo.name}.")
+                    return
 
-            # check if the webhook is already set
-            if any(
-                    [
-                        subscription["url"] == urljoin(
-                            settings.WEBHOOKS_HOST,
-                            settings.WEBHOOKS_PATH
-                            )
-                        and all(
-                            [
-                                event in subscription["events"]
-                                for event in settings.WEBHOOKS_DEFAULT_EVENTS
-                                ]
-                            )
-                        for subscription in current_subscriptions["values"]
-                        ]
-                    ):
-                logger.warning(f"Webhook subscription already exists for {repo.name}.")
-                return
+                # create the webhook
+                new_subscription = None
+                try:
+                    new_subscription = await client.create_webhook_subscription(
+                        plugin_id=plugin_id,
+                        credentials=credentials,
+                        repo_name=repo.name,
+                        url=target_url,
+                        active=True,
+                        events=settings.WEBHOOKS_DEFAULT_EVENTS,
+                        description=settings.WEBHOOKS_DEFAULT_DESCRIPTION,
+                        )
+                    logger.warning(f"Subscribed to default webhook for {repo.name}.")
+                except ApiError as e:
+                    logger.warning(
+                        f"Failed to create webhook subscription for {repo.name}: {e.reason}"
+                        )
+                    return
+                if new_subscription is None or len(new_subscription) == 0:
+                    logger.warning(f"Failed to create webhook subscription for {repo.name}.")
+                    return
 
-            # create the webhook
-            new_subscription = None
-            try:
-                new_subscription = await client.create_webhook_subscription(
-                    plugin_id=plugin_id,
-                    credentials=credentials,
-                    repo_name=repo.name,
-                    url=target_url,
-                    active=True,
-                    events=settings.WEBHOOKS_DEFAULT_EVENTS,
-                    description=settings.WEBHOOKS_DEFAULT_DESCRIPTION,
-                    )
-                logger.warning(f"Subscribed to default webhook for {repo.name}.")
-            except ApiError as e:
-                logger.warning(
-                    f"Failed to create webhook subscription for {repo.name}: {e.reason}"
-                    )
-                return
-            if new_subscription is None or len(new_subscription) == 0:
-                logger.warning(f"Failed to create webhook subscription for {repo.name}.")
-                return
+                subscriptions.append(schemas.WebhookSubscription(**new_subscription))
 
-            subscriptions.append(schemas.WebhookSubscription(**new_subscription))
-
-        async with create_task_group() as tg:
             tg.start_soon(_subscribe_if_not_set, repo)
 
     return subscriptions
@@ -184,42 +185,41 @@ async def remove_webhooks(
 
     target_url = sanitize_webhook_target_url(target_url)
 
-    for repo in repos:  # type: ignore
+    async with create_task_group() as tg:
+        for repo in repos:  # type: ignore
+            async def _remove_webhook(repo):
+                current_subscriptions = None
+                try:
+                    current_subscriptions = await client.get_webhook_subscriptions(
+                        plugin_id=plugin_id, credentials=credentials, repo_name=repo.name
+                        )
+                except HTTPError as e:
+                    logger.info(
+                        f"Failed to get webhook subscriptions for {repo.name}: {e.strerror}"
+                        )
+                    return
 
-        async def _remove_webhook(repo):
-            current_subscriptions = None
-            try:
-                current_subscriptions = await client.get_webhook_subscriptions(
-                    plugin_id=plugin_id, credentials=credentials, repo_name=repo.name
-                    )
-            except HTTPError as e:
-                logger.info(
-                    f"Failed to get webhook subscriptions for {repo.name}: {e.strerror}"
-                    )
-                return
+                if current_subscriptions is None or len(current_subscriptions["values"]) == 0:
+                    logger.info(f"No webhook subscriptions for {repo.name}.")
+                    return
 
-            if current_subscriptions is None or len(current_subscriptions["values"]) == 0:
-                logger.info(f"No webhook subscriptions for {repo.name}.")
-                return
+                for subscription in current_subscriptions["values"]:
+                    if subscription["url"] == target_url:
+                        try:
+                            await client.delete_webhook_subscription(
+                                plugin_id=plugin_id,
+                                credentials=credentials,
+                                repo_name=repo.name,
+                                subscription_id=subscription["uuid"],
+                                )
+                            logger.info(f"Deleted webhook subscription for {repo.name}.")
+                        except HTTPError as e:
+                            logger.warning(
+                                f"Failed to delete webhook subscription for {repo.name}: {e.strerror}"
+                                )
+                            continue
+                    logger.debug(f"Webhook subscription for {repo.name} not found.")
 
-            for subscription in current_subscriptions["values"]:
-                if subscription["url"] == target_url:
-                    try:
-                        await client.delete_webhook_subscription(
-                            plugin_id=plugin_id,
-                            credentials=credentials,
-                            repo_name=repo.name,
-                            subscription_id=subscription["uuid"],
-                            )
-                        logger.info(f"Deleted webhook subscription for {repo.name}.")
-                    except HTTPError as e:
-                        logger.warning(
-                            f"Failed to delete webhook subscription for {repo.name}: {e.strerror}"
-                            )
-                        continue
-                logger.debug(f"Webhook subscription for {repo.name} not found.")
-
-        async with create_task_group() as tg:
             tg.start_soon(_remove_webhook, repo)
 
 # @router.get("/repositories")
