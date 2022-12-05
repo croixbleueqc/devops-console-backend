@@ -36,10 +36,6 @@ def sanitize_webhook_target_url(url):
     return target_url
 
 
-def discard_archived_repositories(repositories):
-    return [repo for repo in repositories if not repo.full_name.endswith("archived")]
-
-
 async def get_repositories(credentials, plugin_id, repositories):
     result = None
     try:
@@ -67,7 +63,7 @@ async def get_repositories(credentials, plugin_id, repositories):
         logger.warning("No repositories found.")
         raise HTTPException(status_code=HTTPStatus.NOT_FOUND, detail="No repositories found")
 
-    return discard_archived_repositories(result)
+    return result
 
 
 @router.get("/repositories/verify_webhooks", tags=["webhooks"])
@@ -83,7 +79,8 @@ async def verify_webhooks(
     credentials = None
 
     if repositories is None:
-        repositories = [r.name for r in await get_repositories(credentials, plugin_id, [])]
+        repos = await get_repositories(credentials, plugin_id, [])
+        repositories = [r.name for r in repos]
 
     target_url = sanitize_webhook_target_url(target_url)
 
@@ -94,11 +91,11 @@ async def verify_webhooks(
             repo_subscriptions = await client.get_webhook_subscriptions(
                 plugin_id=plugin_id, credentials=credentials, repo_name=repo_name
                 )
-            if not any(s["url"] == target_url for s in repo_subscriptions):
+            if not any(s["url"] == target_url for s in repo_subscriptions["values"]):
                 result.append(repo_name)
         except HTTPError as e:
             logger.warning(f"Failed to get list of webhooks for {repo_name}: {e}")
-            raise HTTPException(status_code=HTTPStatus.EXPECTATION_FAILED, detail=e)
+            raise HTTPException(status_code=HTTPStatus.EXPECTATION_FAILED, detail=str(e))
 
     async with create_task_group() as tg:
         for repo_name in repositories:

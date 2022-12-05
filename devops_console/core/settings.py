@@ -112,7 +112,16 @@ def userconfig_src(settings: BaseSettings):
 
     # Order is important inside the list (last one is the most important)
     dicts = list(filter(lambda x: x != {}, [default_dict, env_dict, local_json_dict]))
-    merged: dict = reduce(lambda a, b: a | b, dicts)
+
+    def merge(a, b):
+        for k, v in b.items():
+            if k in a and isinstance(a[k], dict) and isinstance(b[k], dict):
+                merge(a[k], b[k])
+            else:
+                a[k] = b[k]
+        return a
+
+    merged: dict = reduce(merge, dicts)
 
     # replace all 'env' with BRANCH_NAME
     configs = deep_replace(merged, env=env)
