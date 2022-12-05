@@ -4,6 +4,7 @@ from urllib.parse import urljoin
 from anyio import create_task_group
 from fastapi import APIRouter, HTTPException
 from loguru import logger
+from pydantic import BaseModel
 from requests import HTTPError
 
 from devops_console import schemas
@@ -22,8 +23,13 @@ async def home():
 
 
 # ----------------------------------------------------------------------------------------------------------------------
-# Repositories
+# Webhooks
 # ----------------------------------------------------------------------------------------------------------------------
+
+class RepoList(BaseModel):
+    repo_names: list[str] = []
+
+
 def sanitize_webhook_target_url(url):
     target_url = url if url is not None else urljoin(
         settings.WEBHOOKS_HOST,
@@ -66,10 +72,10 @@ async def get_repositories(credentials, plugin_id, repositories):
     return result
 
 
-@router.get("/repositories/verify_webhooks", tags=["webhooks"])
+@router.post("/repositories/verify_webhooks", tags=["webhooks"])
 async def verify_webhooks(
         plugin_id: str,
-        repositories: list[str] | None = None,
+        repo_list: RepoList,
         target_url: str | None = None,
         ):
     """Verify if a webhooks subscription exists for the given repositories.
@@ -78,7 +84,9 @@ async def verify_webhooks(
 
     credentials = None
 
-    if repositories is None:
+    repositories = repo_list.repo_names
+
+    if len(repositories) == 0:
         repos = await get_repositories(credentials, plugin_id, [])
         repositories = [r.name for r in repos]
 
@@ -107,16 +115,13 @@ async def verify_webhooks(
 @router.post("/repositories/create_webhooks", tags=["webhooks"])
 async def create_webhooks(
         plugin_id: str,
-        repositories: list[str] | None = None,
+        repo_list: RepoList,
         target_url: str | None = None
         ):
     """Subscribe to webhooks for each repository (must be idempotent)."""
     credentials = None
 
-    if repositories is None:
-        repositories = []
-
-    repos = await get_repositories(credentials, plugin_id, repositories)
+    repos = await get_repositories(credentials, plugin_id, repo_list.repo_names)
 
     target_url = sanitize_webhook_target_url(target_url)
 
@@ -131,19 +136,17 @@ async def create_webhooks(
         for repo in repos:  # type: ignore
             async def _subscribe_if_not_set(repo):
                 # get list of webhooks for this repo
-                current_subscriptions = None
                 try:
                     current_subscriptions = await client.get_webhook_subscriptions(
                         plugin_id=plugin_id, credentials=credentials, repo_name=repo.name
                         )
                 except HTTPError as e:
                     logger.warning(
-                        f"Failed to get webhook subscriptions for {repo.name}: {e.reason}"
+                        f"Failed to get webhook subscriptions for {repo.name}: {str(e)}"
                         )
                     return
-                if current_subscriptions is None or len(current_subscriptions) == 0:
-                    logger.warning(f"No webhook subscriptions found for {repo.name}.")
-                    return
+                if current_subscriptions is None:
+                    current_subscriptions = []
 
                 # check if the webhook is already set
                 if any(
@@ -162,7 +165,6 @@ async def create_webhooks(
                     return
 
                 # create the webhook
-                new_subscription = None
                 try:
                     new_subscription = await client.create_webhook_subscription(
                         plugin_id=plugin_id,
@@ -173,10 +175,10 @@ async def create_webhooks(
                         events=settings.WEBHOOKS_DEFAULT_EVENTS,
                         description=settings.WEBHOOKS_DEFAULT_DESCRIPTION,
                         )
-                    logger.warning(f"Subscribed to default webhook for {repo.name}.")
+                    logger.info(f"Subscribed to default webhook for {repo.name}.")
                 except HTTPError as e:
                     logger.warning(
-                        f"Failed to create webhook subscription for {repo.name}: {e}"
+                        f"Failed to create webhook subscription for {repo.name}: {str(e)}"
                         )
                     return
                 if new_subscription is None or len(new_subscription) == 0:
@@ -193,32 +195,29 @@ async def create_webhooks(
 @router.delete("/repositories/remove_webhooks", tags=["webhooks"])
 async def remove_webhooks(
         plugin_id: str,
-        repositories: list[str] | None = None,
+        repo_list: RepoList,
         target_url: str | None = None
         ):
     """Remove the default webhooks from all repositories."""
 
     credentials = None
 
-    if repositories is None and target_url is None:
+    if len(repo_list.repo_names) == 0 and target_url is None:
         raise HTTPException(status_code=400, detail="No repositories or target_url provided.")
-    if repositories is None:
-        repositories = []
 
     target_url = sanitize_webhook_target_url(target_url)
 
-    repos = await get_repositories(credentials, plugin_id, repositories)
+    repos = await get_repositories(credentials, plugin_id, repo_list.repo_names)
 
     async with create_task_group() as tg:
         for repo in repos:  # type: ignore
             async def _remove_webhook(repo):
-                current_subscriptions = None
                 try:
                     current_subscriptions = await client.get_webhook_subscriptions(
                         plugin_id=plugin_id, credentials=credentials, repo_name=repo.name
                         )
                 except HTTPError as e:
-                    logger.info(
+                    logger.warning(
                         f"Failed to get webhook subscriptions for {repo.name}: {e.strerror}"
                         )
                     return
