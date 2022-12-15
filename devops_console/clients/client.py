@@ -22,25 +22,27 @@ from .kubernetes import Kubernetes
 from .oauth2 import OAuth2
 from .sccs import Sccs
 from ..core import settings
+from ..schemas import UserConfig
 
 
 class CoreClient:
     """Singleton class containing the core crud clients."""
-
-    _client = None
+    _instance = None
+    config: UserConfig
+    sccs: Sccs
+    kubernetes: Kubernetes
+    oauth2: OAuth2
 
     def __new__(cls):
-        if cls._client is not None:
-            return cls._client
+        if cls._instance is None:
+            cls._instance = object.__new__(cls)
 
-        cls._client = super(CoreClient, cls).__new__(cls)
+            cls.config = settings.userconfig
+            cls.sccs = Sccs(cls.config.sccs)
+            cls.kubernetes = Kubernetes(cls.config.kubernetes, cls.sccs)
+            cls.oauth2 = OAuth2(cls.config.OAuth2)
 
-        cls.config = settings.userconfig
-        cls.sccs = Sccs(cls.config.sccs)
-        cls.kubernetes = Kubernetes(cls.config.kubernetes, cls.sccs)
-        cls.oauth2 = OAuth2(cls.config.OAuth2)
-
-        return cls._client
+        return cls._instance
 
     def startup_tasks(self) -> list:
         return [self.sccs.init, self.kubernetes.init, self.oauth2.init]

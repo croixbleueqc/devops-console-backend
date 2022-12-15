@@ -40,12 +40,16 @@ def ctx_wrap_generator(wrapped):
 
 class Sccs:
     """Responsible for encapsulating the client's methods in a context manager"""
-
+    _instance = None
     cd_branches_accepted: list[str]
     core: SccsClient
+    config: SccsConfig
 
-    def __init__(self, config: SccsConfig):
-        self.config = config
+    def __new__(cls, config: SccsConfig):
+        if cls._instance is None:
+            cls._instance = object.__new__(cls)
+            cls.config = config
+        return cls._instance
 
     async def init(self) -> None:
         self.core = await SccsClient.create(self.config)
