@@ -50,18 +50,18 @@ class DeploymentStatus(BaseModel):
     pods: list[PodStatus]
 
 
-@router.post("/deployment_status/{repo_name}/{environment}", response_model=list[DeploymentStatus])
+@router.get("/deployment-status/{repo_slug}/{environment}", response_model=list[DeploymentStatus])
 async def get_deployment_status(
-        repo_name: str,
+        repo_slug: str,
         environment: str,
         common_headers: CommonHeaders = Depends(),
         ):
     """Get statuses."""
-    namespace = client.repo_to_namespace(repo_name, environment)
+    namespace = client.repo_to_namespace(repo_slug, environment)
     write_access = await client.write_access(
         common_headers.plugin_id,
         common_headers.credentials,
-        repo_name
+        repo_slug
         )
     permission = "write" if write_access else "read"
 

@@ -73,7 +73,7 @@ class Kubernetes(object):
             self,
             sccs_plugin,
             sccs_session,
-            repo_name,
+            repo_slug,
             environment,
             send_stream,
             cancel_event
@@ -82,11 +82,11 @@ class Kubernetes(object):
         see client.py in python-devops-kubernetes for the event shape.
         """
 
-        namespace = self.repo_to_namespace(repo_name, environment)
+        namespace = self.repo_to_namespace(repo_slug, environment)
 
         pod_clusters = await self.get_pod_clusters(namespace)
 
-        write_access = await self.write_access(sccs_plugin, sccs_session, repo_name)
+        write_access = await self.write_access(sccs_plugin, sccs_session, repo_slug)
 
         if len(pod_clusters) == 0:
             logging.warning(f"No cluster found for namespace {namespace}.")
@@ -116,8 +116,8 @@ class Kubernetes(object):
             await cancel_event.wait()
             tg.cancel_scope.cancel()
 
-    async def write_access(self, sccs_plugin, sccs_session, repo_name):
-        permission = await self.sccs.get_repository_permission(sccs_plugin, sccs_session, repo_name)
+    async def write_access(self, sccs_plugin, sccs_session, repo_slug):
+        permission = await self.sccs.get_repository_permission(sccs_plugin, sccs_session, repo_slug)
         write_access = permission in ["admin", "write"] if permission is not None else False
         return write_access
 

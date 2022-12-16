@@ -11,6 +11,7 @@ from devops_console.clients.wscom import manager as ws_manager
 from devops_sccs.context import Context
 from devops_sccs.plugins.cache_keys import cache_key_fns
 from devops_sccs.redis import RedisCache
+from devops_sccs.utils import repo_slug_from_full_name
 from ..schemas.webhooks import (
     PRApprovedEvent,
     PRCreatedEvent,
@@ -103,9 +104,9 @@ async def handle_repo_push(event: dict):
     await ws_manager.broadcast(f"repo:push:{repopushevent.repository.name}", legacy=True)
 
 
-def clear_cd_cache(repository_name: str):
+def clear_cd_cache(repo_slug: str):
     pass
-    key = cache_key_fns["get_continuous_deployment_config"](repository_name, None)
+    key = cache_key_fns["get_continuous_deployment_config"](repo_slug, None)
     cache.delete(key)
     # key = "watcher:get_continuous_deployment_config"
     # cache.delete_namespace(key)
@@ -132,12 +133,14 @@ async def handle_repo_build_updated(event: dict):
         repobuildstatusupdated = RepoBuildStatusUpdated(**event)
     except ValidationError as e:
         validation_exception_handler(e)
-    repo_name = repobuildstatusupdated.repository.name
 
-    clear_cd_cache(repo_name)
-    await ws_manager.broadcast(f"pr:updated:{repo_name}", legacy=True)
+    full_name = repobuildstatusupdated.repository.full_name
+    repo_slug = repo_slug_from_full_name(full_name)
+
+    clear_cd_cache(repo_slug)
+    await ws_manager.broadcast(f"pr:updated:{repo_slug}", legacy=True)
     await core.sccs.core.scheduler.notify(
-        (Context.UUID_WATCH_CONTINOUS_DEPLOYMENT_CONFIG, repo_name)
+        (Context.UUID_WATCH_CONTINOUS_DEPLOYMENT_CONFIG, repo_slug)
         )
 
 
@@ -150,7 +153,10 @@ async def handle_pr_created(event: dict):
     except ValidationError as e:
         validation_exception_handler(e)
 
-    clear_cd_cache(prcreated.repository.name)
+    full_name = prcreated.repository.full_name
+    repo_slug = repo_slug_from_full_name(full_name)
+
+    clear_cd_cache(repo_slug)
     await ws_manager.broadcast(f"pr:created:{prcreated.repository.name}", legacy=True)
 
 
@@ -175,7 +181,10 @@ async def handle_pr_merged(event: dict):
     except ValidationError as e:
         validation_exception_handler(e)
 
-    clear_cd_cache(prmerged.repository.name)
+    full_name = prmerged.repository.full_name
+    repo_slug = repo_slug_from_full_name(full_name)
+
+    clear_cd_cache(repo_slug)
     await ws_manager.broadcast(f"pr:merged:{prmerged.repository.name}", legacy=True)
 
 
@@ -200,5 +209,8 @@ async def handle_pr_declined(event: dict):
     except ValidationError as e:
         validation_exception_handler(e)
 
-    clear_cd_cache(prdeclined.repository.name)
+    full_name = prdeclined.repository.full_name
+    repo_slug = repo_slug_from_full_name(full_name)
+
+    clear_cd_cache(repo_slug)
     await ws_manager.broadcast(f"pr:declined:{prdeclined.repository.name}", legacy=True)

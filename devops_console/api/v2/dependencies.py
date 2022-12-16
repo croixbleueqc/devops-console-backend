@@ -11,7 +11,7 @@ class CommonHeaders:
             apikey: str | None = Header(default=None),
             author: str | None = Header(default=None),
             ):
-        self.plugin_id = plugin_id,
+        self.plugin_id = plugin_id
         if username is None or author is None or apikey is None:
             self.credentials = None
         else:

@@ -24,7 +24,7 @@ async def home():
 
 
 class RepoList(BaseModel):
-    repo_names: list[str] = []
+    repo_slugs: list[str] = []
 
 
 def sanitize_webhook_target_url(url):
@@ -52,7 +52,7 @@ async def get_repositories(credentials, plugin_id, repositories):
                     await client.get_repository(
                         plugin_id=plugin_id,
                         credentials=credentials,
-                        repo_name=repo
+                        repo_slug=repo
                         )
                     )
 
@@ -84,9 +84,9 @@ async def get_projects():
 
 @router.post("/repositories/verify_webhooks", tags=["webhooks"])
 async def verify_webhooks(
-        plugin_id: str,
         repo_list: RepoList,
         target_url: str | None = None,
+        plugin_id: str = "cbq",
         ):
     """Verify if a webhooks subscription exists for the given repositories.
     If no repositories are given, all will be checked.
@@ -94,7 +94,7 @@ async def verify_webhooks(
 
     credentials = None
 
-    repositories = repo_list.repo_names
+    repositories = repo_list.repo_slugs
 
     if len(repositories) == 0:
         repos = await get_repositories(credentials, plugin_id, [])
@@ -104,20 +104,20 @@ async def verify_webhooks(
 
     result = []
 
-    async def verify(repo_name):
+    async def verify(repo_slug):
         try:
             repo_subscriptions = await client.get_webhook_subscriptions(
-                plugin_id=plugin_id, credentials=credentials, repo_name=repo_name
+                plugin_id=plugin_id, credentials=credentials, repo_slug=repo_slug
                 )
             if not any(s["url"] == target_url for s in repo_subscriptions["values"]):
-                result.append(repo_name)
+                result.append(repo_slug)
         except HTTPError as e:
-            logger.warning(f"Failed to get list of webhooks for {repo_name}: {e}")
+            logger.warning(f"Failed to get list of webhooks for {repo_slug}: {e}")
             raise HTTPException(status_code=HTTPStatus.EXPECTATION_FAILED, detail=str(e))
 
     async with create_task_group() as tg:
-        for repo_name in repositories:
-            tg.start_soon(verify, repo_name)
+        for repo_slug in repositories:
+            tg.start_soon(verify, repo_slug)
 
     return result
 
@@ -126,13 +126,12 @@ async def verify_webhooks(
 async def create_webhooks(
         repo_list: RepoList,
         target_url: str | None = None,
-        common_headers: CommonHeaders = Depends(),
+        plugin_id: str = "cbq",
         ):
     """Subscribe to webhooks for each repository (must be idempotent)."""
     credentials = None  # alias for admin
-    plugin_id = common_headers.plugin_id
 
-    repos = await get_repositories(credentials, plugin_id, repo_list.repo_names)
+    repos = await get_repositories(credentials, plugin_id, repo_list.repo_slugs)
 
     target_url = sanitize_webhook_target_url(target_url)
 
@@ -149,7 +148,7 @@ async def create_webhooks(
                 # get list of webhooks for this repo
                 try:
                     current_subscriptions = await client.get_webhook_subscriptions(
-                        plugin_id=plugin_id, credentials=credentials, repo_name=repo.name
+                        plugin_id=plugin_id, credentials=credentials, repo_slug=repo.slug
                         )
                 except HTTPError as e:
                     logger.warning(
@@ -180,7 +179,7 @@ async def create_webhooks(
                     new_subscription = await client.create_webhook_subscription(
                         plugin_id=plugin_id,
                         credentials=credentials,
-                        repo_name=repo.name,
+                        repo_slug=repo.slug,
                         url=target_url,
                         active=True,
                         events=settings.WEBHOOKS_DEFAULT_EVENTS,
@@ -207,26 +206,25 @@ async def create_webhooks(
 async def remove_webhooks(
         repo_list: RepoList,
         target_url: str | None = None,
-        common_headers: CommonHeaders = Depends(),
+        plugin_id: str = "cbq",
         ):
     """Remove the default webhooks from all repositories."""
 
     credentials = None  # alias for admin
-    plugin_id = common_headers.plugin_id
 
-    if len(repo_list.repo_names) == 0 and target_url is None:
+    if len(repo_list.repo_slugs) == 0 and target_url is None:
         raise HTTPException(status_code=400, detail="No repositories or target_url provided.")
 
     target_url = sanitize_webhook_target_url(target_url)
 
-    repos = await get_repositories(credentials, plugin_id, repo_list.repo_names)
+    repos = await get_repositories(credentials, plugin_id, repo_list.repo_slugs)
 
     async with create_task_group() as tg:
         for repo in repos:  # type: ignore
             async def _remove_webhook(repo):
                 try:
                     current_subscriptions = await client.get_webhook_subscriptions(
-                        plugin_id=plugin_id, credentials=credentials, repo_name=repo.name
+                        plugin_id=plugin_id, credentials=credentials, repo_slug=repo.slug
                         )
                 except HTTPError as e:
                     logger.warning(
@@ -244,7 +242,7 @@ async def remove_webhooks(
                             await client.delete_webhook_subscription(
                                 plugin_id=plugin_id,
                                 credentials=credentials,
-                                repo_name=repo.name,
+                                repo_slug=repo.slug,
                                 subscription_id=subscription["uuid"],
                                 )
                             logger.info(f"Deleted webhook subscription for {repo.name}.")
@@ -277,19 +275,24 @@ async def get_repository_by_name(
         ):
     credentials = None  # alias for admin
     plugin_id = common_headers.plugin_id
-    return await client.get_repository(plugin_id=plugin_id, credentials=credentials, repo_name=name)
+    return await client.get_repository(
+        plugin_id=plugin_id,
+        credentials=credentials,
+        repo_slug=name,
+        by="name"
+        )
 
 
-@router.get("/repositories/{repo_name}/cd")
+@router.get("/repositories/{repo_slug}/cd")
 async def get_cd_config(
-        repo_name: str,
+        repo_slug: str,
         common_headers: CommonHeaders = Depends(),
         ):
     credentials = None  # alias for admin
     plugin_id = common_headers.plugin_id
     try:
         return await client.get_continuous_deployment_config(
-            plugin_id=plugin_id, credentials=credentials, repo_name=repo_name
+            plugin_id=plugin_id, credentials=credentials, repo_slug=repo_slug
             )
     except HTTPError as e:
         raise HTTPException(status_code=500, detail=str(e))
