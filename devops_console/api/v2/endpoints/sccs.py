@@ -2,12 +2,13 @@ from http import HTTPStatus
 from urllib.parse import urljoin
 
 from anyio import create_task_group
-from fastapi import APIRouter, HTTPException
+from fastapi import APIRouter, HTTPException, Depends
 from loguru import logger
 from pydantic import BaseModel
 from requests import HTTPError
 
 from devops_console import schemas
+from devops_console.api.v2.dependencies import CommonHeaders
 from devops_console.clients import CoreClient
 from devops_console.core import settings
 
@@ -22,12 +23,8 @@ async def home():
     return {"message": "Hello World"}
 
 
-# ----------------------------------------------------------------------------------------------------------------------
-# Webhooks
-# ----------------------------------------------------------------------------------------------------------------------
-
 class RepoList(BaseModel):
-    repo_names: list[str] = []
+    repo_slugs: list[str] = []
 
 
 def sanitize_webhook_target_url(url):
@@ -55,7 +52,7 @@ async def get_repositories(credentials, plugin_id, repositories):
                     await client.get_repository(
                         plugin_id=plugin_id,
                         credentials=credentials,
-                        repo_name=repo
+                        repo_slug=repo
                         )
                     )
 
@@ -72,11 +69,24 @@ async def get_repositories(credentials, plugin_id, repositories):
     return result
 
 
+# ----------------------------------------------------------------------------------------------------------------------
+# Projects
+# ----------------------------------------------------------------------------------------------------------------------
+@router.get("/projects")
+async def get_projects():
+    global projects
+    return projects
+
+
+# ----------------------------------------------------------------------------------------------------------------------
+# Repositories
+# ----------------------------------------------------------------------------------------------------------------------
+
 @router.post("/repositories/verify_webhooks", tags=["webhooks"])
 async def verify_webhooks(
-        plugin_id: str,
         repo_list: RepoList,
         target_url: str | None = None,
+        plugin_id: str = "cbq",
         ):
     """Verify if a webhooks subscription exists for the given repositories.
     If no repositories are given, all will be checked.
@@ -84,7 +94,7 @@ async def verify_webhooks(
 
     credentials = None
 
-    repositories = repo_list.repo_names
+    repositories = repo_list.repo_slugs
 
     if len(repositories) == 0:
         repos = await get_repositories(credentials, plugin_id, [])
@@ -94,34 +104,34 @@ async def verify_webhooks(
 
     result = []
 
-    async def verify(repo_name):
+    async def verify(repo_slug):
         try:
             repo_subscriptions = await client.get_webhook_subscriptions(
-                plugin_id=plugin_id, credentials=credentials, repo_name=repo_name
+                plugin_id=plugin_id, credentials=credentials, repo_slug=repo_slug
                 )
             if not any(s["url"] == target_url for s in repo_subscriptions["values"]):
-                result.append(repo_name)
+                result.append(repo_slug)
         except HTTPError as e:
-            logger.warning(f"Failed to get list of webhooks for {repo_name}: {e}")
+            logger.warning(f"Failed to get list of webhooks for {repo_slug}: {e}")
             raise HTTPException(status_code=HTTPStatus.EXPECTATION_FAILED, detail=str(e))
 
     async with create_task_group() as tg:
-        for repo_name in repositories:
-            tg.start_soon(verify, repo_name)
+        for repo_slug in repositories:
+            tg.start_soon(verify, repo_slug)
 
     return result
 
 
 @router.post("/repositories/create_webhooks", tags=["webhooks"])
 async def create_webhooks(
-        plugin_id: str,
         repo_list: RepoList,
-        target_url: str | None = None
+        target_url: str | None = None,
+        plugin_id: str = "cbq",
         ):
     """Subscribe to webhooks for each repository (must be idempotent)."""
-    credentials = None
+    credentials = None  # alias for admin
 
-    repos = await get_repositories(credentials, plugin_id, repo_list.repo_names)
+    repos = await get_repositories(credentials, plugin_id, repo_list.repo_slugs)
 
     target_url = sanitize_webhook_target_url(target_url)
 
@@ -138,7 +148,7 @@ async def create_webhooks(
                 # get list of webhooks for this repo
                 try:
                     current_subscriptions = await client.get_webhook_subscriptions(
-                        plugin_id=plugin_id, credentials=credentials, repo_name=repo.name
+                        plugin_id=plugin_id, credentials=credentials, repo_slug=repo.slug
                         )
                 except HTTPError as e:
                     logger.warning(
@@ -169,7 +179,7 @@ async def create_webhooks(
                     new_subscription = await client.create_webhook_subscription(
                         plugin_id=plugin_id,
                         credentials=credentials,
-                        repo_name=repo.name,
+                        repo_slug=repo.slug,
                         url=target_url,
                         active=True,
                         events=settings.WEBHOOKS_DEFAULT_EVENTS,
@@ -194,27 +204,27 @@ async def create_webhooks(
 
 @router.delete("/repositories/remove_webhooks", tags=["webhooks"])
 async def remove_webhooks(
-        plugin_id: str,
         repo_list: RepoList,
-        target_url: str | None = None
+        target_url: str | None = None,
+        plugin_id: str = "cbq",
         ):
     """Remove the default webhooks from all repositories."""
 
-    credentials = None
+    credentials = None  # alias for admin
 
-    if len(repo_list.repo_names) == 0 and target_url is None:
+    if len(repo_list.repo_slugs) == 0 and target_url is None:
         raise HTTPException(status_code=400, detail="No repositories or target_url provided.")
 
     target_url = sanitize_webhook_target_url(target_url)
 
-    repos = await get_repositories(credentials, plugin_id, repo_list.repo_names)
+    repos = await get_repositories(credentials, plugin_id, repo_list.repo_slugs)
 
     async with create_task_group() as tg:
         for repo in repos:  # type: ignore
             async def _remove_webhook(repo):
                 try:
                     current_subscriptions = await client.get_webhook_subscriptions(
-                        plugin_id=plugin_id, credentials=credentials, repo_name=repo.name
+                        plugin_id=plugin_id, credentials=credentials, repo_slug=repo.slug
                         )
                 except HTTPError as e:
                     logger.warning(
@@ -232,7 +242,7 @@ async def remove_webhooks(
                             await client.delete_webhook_subscription(
                                 plugin_id=plugin_id,
                                 credentials=credentials,
-                                repo_name=repo.name,
+                                repo_slug=repo.slug,
                                 subscription_id=subscription["uuid"],
                                 )
                             logger.info(f"Deleted webhook subscription for {repo.name}.")
@@ -245,23 +255,49 @@ async def remove_webhooks(
 
             tg.start_soon(_remove_webhook, repo)
 
-# @router.get("/repositories")
-# async def get_repositories(
-#         session: tuple[str, Credentials] = Depends(yield_credentials),
-# ):
-#     plugin_id, credentials = session
-#     try:
-#         return await client.get_repositories(plugin_id=plugin_id, credentials=credentials)
-#     except ApiError as e:
-#         raise HTTPException(status_code=500, detail=e.reason)
-#
-#
-# @router.get("/repositories/{name}")
-# async def get_repository_by_name(
-#         name: str, session: tuple[str, Credentials] = Depends(yield_credentials)
-# ):
-#     plugin_id, credentials = session
-#     return await client.get_repository(plugin_id=plugin_id, credentials=credentials, repo_name=name)
+
+@router.get("/repositories")
+async def get_repositories(
+        common_headers: CommonHeaders = Depends(),
+        ):
+    credentials = None  # alias for admin
+    plugin_id = common_headers.plugin_id
+    try:
+        return await client.get_repositories(plugin_id=plugin_id, credentials=credentials)
+    except HTTPError as e:
+        raise HTTPException(status_code=500, detail=str(e))
+
+
+@router.get("/repositories/{name}")
+async def get_repository_by_name(
+        name: str,
+        common_headers: CommonHeaders = Depends(),
+        ):
+    credentials = None  # alias for admin
+    plugin_id = common_headers.plugin_id
+    return await client.get_repository(
+        plugin_id=plugin_id,
+        credentials=credentials,
+        repo_slug=name,
+        by="name"
+        )
+
+
+@router.get("/repositories/{repo_slug}/cd")
+async def get_cd_config(
+        repo_slug: str,
+        common_headers: CommonHeaders = Depends(),
+        ):
+    credentials = None  # alias for admin
+    plugin_id = common_headers.plugin_id
+    try:
+        return await client.get_continuous_deployment_config(
+            plugin_id=plugin_id, credentials=credentials, repo_slug=repo_slug
+            )
+    except HTTPError as e:
+        raise HTTPException(status_code=500, detail=str(e))
+
+
 #
 #
 # @router.post("/repositories")
@@ -323,3 +359,160 @@ async def remove_webhooks(
 #         return await client.get_projects(plugin_id=plugin_id, credentials=credentials)
 #     except HTTPError as e:
 #         raise HTTPException(status_code=400, detail=e.strerror)
+projects = {
+    "assistance": {
+        "name": "Assistance",
+        "repositories": [
+            "assistance-integration-test",
+            "assistance-salesforce-edge-api",
+            "assistance-salesforce-event-listener",
+            "assistance-salesforce-system-api",
+            "fax-system-api",
+            "insured-eligibility-service",
+            "product-benefit-service",
+            "acocan-system-api",
+            "payment-service",
+            "holidays-service"
+            ],
+        "environments": [
+            {
+                "enabled": False,
+                "name": "master"
+                },
+            {
+                "enabled": True,
+                "name": "development"
+                },
+            {
+                "enabled": True,
+                "name": "qa"
+                },
+            {
+                "enabled": True,
+                "name": "acceptation"
+                },
+            {
+                "enabled": True,
+                "name": "production"
+                }
+            ]
+        },
+    "healthcare": {
+        "name": "Healthcare Claims",
+        "repositories": [
+            "healthcare-claims-edi-service",
+            "healthcare-claims-invoice-service",
+            "healthcare-claims-salesforce-event-listener",
+            "healthcare-claims-salesforce-system-api",
+            "healthcare-claims-service",
+            "document-fusion-service",
+            "transfert-service",
+            "sharepoint-system-api",
+            "healthcare-claims-integration-test",
+            "healthcare-claims-match-service",
+            "star-system-api",
+            "factcan-system-api",
+            "exchange-rate-service",
+            "healthcare-claims-report-service"
+            ],
+        "environments": [
+            {
+                "enabled": False,
+                "name": "master"
+                },
+            {
+                "enabled": True,
+                "name": "development"
+                },
+            {
+                "enabled": True,
+                "name": "qa"
+                },
+            {
+                "enabled": True,
+                "name": "acceptation"
+                },
+            {
+                "enabled": True,
+                "name": "production"
+                }
+            ]
+        },
+    "reclamation": {
+        "name": "Réclamation Digitale",
+        "repositories": [
+            "claims-travel-frontend-web",
+            "claims-travel-edge-api",
+            "claims-travel-orchestrator-system-api",
+            "salesforce-system-api",
+            "salesforce-edge-api",
+            "salesforce-event-listener",
+            "sharepoint-system-api",
+            "usermanager-system-api",
+            "star-edge-api",
+            "email-system-api",
+            "document-viewer",
+            "document-viewer-edge-api",
+            "salesforce-core",
+            "financial-institution-service",
+            "document-fusion-service",
+            "univers-system-api",
+            "sharepoint-edge-api"
+            ],
+        "environments": [
+            {
+                "enabled": True,
+                "name": "master"
+                },
+            {
+                "enabled": False,
+                "name": "development"
+                },
+            {
+                "enabled": True,
+                "name": "qa"
+                },
+            {
+                "enabled": False,
+                "name": "training"
+                },
+            {
+                "enabled": True,
+                "name": "acceptation"
+                },
+            {
+                "enabled": True,
+                "name": "production"
+                }
+            ]
+        },
+    "amf": {
+        "name": "Document Manage - AMF",
+        "repositories": [
+            "document-manager-frontend-web",
+            "document-manager-edge-api"
+            ],
+        "environments": [
+            {
+                "name": "master",
+                "enabled": False
+                },
+            {
+                "name": "development",
+                "enabled": True
+                },
+            {
+                "name": "qa",
+                "enabled": True
+                },
+            {
+                "name": "acceptation",
+                "enabled": True
+                },
+            {
+                "name": "production",
+                "enabled": True
+                }
+            ]
+        }
+    }

@@ -28,7 +28,7 @@ async def wscom_dispatcher(
     if action == "watch":
         if send_stream is None or cancel_event is None:
             raise DispatcherUnsupportedRequest(
-                "Watch requests must be made with a send stream and a cancel event"
+                "Watch requests must be made with a send stream and a cancel event", path
                 )
         if path == "/pods":
             await core.kubernetes.pods_watch(

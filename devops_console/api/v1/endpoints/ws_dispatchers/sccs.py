@@ -40,7 +40,7 @@ async def wscom_dispatcher(
 
     plugin_id = body.get("plugin")
     credentials = body.get("session")
-    repo_name = body.get("repository")
+    repo_slug = body.get("repository")
     environment = body.get("environment")
     environments = body.get("environments", [])
     kwargs = body.get("args") or {}
@@ -52,12 +52,12 @@ async def wscom_dispatcher(
             return await client.get_continuous_deployment_config(
                 plugin_id,
                 credentials,
-                repo_name,
+                repo_slug,
                 environments
                 )
         elif path == "/repository/cd/environments_available":
             return await client.get_continuous_deployment_environments_available(
-                plugin_id, credentials, repo_name, **kwargs
+                plugin_id, credentials, repo_slug, **kwargs
                 )
         elif path == "/repository/add/contract":
             return await client.get_add_repository_contract(plugin_id, credentials)
@@ -84,7 +84,7 @@ async def wscom_dispatcher(
                 Intervals.cd,
                 send_stream,
                 cancel_event,
-                repo_name,
+                repo_slug,
                 environments,
                 )
         elif path == "/repository/cd/versions_available":
@@ -94,7 +94,7 @@ async def wscom_dispatcher(
                 Intervals.cd_versions_available,
                 send_stream,
                 cancel_event,
-                repo_name,
+                repo_slug,
                 )
         elif path == "/repository/cd/environments_available":
             await client.watch_continuous_deployment_environments_available(
@@ -103,7 +103,7 @@ async def wscom_dispatcher(
                 Intervals.cd_environs_available,
                 send_stream,
                 cancel_event,
-                repo_name,
+                repo_slug,
                 )
         return
     elif action == "write":
@@ -111,7 +111,7 @@ async def wscom_dispatcher(
             return (await client.trigger_continuous_deployment(
                 plugin_id,
                 credentials,
-                repo_name,
+                repo_slug,
                 environment,
                 body["version"],
                 )).dict()
@@ -119,7 +119,7 @@ async def wscom_dispatcher(
             return await client.add_repository(
                 plugin_id,
                 credentials,
-                repo_name,
+                repo_slug,
                 body["template"],
                 body["template_params"],
                 **kwargs

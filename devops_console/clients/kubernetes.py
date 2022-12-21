@@ -19,7 +19,7 @@ import logging
 import os
 
 from anyio import create_task_group
-from kubernetes_asyncio.client import V1PodStatus
+from kubernetes_asyncio.client import V1Pod
 from loguru import logger
 
 from devops_kubernetes.client import K8sClient
@@ -29,14 +29,20 @@ from ..schemas.userconfig import KubernetesConfig
 
 
 class Kubernetes(object):
+    _instance = None
+    client: K8sClient
+    config: KubernetesConfig
+    sccs: Sccs
+    clusters: list[str]
 
-    def __init__(self, config: KubernetesConfig, sccs: Sccs):
-        self.config = config
-        self.sccs = sccs
-        self.client: K8sClient
-
-        # list cluster names on disk
-        self.clusters = os.listdir(self.config.config_dir)
+    def __new__(cls, config: KubernetesConfig, sccs: Sccs):
+        if cls._instance is None:
+            cls._instance = object.__new__(cls)
+            cls.config = config
+            cls.sccs = sccs
+            # list cluster names on disk
+            cls.clusters = os.listdir(cls.config.config_dir)
+        return cls._instance
 
     async def init(self):
         self.client = await K8sClient.create(self.config.dict())
@@ -67,7 +73,7 @@ class Kubernetes(object):
             self,
             sccs_plugin,
             sccs_session,
-            repo_name,
+            repo_slug,
             environment,
             send_stream,
             cancel_event
@@ -76,11 +82,11 @@ class Kubernetes(object):
         see client.py in python-devops-kubernetes for the event shape.
         """
 
-        namespace = self.repo_to_namespace(repo_name, environment)
+        namespace = self.repo_to_namespace(repo_slug, environment)
 
         pod_clusters = await self.get_pod_clusters(namespace)
 
-        write_access = await self.write_access(sccs_plugin, sccs_session, repo_name)
+        write_access = await self.write_access(sccs_plugin, sccs_session, repo_slug)
 
         if len(pod_clusters) == 0:
             logging.warning(f"No cluster found for namespace {namespace}.")
@@ -110,8 +116,8 @@ class Kubernetes(object):
             await cancel_event.wait()
             tg.cancel_scope.cancel()
 
-    async def write_access(self, sccs_plugin, sccs_session, repo_name):
-        permission = await self.sccs.get_repository_permission(sccs_plugin, sccs_session, repo_name)
+    async def write_access(self, sccs_plugin, sccs_session, repo_slug):
+        permission = await self.sccs.get_repository_permission(sccs_plugin, sccs_session, repo_slug)
         write_access = permission in ["admin", "write"] if permission is not None else False
         return write_access
 
@@ -173,13 +179,9 @@ class Kubernetes(object):
             async with self.client.context(cluster=cluster) as ctx:
                 await ctx.remove_ns_to_exclude_from_kube_downscaler(namespaces)
 
-    async def get_deployment_status(self, namespace, cluster) -> list[V1PodStatus]:
-        if cluster:
-            async with self.client.context(cluster=cluster) as ctx:
-                return await ctx.get_deployment_status(namespace)
-        else:
-            statuses = []
-            for cluster in self.clusters:
-                async with self.client.context(cluster=cluster) as ctx:
-                    statuses.extend(await ctx.get_deployment_status(namespace))
-            return statuses
+    async def get_deployment_status(self, namespace) -> dict[str, list[V1Pod]]:
+        statuses = {}
+        for cluster in await self.get_pod_clusters(namespace):
+            async with self.client.context(cluster) as ctx:
+                statuses[cluster] = await ctx.list_pods(namespace)
+        return statuses

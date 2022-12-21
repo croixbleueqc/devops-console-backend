@@ -17,6 +17,7 @@
 
 from devops_sccs.client import SccsClient
 from devops_sccs.schemas.config import SccsConfig
+from devops_sccs.typing.cd import EnvironmentConfig
 
 
 def ctx_wrap(wrapped):
@@ -40,12 +41,16 @@ def ctx_wrap_generator(wrapped):
 
 class Sccs:
     """Responsible for encapsulating the client's methods in a context manager"""
-
+    _instance = None
     cd_branches_accepted: list[str]
     core: SccsClient
+    config: SccsConfig
 
-    def __init__(self, config: SccsConfig):
-        self.config = config
+    def __new__(cls, config: SccsConfig):
+        if cls._instance is None:
+            cls._instance = object.__new__(cls)
+            cls.config = config
+        return cls._instance
 
     async def init(self) -> None:
         self.core = await SccsClient.create(self.config)
@@ -54,7 +59,7 @@ class Sccs:
         return self.core.context(plugin_id, args)
 
     @ctx_wrap
-    async def get_repository(self, plugin_id, credentials, repo_name, *args, **kwargs):
+    async def get_repository(self, plugin_id, credentials, repo_slug, *args, **kwargs):
         pass
 
     @ctx_wrap
@@ -71,25 +76,25 @@ class Sccs:
 
     @ctx_wrap
     async def get_continuous_deployment_config(
-            self, plugin_id, credentials, repo_name, environments=None, *args, **kwargs
+            self, plugin_id, credentials, repo_slug, environments=None, *args, **kwargs
             ):
         pass
 
     @ctx_wrap
     async def trigger_continuous_deployment(
-            self, plugin_id, credentials, repo_name, environment, version
+            self, plugin_id, credentials, repo_slug, environment, version
             ):
         pass
 
     @ctx_wrap
     async def get_continuous_deployment_environments_available(
-            self, plugin_id, credentials, repo_name
-            ):
+            self, plugin_id, credentials, repo_slug
+            ) -> list[EnvironmentConfig]:
         pass
 
     @ctx_wrap
     async def get_continuous_deployment_versions_available(
-            self, plugin_id, credentials, repo_name, *args, **kwargs
+            self, plugin_id, credentials, repo_slug, *args, **kwargs
             ):
         pass
 
@@ -110,7 +115,7 @@ class Sccs:
         pass
 
     @ctx_wrap
-    async def delete_repository(self, plugin_id, credentials, repo_name):
+    async def delete_repository(self, plugin_id, credentials, repo_slug):
         pass
 
     @ctx_wrap
@@ -122,7 +127,7 @@ class Sccs:
             self,
             plugin_id,
             credentials,
-            repo_name: str,
+            repo_slug: str,
             *args,
             **kwargs
             ):
@@ -157,19 +162,19 @@ class Sccs:
             credentials,
             poll_interval,
             send_stream,
-            repo_name,
+            repo_slug,
             environments,
             ):
         pass
 
     @ctx_wrap
     async def watch_continuous_deployment_versions_available(
-            self, plugin_id, credentials, poll_interval, send_stream, repo_name
+            self, plugin_id, credentials, poll_interval, send_stream, repo_slug
             ):
         pass
 
     @ctx_wrap
     async def watch_continuous_deployment_environments_available(
-            self, plugin_id, credentials, poll_interval, send_stream, repo_name,
+            self, plugin_id, credentials, poll_interval, send_stream, repo_slug,
             ):
         pass
