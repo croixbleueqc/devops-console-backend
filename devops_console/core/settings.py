@@ -72,7 +72,7 @@ class Settings(BaseSettings):
     TENANT_ID: str = Field(default="", env="TENANT_ID")
     OPENAPI_CLIENT_ID: str = Field(default="", env="OPENAPI_CLIENT_ID")
     BACKEND_CORS_ORIGINS: list[str | AnyHttpUrl] = [
-        "http://localhost:8080",
+        "*",
         ]
 
     userconfig: UserConfig
