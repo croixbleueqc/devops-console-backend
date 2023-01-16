@@ -298,6 +298,30 @@ async def get_cd_config(
         raise HTTPException(status_code=500, detail=str(e))
 
 
+@router.post(
+    "/repositories/{repo_slug}/cd/trigger/{environment}/{version}"
+    )
+async def trigger_cd(
+        repo_slug: str,
+        environment: str,
+        version: str,
+        common_headers: CommonHeaders = Depends(),
+        ):
+    credentials = common_headers.credentials
+    plugin_id = common_headers.plugin_id
+
+    try:
+        return await client.trigger_continuous_deployment(
+            plugin_id=plugin_id,
+            credentials=credentials,
+            repo_slug=repo_slug,
+            environment=environment,
+            version=version,
+            )
+    except HTTPError as e:
+        raise HTTPException(status_code=500, detail=str(e))
+
+
 #
 #
 # @router.post("/repositories")

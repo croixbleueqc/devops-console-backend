@@ -23,6 +23,8 @@ from ..schemas.webhooks import (
     RepoPushEvent,
     WebhookEventKey,
     )
+from ..sse_event_generator import sse_generator
+from ..sse_event_generator.sse_event_generator import SseData
 
 app = FastAPI()
 
@@ -142,6 +144,10 @@ async def handle_repo_build_updated(event: dict):
     await core.sccs.core.scheduler.notify(
         (Context.UUID_WATCH_CONTINOUS_DEPLOYMENT_CONFIG, repo_slug)
         )
+
+    # TODO: get environment from commit status. For now we'll do without it on the
+    #  receiving end
+    sse_generator.broadcast(SseData(repo_slug=repo_slug, environement=None))
 
 
 async def handle_pr_created(event: dict):

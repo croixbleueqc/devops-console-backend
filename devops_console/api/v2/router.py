@@ -38,13 +38,12 @@ api_router.include_router(
 # )
 
 # server-sent events
-sse_router = APIRouter()
-sse_router.include_router(
+api_router.include_router(
     sse.router,
     default_response_class=EventSourceResponse,
+    tags=["sse"]
     )
 
 main_router = APIRouter()
 main_router.include_router(api_router)
 # main_router.include_router(html_router, tags=["frontend"])
-main_router.include_router(sse_router, tags=["sse"])
