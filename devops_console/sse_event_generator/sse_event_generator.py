@@ -50,10 +50,11 @@ class SseGenerator:
                             yield event.dict()
             except asyncio.CancelledError as e:
                 logging.info(f"Disconnected from client {request.client}")
+                self.streams.remove(send_stream)
                 raise e
             self.streams.remove(send_stream)
 
-        return generator
+        return generator()
 
 
 sse_generator = SseGenerator()
