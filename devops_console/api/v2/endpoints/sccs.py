@@ -11,6 +11,7 @@ from devops_console import schemas
 from devops_console.api.v2.dependencies import CommonHeaders
 from devops_console.clients import CoreClient
 from devops_console.core import settings
+from devops_console.schemas.sccs import Commit, DeploymentStatus
 from devops_sccs.errors import SccsException
 from devops_sccs.plugins.cache_keys import cache_key_fns
 from devops_sccs.redis import RedisCache
@@ -22,6 +23,7 @@ router = APIRouter()
 
 core = CoreClient()
 client = core.sccs
+client_v2 = core.sccs_v2
 
 
 @router.get("/")
@@ -93,32 +95,43 @@ async def get_repository(
         )
 
 
-@router.get("/repositories/{repo_slug}/cd")
-async def get_cd_config(
+class DeploymentStatusesResponse(BaseModel):
+    items: list[DeploymentStatus]
+
+
+@router.get("/repositories/{repo_slug}/cd", response_model=DeploymentStatusesResponse)
+def get_deployment_statuses(
         repo_slug: str,
         common_headers: CommonHeaders = Depends(),
         ):
-    credentials = None  # alias for admin
-    plugin_id = common_headers.plugin_id
     try:
-        return await client.get_continuous_deployment_config(
-            plugin_id=plugin_id, credentials=credentials, repo_slug=repo_slug
+        statuses = client_v2.get_deployment_statuses(
+            credentials=common_headers.credentials,
+            slug=repo_slug,
+            accepted_environments=None  # TODO add to route parameters
             )
+
+        return DeploymentStatusesResponse(items=statuses)
     except HTTPError as e:
         raise HTTPException(status_code=500, detail=str(e))
 
 
-@router.get("/repositories/{slug}/cd/versions")
-async def get_cd_versions(
+class DeploymentVersionsResponse(BaseModel):
+    done: bool
+    items: list[Commit]
+
+
+@router.get("/repositories/{slug}/cd/versions", response_model=DeploymentVersionsResponse)
+def get_cd_versions(
         slug: str,
+        top: str | None = None,
         common_headers: CommonHeaders = Depends(),
         ):
     try:
-        return await client.get_continuous_deployment_versions_available(
-            plugin_id=common_headers.plugin_id,
-            credentials=common_headers.credentials,
-            repo_slug=slug,
-            )
+        commits = client_v2.get_versions(credentials=common_headers.credentials, slug=slug, top=top)
+
+        return DeploymentVersionsResponse(done=len(commits) == 0, items=commits)
+
     except HTTPError as e:
         raise HTTPException(status_code=500, detail=str(e))
 

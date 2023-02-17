@@ -21,6 +21,7 @@
 from .kubernetes import Kubernetes
 from .oauth2 import OAuth2
 from .sccs import Sccs
+from .sccs_v2 import SccsV2
 from ..core import settings
 from ..schemas import UserConfig
 
@@ -39,6 +40,7 @@ class CoreClient:
 
             cls.config = settings.userconfig
             cls.sccs = Sccs(cls.config.sccs)
+            cls.sccs_v2 = SccsV2(cls.config.sccs)
             cls.kubernetes = Kubernetes(cls.config.kubernetes, cls.sccs)
             cls.oauth2 = OAuth2(cls.config.OAuth2)
 
