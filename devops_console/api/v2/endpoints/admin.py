@@ -79,6 +79,6 @@ def get_public_key():
     return crypto.get_public_key()
 
 
-@router.post("/security/decrypt")
+@router.post("/security/decrypt", response_class=PlainTextResponse)
 def decrypt_message(message: str = Body()):
     return crypto.decrypt(base64.b64decode(message))
