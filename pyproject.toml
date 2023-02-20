@@ -18,6 +18,7 @@ dependencies = [
   "hvac>=1,<2",
   "Jinja2>=3.1.2,<4",
   "passlib[bcrypt]>=1.7.4,<2",
+  "pycryptodomex>=3.17",
   "pydantic[email,dotenv]>=1.9.1,<2",
   "python-multipart",
   "SQLAlchemy>=1.4.40,<2",

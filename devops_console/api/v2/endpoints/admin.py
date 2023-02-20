@@ -1,5 +1,9 @@
-from fastapi import APIRouter, HTTPException
+import base64
 
+from fastapi import APIRouter, HTTPException, Body
+from fastapi.responses import PlainTextResponse
+
+from devops_console.utils import crypto
 from devops_sccs.plugins.cache_keys import cache_key_fns
 from devops_sccs.redis import RedisCache
 
@@ -67,3 +71,14 @@ async def clear_cache_namespace(namespace: str):
         return {"message": f"Cleared {n} keys in namespace {namespace}"}
     else:
         raise HTTPException(status_code=404, detail=f"Cache namespace {namespace} not found")
+
+
+@router.get("/security/key", response_class=PlainTextResponse)
+def get_public_key():
+    """Returns a public key used to encrypt stuff on the client-side."""
+    return crypto.get_public_key()
+
+
+@router.post("/security/decrypt")
+def decrypt_message(message: str = Body()):
+    return crypto.decrypt(base64.b64decode(message))
