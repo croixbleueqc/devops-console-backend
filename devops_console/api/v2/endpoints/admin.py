@@ -67,3 +67,17 @@ async def clear_cache_namespace(namespace: str):
         return {"message": f"Cleared {n} keys in namespace {namespace}"}
     else:
         raise HTTPException(status_code=404, detail=f"Cache namespace {namespace} not found")
+
+
+public_key = "supersecretkey"
+
+
+@router.get("/security/key")
+def get_public_key():
+    """Returns a public key used to encrypt stuff on the client-side."""
+    return public_key
+
+
+@router.post("/security/decrypt")
+def decrypt_message(message: str):
+    pass
