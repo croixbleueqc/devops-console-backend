@@ -9,6 +9,7 @@ from requests import HTTPError
 
 from devops_console.schemas.sccs import Commit, DeploymentStatus
 from devops_sccs.errors import SccsException
+from devops_sccs.plugins.cache_keys import cache_key_fns
 from devops_sccs.redis import cache_sync
 from devops_sccs.schemas.config import SccsConfig, Plugins, PluginConfig, EnvironmentConfiguration
 from devops_sccs.typing.credentials import Credentials
@@ -92,7 +93,10 @@ class SccsV2:
 
         return commits
 
-    @cache_sync(ttl=timedelta(hours=1))
+    @cache_sync(
+        ttl=timedelta(hours=1),
+        key=cache_key_fns["get_deployment_statuses"]
+        )
     def get_deployment_statuses(
             self,
             *,
