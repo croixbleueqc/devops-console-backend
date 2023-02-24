@@ -17,6 +17,7 @@ from urllib.parse import urljoin
 
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
+from fastapi.routing import APIRoute
 
 from .api.v1.router import router
 from .api.v2.router import main_router as router_v2
@@ -30,7 +31,13 @@ setup_logging()
 # initialize core
 core = CoreClient()
 
-app = FastAPI()
+
+# less verbose operation IDs for openapi-generator
+def custom_generate_id(route: APIRoute):
+    return f"{route.tags[0]}-{route.name}"
+
+
+app = FastAPI(generate_unique_id_function=custom_generate_id)
 
 if settings.BACKEND_CORS_ORIGINS is not None and len(settings.BACKEND_CORS_ORIGINS) > 0:
     app.add_middleware(

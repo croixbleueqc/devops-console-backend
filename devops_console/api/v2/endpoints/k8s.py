@@ -43,25 +43,25 @@ class PodStatus(BaseModel):
     container_statuses: list[ContainerStatus]
 
 
-class DeploymentStatus(BaseModel):
+class K8sDeploymentStatus(BaseModel):
     cluster: str
     namespace: str
     permission: Literal["read", "write"]
     pods: list[PodStatus]
 
 
-@router.get("/deployment-status/{repo_slug}/{environment}", response_model=list[DeploymentStatus])
+@router.get("/deployment-status/{slug}/{environment}")
 async def get_deployment_status(
-        repo_slug: str,
+        slug: str,
         environment: str,
         common_headers: CommonHeaders = Depends(),
-        ):
+        ) -> list[K8sDeploymentStatus]:
     """Get statuses."""
-    namespace = client.repo_to_namespace(repo_slug, environment)
+    namespace = client.repo_to_namespace(slug, environment)
     write_access = await client.write_access(
         common_headers.plugin_id,
         common_headers.credentials,
-        repo_slug
+        slug
         )
     permission = "write" if write_access else "read"
 
@@ -71,7 +71,7 @@ async def get_deployment_status(
     for cluster, pods in deployment_status.items():
         # noinspection PyTypeChecker
         result.append(
-            DeploymentStatus(
+            K8sDeploymentStatus(
                 namespace=namespace,
                 cluster=cluster,
                 permission=permission,

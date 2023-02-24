@@ -1,17 +1,24 @@
 from http import HTTPStatus
 from urllib.parse import urljoin
 
+import atlassian
 from anyio import create_task_group
 from fastapi import APIRouter, HTTPException, Depends
 from loguru import logger
 from pydantic import BaseModel
 from requests import HTTPError
 
-from devops_console import schemas
 from devops_console.api.v2.dependencies import CommonHeaders
 from devops_console.clients import CoreClient
 from devops_console.core import settings
-from devops_console.schemas.sccs import Commit, DeploymentStatus
+from devops_console.schemas import WebhookSubscription
+from devops_console.schemas.sccs import (
+    AddRepositoryContract,
+    Commit,
+    DeploymentStatus,
+    RepositoryCollection,
+    RepositoryDescription, TriggerCDReturnType, Project,
+    )
 from devops_sccs.errors import SccsException
 from devops_sccs.plugins.cache_keys import cache_key_fns
 from devops_sccs.redis import RedisCache
@@ -26,18 +33,12 @@ client = core.sccs
 client_v2 = core.sccs_v2
 
 
-@router.get("/")
-async def home():
-    return {"message": "Hello World"}
-
-
 # ----------------------------------------------------------------------------------------------------------------------
 # Collections
 # ----------------------------------------------------------------------------------------------------------------------
 
-
 @router.get("/repository-collections")
-async def get_repository_collections():
+def get_repository_collections() -> dict[str, RepositoryCollection]:
     global repository_collections
     return repository_collections
 
@@ -48,14 +49,33 @@ async def get_repository_collections():
 
 
 @router.get("/projects")
-async def get_projects(common_headers: CommonHeaders = Depends()):
+async def get_projects(
+        common_headers: CommonHeaders = Depends()
+        ) -> list[Project]:
     credentials = common_headers.credentials
     plugin_id = common_headers.plugin_id
 
+    result = []
     try:
-        return await client.get_projects(plugin_id=plugin_id, credentials=credentials)
+        projects: atlassian.bitbucket.cloud.workspaces.Projects = await client.get_projects(
+            plugin_id=plugin_id,
+            credentials=credentials
+            )
+        for project in projects.each():
+            result.append(
+                Project(
+                    name=project.name,
+                    key=project.key,
+                    description=project.description,
+                    is_private=project.is_private,
+                    created_on=project.created_on,
+                    updated_on=project.updated_on
+                    )
+                )
+
+        return result
     except HTTPError as e:
-        raise HTTPException(status_code=400, detail=e.strerror)
+        raise HTTPException(status_code=e.response.status_code, detail=str(e))
 
 
 # ----------------------------------------------------------------------------------------------------------------------
@@ -63,57 +83,41 @@ async def get_projects(common_headers: CommonHeaders = Depends()):
 # ----------------------------------------------------------------------------------------------------------------------
 
 
-class RepoList(BaseModel):
-    repo_slugs: list[str] = []
-
-
 @router.get("/repositories")
-async def get_repositories(
-        common_headers: CommonHeaders = Depends(),
-        ):
-    credentials = common_headers.credentials
-    plugin_id = common_headers.plugin_id
+def get_repositories(common_headers: CommonHeaders = Depends()) -> list[RepositoryDescription]:
     try:
-        return await client.get_repositories(
-            plugin_id=plugin_id, credentials=credentials
-            )
+        return client_v2.get_repositories(common_headers.credentials)
     except HTTPError as e:
-        raise HTTPException(status_code=500, detail=str(e))
+        raise HTTPException(status_code=e.response.status_code, detail=str(e))
 
 
 @router.get("/repositories/{slug}")
-async def get_repository(
-        slug: str,
-        common_headers: CommonHeaders = Depends(),
-        ):
-    credentials = None  # alias for admin
-    plugin_id = common_headers.plugin_id
-    return await client.get_repository(
-        plugin_id=plugin_id,
-        credentials=credentials,
-        repo_slug=slug,
-        )
+def get_repository(slug: str, common_headers: CommonHeaders = Depends()) -> RepositoryDescription:
+    try:
+        return client_v2.get_repository(common_headers.credentials, slug=slug)
+    except HTTPError as e:
+        raise HTTPException(status_code=e.response.status_code, detail=str(e))
 
 
 class DeploymentStatusesResponse(BaseModel):
     items: list[DeploymentStatus]
 
 
-@router.get("/repositories/{repo_slug}/cd", response_model=DeploymentStatusesResponse)
+@router.get("/repositories/{slug}/cd")
 def get_deployment_statuses(
-        repo_slug: str,
-        common_headers: CommonHeaders = Depends(),
-        ):
+        slug: str,
+        common_headers: CommonHeaders = Depends()
+        ) -> DeploymentStatusesResponse:
     try:
         statuses = client_v2.get_deployment_statuses(
             credentials=common_headers.credentials,
-            slug=repo_slug,
+            slug=slug,
             accepted_environments=None  # TODO add to route parameters
             )
 
         return DeploymentStatusesResponse(items=statuses)
     except HTTPError as e:
-        raise HTTPException(status_code=500, detail=str(e))
+        raise HTTPException(status_code=e.response.status_code, detail=str(e))
 
 
 class DeploymentVersionsResponse(BaseModel):
@@ -121,28 +125,52 @@ class DeploymentVersionsResponse(BaseModel):
     items: list[Commit]
 
 
-@router.get("/repositories/{slug}/cd/versions", response_model=DeploymentVersionsResponse)
+@router.get("/repositories/{slug}/cd/versions")
 def get_cd_versions(
         slug: str,
         top: str | None = None,
         common_headers: CommonHeaders = Depends(),
-        ):
+        ) -> DeploymentVersionsResponse:
     try:
         commits = client_v2.get_versions(credentials=common_headers.credentials, slug=slug, top=top)
 
         return DeploymentVersionsResponse(done=len(commits) == 0, items=commits)
 
     except HTTPError as e:
-        raise HTTPException(status_code=500, detail=str(e))
+        raise HTTPException(status_code=e.response.status_code, detail=str(e))
 
 
-@router.post("/repositories/{repo_slug}/cd/{environment}/{version}")
+@router.get("/repositories/{slug}/cd/{environment}")
+def get_deployment_status(
+        slug: str,
+        environment: str,
+        common_headers: CommonHeaders = Depends(),
+        ) -> DeploymentStatus:
+    try:
+        status = client_v2.get_deployment_status(
+            credentials=common_headers.credentials,
+            slug=slug,
+            environment=environment
+            )
+
+        if status == None:
+            raise HTTPException(
+                status_code=404,
+                detail=f'No deployment found for "{slug}" in the "{environment}" environment.'
+                )
+
+        return status
+    except HTTPError as e:
+        raise HTTPException(status_code=e.response.status_code, detail=str(e))
+
+
+@router.post("/repositories/{slug}/cd/{environment}/{version}")
 async def trigger_cd(
-        repo_slug: str,
+        slug: str,
         environment: str,
         version: str,
         common_headers: CommonHeaders = Depends(),
-        ):
+        ) -> TriggerCDReturnType:
     credentials = common_headers.credentials
     plugin_id = common_headers.plugin_id
 
@@ -150,20 +178,32 @@ async def trigger_cd(
         res = await client.trigger_continuous_deployment(
             plugin_id=plugin_id,
             credentials=credentials,
-            repo_slug=repo_slug,
+            repo_slug=slug,
             environment=environment,
             version=version,
             )
 
         # clear associated cache
-        cache.delete(cache_key_fns["get_continuous_deployment_config"](repo_slug, []))
+        cache.delete(cache_key_fns["get_continuous_deployment_config"](slug, []))
+        # TODO clean this up; two functions only as long as we're in limbo between legacy
+        # code and the FastAPI rewrite.
+        cache.delete(
+            cache_key_fns["get_deployment_status"](slug=slug, environment=environment)
+            )
 
-        return res
+        return TriggerCDReturnType(
+            environment=res.environment,
+            version=res.version,
+            author=res.author,
+            date=res.date,
+            pullrequest=res.pullrequest,
+            readonly=res.readonly,
+            )
     except HTTPError as e:
-        raise HTTPException(status_code=500, detail=str(e))
+        raise HTTPException(status_code=e.response.status_code, detail=str(e))
 
 
-@router.get("/add-repository-contract")
+@router.get("/add-repository-contract", response_model=AddRepositoryContract)
 async def get_add_repository_contract(common_headers: CommonHeaders = Depends()):
     credentials = common_headers.credentials
     plugin_id = common_headers.plugin_id
@@ -173,7 +213,7 @@ async def get_add_repository_contract(common_headers: CommonHeaders = Depends())
             plugin_id=plugin_id, credentials=credentials
             )
     except HTTPError as e:
-        raise HTTPException(status_code=500, detail=str(e))
+        raise HTTPException(status_code=e.response.status_code, detail=str(e))
 
 
 class AddRepositoryDefinition(BaseModel):
@@ -191,10 +231,9 @@ class AddRepositoryRequestBody(BaseModel):
 
 @router.post("/repositories")
 async def add_repository(
-        # TODO type arguments
         body: AddRepositoryRequestBody,
         common_headers: CommonHeaders = Depends(),
-        ):
+        ) -> str:
     """
     Create a new repository (if it doesn't exist) and set the webhooks.
     """
@@ -202,23 +241,21 @@ async def add_repository(
     plugin_id = common_headers.plugin_id
 
     try:
-        responserepo = (
-            await client.add_repository(
-                plugin_id=plugin_id,
-                credentials=credentials,
-                repository=body.repository.dict(),
-                template=body.template,
-                template_params=body.template_params,
-                ),
+        git_string = await client.add_repository(
+            plugin_id=plugin_id,
+            credentials=credentials,
+            repository=body.repository.dict(),
+            template=body.template,
+            template_params=body.template_params,
             )
 
-        if not responserepo:
+        if not git_string:
             raise HTTPException(status_code=400, detail="Failed to create repository")
 
         # clear the repositories cache
         cache.delete_namespace("repositories")
     except (HTTPError, SccsException) as e:
-        raise HTTPException(status_code=500, detail=str(e))
+        raise HTTPException(status_code=e.response.status_code, detail=str(e))
 
     # Set the default webhook
     # await client.create_webhook_subscription(
@@ -232,7 +269,7 @@ async def add_repository(
     #     args=None,
     # )
     #
-    return responserepo
+    return git_string
 
 
 #
@@ -251,13 +288,16 @@ async def add_repository(
 # Repository Webhooks
 # ----------------------------------------------------------------------------------------------------------------------
 
+class RepoList(BaseModel):
+    repo_slugs: list[str] = []
 
-@router.post("/repositories/verify_webhooks", tags=["webhooks"])
+
+@router.post("/repositories/verify_webhooks")
 async def verify_webhooks(
         repo_list: RepoList,
         target_url: str | None = None,
         plugin_id: str = "cbq",
-        ):
+        ) -> list[str]:
     """Verify if a webhooks subscription exists for the given repositories.
     If no repositories are given, all will be checked.
     Returns a list of repositories that do not have a webhooks subscription."""
@@ -284,7 +324,7 @@ async def verify_webhooks(
         except HTTPError as e:
             logger.warning(f"Failed to get list of webhooks for {repo_slug}: {e}")
             raise HTTPException(
-                status_code=HTTPStatus.EXPECTATION_FAILED, detail=str(e)
+                status_code=e.response.status_code, detail=str(e)
                 )
 
     async with create_task_group() as tg:
@@ -294,12 +334,12 @@ async def verify_webhooks(
     return result
 
 
-@router.post("/repositories/create_webhooks", tags=["webhooks"])
+@router.post("/repositories/create_webhooks")
 async def create_webhooks(
         repo_list: RepoList,
         target_url: str | None = None,
         plugin_id: str = "cbq",
-        ):
+        ) -> list[WebhookSubscription]:
     """Subscribe to webhooks for each repository (must be idempotent)."""
     credentials = None  # alias for admin
 
@@ -374,14 +414,14 @@ async def create_webhooks(
                         )
                     return
 
-                subscriptions.append(schemas.WebhookSubscription(**new_subscription))
+                subscriptions.append(WebhookSubscription(**new_subscription))
 
             tg.start_soon(_subscribe_if_not_set, repo)
 
     return subscriptions
 
 
-@router.delete("/repositories/remove_webhooks", tags=["webhooks"])
+@router.delete("/repositories/remove_webhooks")
 async def remove_webhooks(
         repo_list: RepoList,
         target_url: str | None = None,
@@ -491,9 +531,9 @@ async def _get_repositories(credentials, plugin_id, repositories):
 
 
 repository_collections = {
-    "assistance": {
-        "name": "Assistance",
-        "repositories": [
+    "assistance": RepositoryCollection(
+        name="Assistance",
+        repositories=[
             "assistance-integration-test",
             "assistance-salesforce-edge-api",
             "assistance-salesforce-event-listener",
@@ -505,17 +545,17 @@ repository_collections = {
             "payment-service",
             "holidays-service",
             ],
-        "environments": [
+        environments=[
             {"enabled": False, "name": "master"},
             {"enabled": True, "name": "development"},
             {"enabled": True, "name": "qa"},
             {"enabled": True, "name": "acceptation"},
             {"enabled": True, "name": "production"},
             ],
-        },
-    "healthcare": {
-        "name": "Healthcare Claims",
-        "repositories": [
+        ),
+    "healthcare": RepositoryCollection(
+        name="Healthcare Claims",
+        repositories=[
             "healthcare-claims-edi-service",
             "healthcare-claims-invoice-service",
             "healthcare-claims-salesforce-event-listener",
@@ -531,17 +571,17 @@ repository_collections = {
             "exchange-rate-service",
             "healthcare-claims-report-service",
             ],
-        "environments": [
+        environments=[
             {"enabled": False, "name": "master"},
             {"enabled": True, "name": "development"},
             {"enabled": True, "name": "qa"},
             {"enabled": True, "name": "acceptation"},
             {"enabled": True, "name": "production"},
             ],
-        },
-    "reclamation": {
-        "name": "Réclamation Digitale",
-        "repositories": [
+        ),
+    "reclamation": RepositoryCollection(
+        name="Réclamation Digitale",
+        repositories=[
             "claims-travel-frontend-web",
             "claims-travel-edge-api",
             "claims-travel-orchestrator-system-api",
@@ -560,7 +600,7 @@ repository_collections = {
             "univers-system-api",
             "sharepoint-edge-api",
             ],
-        "environments": [
+        environments=[
             {"enabled": True, "name": "master"},
             {"enabled": False, "name": "development"},
             {"enabled": True, "name": "qa"},
@@ -568,16 +608,16 @@ repository_collections = {
             {"enabled": True, "name": "acceptation"},
             {"enabled": True, "name": "production"},
             ],
-        },
-    "amf": {
-        "name": "Document Manage - AMF",
-        "repositories": ["document-manager-frontend-web", "document-manager-edge-api"],
-        "environments": [
+        ),
+    "amf": RepositoryCollection(
+        name="Document Manage - AMF",
+        repositories=["document-manager-frontend-web", "document-manager-edge-api"],
+        environments=[
             {"name": "master", "enabled": False},
             {"name": "development", "enabled": True},
             {"name": "qa", "enabled": True},
             {"name": "acceptation", "enabled": True},
             {"name": "production", "enabled": True},
             ],
-        },
+        )
     }

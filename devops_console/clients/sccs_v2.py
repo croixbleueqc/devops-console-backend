@@ -7,7 +7,7 @@ from fastapi import HTTPException
 from loguru import logger
 from requests import HTTPError
 
-from devops_console.schemas.sccs import Commit, DeploymentStatus
+from devops_console.schemas.sccs import Commit, DeploymentStatus, RepositoryDescription
 from devops_sccs.errors import SccsException
 from devops_sccs.plugins.cache_keys import cache_key_fns
 from devops_sccs.redis import cache_sync
@@ -46,11 +46,49 @@ class SccsV2:
 
         session.close()
 
+    @cache_sync(ttl=timedelta(days=1))
+    def get_repositories(self, credentials: Credentials) -> list[RepositoryDescription]:
+        if credentials is None:
+            raise HTTPException(
+                status_code=403,
+                detail="You are not authorized to view this. Please provide valid credentials."
+                )
+        with self.session(credentials) as session:
+            result: list[RepositoryDescription] = []
+            for repository_permission in session._get_paged(
+                    "user/permissions/repositories", params={"pagelen": 100}
+                    ):
+                assert isinstance(repository_permission, dict)
+                repository = repository_permission["repository"]
+                full_name = repository["full_name"]
+
+                result.append(
+                    RepositoryDescription(
+                        name=repository["name"],
+                        slug=full_name.split("/")[1],
+                        url=repository["links"]["html"]["href"],
+                        permission=repository_permission["permission"],
+                        )
+                    )
+            return result
+
+    @cache_sync(ttl=timedelta(days=1))
+    def get_repository(
+            self,
+            credentials: Credentials,
+            *,
+            slug: str,
+            ) -> RepositoryDescription | None:
+        repos = self.get_repositories(credentials)
+        for repo in repos:
+            if repo.slug == slug:
+                return repo
+
     @cache_sync(ttl=timedelta(minutes=15))
     def get_versions(
             self,
-            *,
             credentials: Credentials,
+            *,
             slug: str,
             top: str | None
             ) -> list[Commit]:
@@ -93,33 +131,29 @@ class SccsV2:
 
         return commits
 
-    @cache_sync(
-        ttl=timedelta(hours=1),
-        key=cache_key_fns["get_deployment_statuses"]
-        )
     def get_deployment_statuses(
             self,
-            *,
             credentials: Credentials,
+            *,
             slug: str,
             accepted_environments: list[str] | None
             ) -> list[DeploymentStatus]:
 
         # get actual deployment environments
-        environment_configurations: list[EnvironmentConfiguration]
+        environments: list[str]
         if accepted_environments is None:
-            environment_configurations = self.environment_configurations
+            environments = [e.name for e in self.environment_configurations]
         else:
-            environment_configurations = [e for e in self.environment_configurations if
-                                          e in accepted_environments]
+            environments = [e.name for e in self.environment_configurations if
+                            e.name in accepted_environments]
 
         deployment_statuses = []
         # map environments to DeploymentStatuses
-        for environment_configuration in environment_configurations:
+        for environment in environments:
             deployment_status = self.get_deployment_status(
-                credentials,
-                slug,
-                environment_configuration
+                credentials=credentials,
+                slug=slug,
+                environment=environment
                 )
 
             if deployment_status is None:
@@ -129,12 +163,27 @@ class SccsV2:
 
         return deployment_statuses
 
+    @cache_sync(
+        ttl=timedelta(hours=1),
+        key=cache_key_fns["get_deployment_status"]
+        )
     def get_deployment_status(
             self,
             credentials: Credentials,
+            *,
             slug: str,
-            environment_configuration: EnvironmentConfiguration
+            environment: str,
             ) -> DeploymentStatus | None:
+        try:
+            environment_configuration = next(
+                (e for e in self.environment_configurations if e.name == environment)
+                )
+        except StopIteration:
+            logger.warning(
+                f"\"{environment}\" was not found in configured environments. Possible values: {[e.name for e in self.environment_configurations]}"
+                )
+            return
+
         with self.session(credentials) as session:
             repository = session.workspaces.get(self.config.team).repositories.get(slug)
 

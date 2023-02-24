@@ -12,7 +12,7 @@ class CommonHeaders:
             x_author: str | None = Header(default=None),
             ):
         self.plugin_id = x_plugin_id
-        if x_username is None or x_author is None or x_apikey is None:
+        if not x_username or not x_author or not x_apikey:
             self.credentials = None
         else:
             self.credentials = Credentials(

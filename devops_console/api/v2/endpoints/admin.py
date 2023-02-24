@@ -2,6 +2,7 @@ import base64
 
 from fastapi import APIRouter, HTTPException, Body
 from fastapi.responses import PlainTextResponse
+from pydantic import BaseModel
 
 from devops_console.utils import crypto
 from devops_sccs.plugins.cache_keys import cache_key_fns
@@ -29,12 +30,16 @@ async def clear_cache(are_you_sure: bool = False):
         return HTTPException(status_code=500, detail=str(e))
 
 
+class ClearCacheKeyResponse(BaseModel):
+    message: str
+
+
 @router.delete("/cache/clear/by_function_signature/{function_name}")
 async def clear_cache_key(
         function_name: str,
         args: tuple = (),
         kwargs: dict = None,
-        ):
+        ) -> ClearCacheKeyResponse:
     """Deletes a key in the cache by function signature. The function must be registered in the
     cache_key_fns dictionary. If the function is not found it the dictionary, the function's name
     will be used as the key."""

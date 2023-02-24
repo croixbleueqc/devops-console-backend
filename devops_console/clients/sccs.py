@@ -1,23 +1,22 @@
 # Copyright 2020 Croix Bleue du Québec
-
-# This file is part of devops-console-backend.
-
-# devops-console-backend is free software: you can redistribute it and/or modify
-# it under the terms of the GNU Lesser General Public License as published by
-# the Free Software Foundation, either version 3 of the License, or
-# (at your option) any later version.
-
-# devops-console-backend is distributed in the hope that it will be useful,
-# but WITHOUT ANY WARRANTY; without even the implied warranty of
-# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-# GNU Lesser General Public License for more details.
-
-# You should have received a copy of the GNU Lesser General Public License
-# along with devops-console-backend.  If not, see <https://www.gnu.org/licenses/>.
+import atlassian
 
 from devops_sccs.client import SccsClient
 from devops_sccs.schemas.config import SccsConfig
 from devops_sccs.typing.cd import EnvironmentConfig
+
+
+# This file is part of devops-console-backend.
+# devops-console-backend is free software: you can redistribute it and/or modify
+# it under the terms of the GNU Lesser General Public License as published by
+# the Free Software Foundation, either version 3 of the License, or
+# (at your option) any later version.
+# devops-console-backend is distributed in the hope that it will be useful,
+# but WITHOUT ANY WARRANTY; without even the implied warranty of
+# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+# GNU Lesser General Public License for more details.
+# You should have received a copy of the GNU Lesser General Public License
+# along with devops-console-backend.  If not, see <https://www.gnu.org/licenses/>.
 
 
 def ctx_wrap(wrapped):
@@ -111,7 +110,7 @@ class Sccs:
     @ctx_wrap
     async def add_repository(
             self, plugin_id, credentials, repository, template, template_params, *args, **kwargs
-            ):
+            ) -> str:
         pass
 
     @ctx_wrap
@@ -142,7 +141,11 @@ class Sccs:
         pass
 
     @ctx_wrap
-    async def get_projects(self, plugin_id, credentials):
+    async def get_projects(
+            self,
+            plugin_id,
+            credentials
+            ) -> atlassian.bitbucket.cloud.workspaces.Projects:
         pass
 
     @ctx_wrap
