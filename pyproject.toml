@@ -12,25 +12,32 @@ license = { text = "LGPL-3.0-or-later" }
 authors = [{ name = "Croix Bleue", email = "devops@qc.croixbleue.ca" }]
 
 dependencies = [
-  "atlassian-python-api>=3.26,<4",
+  "Jinja2>=3.1.2,<4",
+  "SQLAlchemy>=1.4.40,<2",
   "anyio",
+  "atlassian-python-api>=3.26,<4",
+  "dill",
   "fastapi>=0.79,<1",
   "hvac>=1,<2",
-  "Jinja2>=3.1.2,<4",
+  "kubernetes-asyncio",
+  "loguru>=0.6.0,<1",
   "passlib[bcrypt]>=1.7.4,<2",
   "pycryptodomex>=3.17",
   "pydantic[email,dotenv]>=1.9.1,<2",
+  "pygit2",
   "python-multipart",
-  "SQLAlchemy>=1.4.40,<2",
-  "sse-starlette>=1.1.6,<2",
-  "uvicorn[standard]",
-  "loguru>=0.6.0,<1",
+  "redis",
   "requests",
+  "sse-starlette>=1.1.6,<2",
   "types-requests",
+  "uvicorn[standard]",
 ]
 
-[project.optional-dependencies]
-prod = [
-  "devops-kubernetes @ git+https://github.com/croixbleueqc/python-devops-kubernetes.git@master",
-  "devops-sccs @ git+https://github.com/croixbleueqc/python-devops-sccs.git@develop",
-]
+[tool.pyright]
+include = ["devops_console"]
+
+[tool.black]
+line-length = 110
+
+[tool.mypy]
+plugins = ["pydantic.mypy"]

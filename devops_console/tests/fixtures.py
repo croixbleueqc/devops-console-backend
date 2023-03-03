@@ -7,7 +7,7 @@ from uuid import uuid4
 from fastapi.testclient import TestClient
 
 from devops_console import main
-from devops_sccs.typing.credentials import Credentials
+from devops_console.sccs.typing.credentials import Credentials
 
 sccs_path = os.environ.get("API_V2_PATH", "/api/v2")
 dev_token = os.environ.get("DEV_TOKEN", "superdupersecretdevtoken")

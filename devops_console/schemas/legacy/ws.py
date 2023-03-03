@@ -3,7 +3,7 @@ from __future__ import annotations
 import json
 from dataclasses import dataclass
 
-from devops_sccs.typing.credentials import Credentials
+from devops_console.sccs.typing.credentials import Credentials
 
 
 @dataclass

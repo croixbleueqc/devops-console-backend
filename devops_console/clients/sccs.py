@@ -1,9 +1,9 @@
 # Copyright 2020 Croix Bleue du Québec
 import atlassian
 
-from devops_sccs.client import SccsClient
-from devops_sccs.schemas.config import SccsConfig
-from devops_sccs.typing.cd import EnvironmentConfig
+from devops_console.sccs.client import SccsClient
+from devops_console.sccs.schemas.config import SccsConfig
+from devops_console.sccs.typing.cd import EnvironmentConfig
 
 
 # This file is part of devops-console-backend.

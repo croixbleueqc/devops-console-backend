@@ -2,7 +2,7 @@ from typing import Literal
 
 from pydantic import BaseModel, Field
 
-from devops_sccs.schemas.config import SccsConfig
+from devops_console.sccs.schemas.config import SccsConfig
 
 
 class APIConfig(BaseModel):
