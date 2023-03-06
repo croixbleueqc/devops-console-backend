@@ -39,9 +39,8 @@ include = ["devops_console"]
 [tool.black]
 line-length = 110
 
-[tool.mypy]
-plugins = ["pydantic.mypy"]
-
 [tool.ruff]
 line-length = 110
 
+[tool.mypy]
+plugins = ["pydantic.mypy"]

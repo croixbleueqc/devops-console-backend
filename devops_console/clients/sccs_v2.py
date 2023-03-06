@@ -11,13 +11,12 @@ from devops_console.schemas.sccs import Commit, DeploymentStatus, RepositoryDesc
 from devops_console.sccs.errors import SccsException
 from devops_console.sccs.plugins.cache_keys import cache_key_fns
 from devops_console.sccs.redis import cache_sync
+from devops_console.sccs.schemas.provision import AddRepositoryDefinition, TemplateParams
 from devops_console.sccs.schemas.config import (
     SccsConfig,
     Plugins,
     PluginConfig,
     EnvironmentConfiguration,
-    AddRepositoryDefinition,
-    TemplateParams,
 )
 from devops_console.sccs.typing.credentials import Credentials
 from devops_console.sccs.provision_v2 import ProvisionV2
@@ -201,20 +200,22 @@ class SccsV2:
         with self.session(credentials) as session:
             repository = session.workspaces.get(self.config.team).repositories.get(slug)
 
-            commit_hash = self.get_deployment_commit_hash(repository, environment_configuration)
+            commit_hash = self.get_deployment_commit_hash(
+                repository=repository, environment_configuration=environment_configuration
+            )
 
             if commit_hash is None:
                 return
 
             try:
-                commit = self.get_commit(credentials, slug, commit_hash)
+                commit = self.get_commit(credentials, slug=slug, commit_hash=commit_hash)
             except Exception:
                 return
 
             readonly = environment_configuration.trigger.get("enabled", True) and False
 
             pullrequest = (
-                self.get_pullrequest_url(repository, environment_configuration.branch)
+                self.get_pullrequest_url(repository=repository, branch_name=environment_configuration.branch)
                 if environment_configuration.trigger.get("pullrequest", False)
                 else None
             )
@@ -226,7 +227,7 @@ class SccsV2:
                 pullrequest=pullrequest,
             )
 
-    def get_pullrequest_url(self, repository: Repository, branch_name: str) -> str | None:
+    def get_pullrequest_url(self, *, repository: Repository, branch_name: str) -> str | None:
         for pr in repository.pullrequests.each():
             if (
                 pr.destination_branch == branch_name
@@ -238,6 +239,7 @@ class SccsV2:
 
     def get_deployment_commit_hash(
         self,
+        *,
         repository: Repository,
         environment_configuration: EnvironmentConfiguration,
     ) -> str | None:
@@ -265,7 +267,7 @@ class SccsV2:
 
         return deployment_commit_hash
 
-    def get_commit(self, credentials: Credentials, slug: str, commit_hash: str) -> Commit:
+    def get_commit(self, credentials: Credentials, *, slug: str, commit_hash: str) -> Commit:
         with self.session(credentials) as session:
             repository = session.workspaces.get(self.config.team).repositories.get(slug)
             try:
@@ -278,13 +280,13 @@ class SccsV2:
 
     def add_repository(
         self,
-        *,
         credentials: Credentials,
+        *,
         repository_definition: AddRepositoryDefinition,
         template_name: str,
         template_params: TemplateParams,
     ):
-        with self.session(credentials) as session:
+        with self.session(credentials):
             pass
 
 

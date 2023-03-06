@@ -21,6 +21,7 @@ from devops_console.schemas.sccs import (
     TriggerCDReturnType,
     Project,
 )
+from devops_console.sccs.schemas.provision import AddRepositoryDefinition
 from devops_console.sccs.errors import SccsException
 from devops_console.sccs.plugins.cache_keys import cache_key_fns
 from devops_console.sccs.redis import RedisCache
@@ -59,9 +60,7 @@ async def get_projects(
 
     result = []
     try:
-        projects: Projects = await client.get_projects(
-            plugin_id=plugin_id, credentials=credentials
-        )
+        projects: Projects = await client.get_projects(plugin_id=plugin_id, credentials=credentials)
         if projects is not None:
             for project in projects.each():
                 result.append(
@@ -96,9 +95,7 @@ def get_repositories(
 
 
 @router.get("/repositories/{slug}")
-def get_repository(
-    slug: str, common_headers: CommonHeaders = Depends()
-) -> RepositoryDescription:
+def get_repository(slug: str, common_headers: CommonHeaders = Depends()) -> RepositoryDescription:
     try:
         return client_v2.get_repository(common_headers.credentials, slug=slug)
     except HTTPError as e:
@@ -137,9 +134,7 @@ def get_cd_versions(
     common_headers: CommonHeaders = Depends(),
 ) -> DeploymentVersionsResponse:
     try:
-        commits = client_v2.get_versions(
-            credentials=common_headers.credentials, slug=slug, top=top
-        )
+        commits = client_v2.get_versions(credentials=common_headers.credentials, slug=slug, top=top)
 
         return DeploymentVersionsResponse(done=len(commits) == 0, items=commits)
 
@@ -194,9 +189,7 @@ async def trigger_cd(
         cache.delete(cache_key_fns["get_continuous_deployment_config"](slug, []))
         # TODO clean this up; two functions only as long as we're in limbo between legacy
         # code and the FastAPI rewrite.
-        cache.delete(
-            cache_key_fns["get_deployment_status"](slug=slug, environment=environment)
-        )
+        cache.delete(cache_key_fns["get_deployment_status"](slug=slug, environment=environment))
 
         return TriggerCDReturnType(
             environment=res.environment,
@@ -218,9 +211,7 @@ async def get_add_repository_contract(
     plugin_id = common_headers.plugin_id
 
     try:
-        return await client.get_add_repository_contract(
-            plugin_id=plugin_id, credentials=credentials
-        )
+        return await client.get_add_repository_contract(plugin_id=plugin_id, credentials=credentials)
     except HTTPError as e:
         raise HTTPException(status_code=e.response.status_code, detail=str(e))
 
@@ -243,7 +234,7 @@ async def add_repository(
     plugin_id = common_headers.plugin_id
 
     try:
-        result = await client_v2.add_repository(
+        result = await client.add_repository(
             plugin_id=plugin_id,
             credentials=credentials,
             repository=body.repository,
@@ -370,9 +361,7 @@ async def create_webhooks(
                         repo_slug=repo.slug,
                     )
                 except HTTPError as e:
-                    logger.warning(
-                        f"Failed to get webhook subscriptions for {repo.name}: {str(e)}"
-                    )
+                    logger.warning(f"Failed to get webhook subscriptions for {repo.name}: {str(e)}")
                     return
                 if current_subscriptions is None:
                     current_subscriptions = []
@@ -382,17 +371,12 @@ async def create_webhooks(
                     [
                         subscription["url"] == target_url
                         and all(
-                            [
-                                event in subscription["events"]
-                                for event in settings.WEBHOOKS_DEFAULT_EVENTS
-                            ]
+                            [event in subscription["events"] for event in settings.WEBHOOKS_DEFAULT_EVENTS]
                         )
                         for subscription in current_subscriptions["values"]
                     ]
                 ):
-                    logger.warning(
-                        f"Webhook subscription already exists for {repo.name}."
-                    )
+                    logger.warning(f"Webhook subscription already exists for {repo.name}.")
                     return
 
                 # create the webhook
@@ -408,14 +392,10 @@ async def create_webhooks(
                     )
                     logger.info(f"Subscribed to default webhook for {repo.name}.")
                 except HTTPError as e:
-                    logger.warning(
-                        f"Failed to create webhook subscription for {repo.name}: {str(e)}"
-                    )
+                    logger.warning(f"Failed to create webhook subscription for {repo.name}: {str(e)}")
                     return
                 if new_subscription is None or len(new_subscription) == 0:
-                    logger.warning(
-                        f"Failed to create webhook subscription for {repo.name}."
-                    )
+                    logger.warning(f"Failed to create webhook subscription for {repo.name}.")
                     return
 
                 subscriptions.append(WebhookSubscription(**new_subscription))
@@ -436,9 +416,7 @@ async def remove_webhooks(
     credentials = None  # alias for admin
 
     if len(repo_list.repo_slugs) == 0 and target_url is None:
-        raise HTTPException(
-            status_code=400, detail="No repositories or target_url provided."
-        )
+        raise HTTPException(status_code=400, detail="No repositories or target_url provided.")
 
     target_url = sanitize_webhook_target_url(target_url)
 
@@ -455,15 +433,10 @@ async def remove_webhooks(
                         repo_slug=repo.slug,
                     )
                 except HTTPError as e:
-                    logger.warning(
-                        f"Failed to get webhook subscriptions for {repo.name}: {e.strerror}"
-                    )
+                    logger.warning(f"Failed to get webhook subscriptions for {repo.name}: {e.strerror}")
                     return
 
-                if (
-                    current_subscriptions is None
-                    or len(current_subscriptions["values"]) == 0
-                ):
+                if current_subscriptions is None or len(current_subscriptions["values"]) == 0:
                     logger.info(f"No webhook subscriptions for {repo.name}.")
                     return
 
@@ -476,9 +449,7 @@ async def remove_webhooks(
                                 repo_slug=repo.slug,
                                 subscription_id=subscription["uuid"],
                             )
-                            logger.info(
-                                f"Deleted webhook subscription for {repo.name}."
-                            )
+                            logger.info(f"Deleted webhook subscription for {repo.name}.")
                         except HTTPError as e:
                             logger.warning(
                                 f"Failed to delete webhook subscription for {repo.name}: {e.strerror}"
@@ -490,11 +461,7 @@ async def remove_webhooks(
 
 
 def sanitize_webhook_target_url(url):
-    target_url = (
-        url
-        if url is not None
-        else urljoin(settings.WEBHOOKS_HOST, settings.WEBHOOKS_PATH)
-    )
+    target_url = url if url is not None else urljoin(settings.WEBHOOKS_HOST, settings.WEBHOOKS_PATH)
     if settings.WEBHOOKS_PATH not in target_url:
         target_url = urljoin(target_url, settings.WEBHOOKS_PATH)
     if not target_url.endswith("/"):
@@ -506,9 +473,7 @@ async def _get_repositories(credentials, plugin_id, repositories):
     result = None
     try:
         if len(repositories) == 0:
-            result = await client.get_repositories(
-                plugin_id=plugin_id, credentials=credentials
-            )
+            result = await client.get_repositories(plugin_id=plugin_id, credentials=credentials)
         else:
             result = []
 
@@ -529,9 +494,7 @@ async def _get_repositories(credentials, plugin_id, repositories):
         raise HTTPException(status_code=HTTPStatus.EXPECTATION_FAILED, detail=e)
     if result is None or len(result) == 0:
         logger.warning("No repositories found.")
-        raise HTTPException(
-            status_code=HTTPStatus.NOT_FOUND, detail="No repositories found"
-        )
+        raise HTTPException(status_code=HTTPStatus.NOT_FOUND, detail="No repositories found")
 
     return result
 
