@@ -9,7 +9,7 @@ import dill
 from loguru import logger
 from redis import Redis
 
-from devops_sccs.plugins.cache_keys import CacheKeyFn
+from devops_console.sccs.plugins.cache_keys import CacheKeyFn
 
 
 class Serializer:
@@ -149,8 +149,8 @@ def cache_async(
                 _key = CacheKeyFn.prepend_namespace(namespace, _key)
 
             if fetch:
-                logger.debug(f'REDIS CACHE: fetch flag set, deleting cached value')
-                n = _cache.delete(_key)
+                logger.debug('REDIS CACHE: fetch flag set, deleting cached value')
+                _cache.delete(_key)
 
             cached = _cache.get(_key)
             if cached is not None:
@@ -205,8 +205,8 @@ def cache_sync(
                 _key = CacheKeyFn.prepend_namespace(namespace, _key)
 
             if fetch:
-                logger.debug(f'REDIS CACHE: fetch flag set, deleting cached value')
-                n = _cache.delete(_key)
+                logger.debug('REDIS CACHE: fetch flag set, deleting cached value')
+                _cache.delete(_key)
 
             cached = _cache.get(_key)
             if cached is not None:

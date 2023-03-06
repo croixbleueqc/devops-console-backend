@@ -33,7 +33,7 @@ from dataclasses import dataclass
 from typing import Any
 
 from devops_console.schemas import WebhookEvent
-from devops_sccs.schemas.config import PluginConfig
+from devops_console.sccs.schemas.config import PluginConfig
 from .accesscontrol import Action
 from .provision import Provision
 from .typing.cd import Available, EnvironmentConfig

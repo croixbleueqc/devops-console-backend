@@ -128,7 +128,7 @@ class SccsClient(object):
             sys.path.append(external_path)
             await self.register_plugins_in_folder(external_path, config)
         else:
-            dev_external_path = f"{os.getcwd()}/app/plugins/devops_sccs"
+            dev_external_path = f"{os.getcwd()}/app/plugins/devops_console.sccs"
             if os.path.isdir(dev_external_path):
                 sys.path.append(dev_external_path)
                 await self.register_plugins_in_folder(dev_external_path, config)

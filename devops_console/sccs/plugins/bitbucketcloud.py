@@ -27,7 +27,7 @@ from atlassian.rest_client import AtlassianRestAPI
 from requests import HTTPError
 
 from devops_console.schemas import WebhookEvent
-from devops_sccs.schemas.config import EnvironmentConfiguration, PluginConfig
+from devops_console.sccs.schemas.config import EnvironmentConfiguration, PluginConfig
 from .cache_keys import cache_key_fns
 from ..accesscontrol import Action, Permission
 from ..client import register_plugin, SccsClient
