@@ -42,10 +42,12 @@ import pygit2
 from .errors import AnswerRequired, AnswerValidatorFailure, AuthorSyntax, SccsException
 from .schemas.config import (
     ProvisionConfig,
+)
+from .schemas.provision import (
     RepoContractConfig,
     TemplateSetup,
     ContractArg,
-    )
+)
 
 
 class Provision(object):
@@ -93,10 +95,10 @@ class Provision(object):
         return {
             "main": self.main_contract.dict(),
             "repository": self.repository_contract.dict(),
-            "templates": {k: {kk: vv.dict() for kk, vv in v.items()} for k, v
-                          in
-                          self.templates_contract_cache.items()},
-            }
+            "templates": {
+                k: {kk: vv.dict() for kk, vv in v.items()} for k, v in self.templates_contract_cache.items()
+            },
+        }
 
     def prepare_provision(self, repository_definition: dict, template: str, template_params: dict):
         """Verify and prepare the repository provisioning
@@ -137,23 +139,19 @@ class Provision(object):
             # Create custom command
             init_template_cmd = self._create_initialize_template_command(
                 self.templates[template].setup, template_params, repository_name
-                )
+            )
 
         # Create storage definition for this new repository
         storage_definition = {
             "repository": repository_definition,
             "template": template,
             "template_params": template_params,
-            }
+        }
 
         # return useful content to provision the new repository
         return repository_name, storage_definition, init_template_cmd
 
-    def validate(
-            self,
-            contract: dict[str, ContractArg],
-            repository_definition: dict
-            ):
+    def validate(self, contract: dict[str, ContractArg], repository_definition: dict):
         """Validate answers regarding the contract
 
         Please read the README for more details about what a contract and answers look like.
@@ -224,11 +222,7 @@ class Provision(object):
                     raise TypeError(f"{field_name} is not a boolean value.")
 
     @staticmethod
-    def _create_initialize_template_command(
-            setup: TemplateSetup,
-            answers: dict,
-            repository_name: str
-            ):
+    def _create_initialize_template_command(setup: TemplateSetup, answers: dict, repository_name: str):
         """Create a command based on answers
 
         Internal function: There is no answers validation as this is expected to be done during prepare_add_repository
@@ -314,16 +308,16 @@ class Provision(object):
         return cmd
 
     def provision(
-            self,
-            destination,
-            destination_main_branch,
-            additional_branches_mapping,
-            template,
-            initialize_template_command,
-            git_credential,
-            author=None,
-            commit_message="Scaffold initialized !",
-            ):
+        self,
+        destination,
+        destination_main_branch,
+        additional_branches_mapping,
+        template,
+        initialize_template_command,
+        git_credential,
+        author=None,
+        commit_message="Scaffold initialized !",
+    ):
         """Provision a newly created repository in your sccs
 
         Workflow:
@@ -354,7 +348,7 @@ class Provision(object):
 
         # User how_to (common steps)
         user_clone = destination
-        user_path = user_clone[user_clone.find("/") + 1: len(user_clone) - 4]
+        user_path = user_clone[user_clone.find("/") + 1 : len(user_clone) - 4]
         use_me = f"git clone {user_clone}\n"
         use_me += f"cd {user_path}\n"
 
@@ -370,7 +364,7 @@ class Provision(object):
 
         checkout_path = os.path.join(
             self.checkout_base_path, "".join(random.choices(string.ascii_letters, k=32))
-            )
+        )
 
         # Git part
         # see: https://github.com/MichaelBoselowitz/pygit2-examples/blob/master/examples.py
@@ -388,9 +382,7 @@ class Provision(object):
         logging.debug(f"{destination}: adding template {template_from_url}")
         remote_template = intermediate.remotes.create("template", template_from_url)
         remote_template.fetch(callbacks=callbacks)
-        tpl_oid = intermediate.lookup_reference(
-            f"refs/remotes/template/{template_from_main_branch}"
-            ).target
+        tpl_oid = intermediate.lookup_reference(f"refs/remotes/template/{template_from_main_branch}").target
 
         # Git create branch based on template and checkout
         logging.debug(f"{destination}: creating main branch '{destination_main_branch}'")
@@ -428,7 +420,7 @@ class Provision(object):
                 commit_message,
                 tree,
                 [intermediate.head.target],
-                )
+            )
 
         # additional branches
         logging.debug(f"{destination}: adding additional branches")
@@ -439,14 +431,10 @@ class Provision(object):
                 logging.warning(f"{destination}: override {destination_main_branch} is not allowed")
                 continue
             if template_branch not in template_from_other_branches:
-                logging.warning(
-                    f"{destination}: branch {template_branch} is not available for {template}"
-                    )
+                logging.warning(f"{destination}: branch {template_branch} is not available for {template}")
                 continue
 
-            tpl_oid = intermediate.lookup_reference(
-                f"refs/remotes/template/{template_branch}"
-                ).target
+            tpl_oid = intermediate.lookup_reference(f"refs/remotes/template/{template_branch}").target
             commit = intermediate.get(tpl_oid)
             if not commit:
                 raise SccsException(f"{destination}: commit not found")

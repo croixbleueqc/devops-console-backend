@@ -1,6 +1,6 @@
 from pydantic import BaseModel
 
-from devops_console.sccs.schemas.config import ContractArg, MainContract, RepositoryContract
+from devops_console.sccs.schemas.provision import ContractArg, MainContract, RepositoryContract
 
 
 class Commit(BaseModel):
