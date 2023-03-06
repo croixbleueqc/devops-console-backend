@@ -3,8 +3,8 @@ requires = ["setuptools", "wheel"]
 build-backend = "setuptools.build_meta"
 
 [project]
-name = "devops_console"
-version = "2.1.0"
+name = "devops-console"
+version = "2.2.0"
 description = "Monitor and manage your devops environment"
 readme = "README.md"
 requires-python = ">=3.10"
@@ -41,3 +41,7 @@ line-length = 110
 
 [tool.mypy]
 plugins = ["pydantic.mypy"]
+
+[tool.ruff]
+line-length = 110
+
