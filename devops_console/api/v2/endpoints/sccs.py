@@ -21,7 +21,7 @@ from devops_console.schemas.sccs import (
     TriggerCDReturnType,
     Project,
 )
-from devops_console.sccs.schemas.provision import AddRepositoryDefinition
+from devops_console.sccs.schemas.provision import AddRepositoryDefinition, TemplateParams
 from devops_console.sccs.errors import SccsException
 from devops_console.sccs.plugins.cache_keys import cache_key_fns
 from devops_console.sccs.redis import RedisCache
@@ -219,7 +219,7 @@ async def get_add_repository_contract(
 class AddRepositoryRequestBody(BaseModel):
     repository: AddRepositoryDefinition
     template: str
-    template_params: dict[str, bool | str]
+    template_params: TemplateParams
 
 
 @router.post("/repositories")

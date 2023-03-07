@@ -286,8 +286,28 @@ class SccsV2:
         template_name: str,
         template_params: TemplateParams,
     ):
-        with self.session(credentials):
-            pass
+        with self.session(credentials) as session:
+            # Check permissions
+
+            # Use admin account ?
+
+            # Update storage definitions/templates/configs...
+
+            # Prepare provision
+
+            # Retrieve relevant definitions
+
+            # Create repository
+            try:
+                session.workspaces.get(self.config.team).repositories.create(
+                    repo_slug=slug,
+                    project_key=project_key,
+                    is_private=is_private,
+                    fork_policy=fork_policy,
+                )
+            except HTTPError as e:
+                logger.warning(e)
+                raise
 
 
 def commit_from_api_dict(commit_dict: dict) -> Commit:

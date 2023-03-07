@@ -1,4 +1,4 @@
-from typing import Any, TypeAlias
+from typing import Any, Literal, TypeAlias
 from pydantic import BaseModel, Field
 
 
@@ -82,4 +82,118 @@ class AddRepositoryDefinition(BaseModel):
     project: RepoContractProjectValue
 
 
-TemplateParams: TypeAlias = dict[str, dict]
+# Bitbucket Management Storage Models
+
+"""
+Repository structure
+
+{
+    "repository": {
+        "name": "<Name of the repository>",
+        "project": "<Bitbucket key project>",
+        "configuration": "<configuration name in configurations/ folder>",
+        "privileges": "<privilege name in privileges/ folder>"
+    },
+    "template": "<Template name or empty string>",
+    "template_params": <Template object parameters or null>
+}
+
+"""
+
+
+class RepositoryDefinition(BaseModel):
+    name: str
+    project: str
+    configuration: str
+    privilege: str
+
+
+TemplateName: TypeAlias = str
+
+TemplateParams: TypeAlias = dict[str, bool | str] | None
+
+
+class RepositoryStructure(BaseModel):
+    repository: RepositoryDefinition
+    template: TemplateName
+    template_params: TemplateParams
+
+
+"""
+Restrictions
+
+Bitbucket restrictions for branches
+Restriction structure
+
+{
+    "<key>": <value or null>,
+    ...
+}
+"""
+Restriction: TypeAlias = dict[str, str | None]
+
+
+class BranchRestriction(BaseModel):
+    """Maps a branch name to a restriction"""
+
+    branchPattern: str
+    # refers to the name of a restriction defined in restrictions/
+    restrictions: str
+
+
+"""
+Configurations
+
+Store all configurations definitions
+Configuration structure
+
+{
+    "managed": true | false,
+    "private": true,
+    "forkPolicy": "no_public_forks",
+    "mainBranch": "",
+    "otherBranches": [
+        "deploy/dev",
+        ...
+    ],
+    "branchRestrictions": [
+        {
+            "branchPattern": "",
+            "restrictions": "<restriction name in restrictions/ folder"
+        },
+        ...
+    ],
+    "pipelines": {
+        "enabled": true | false
+    }
+}
+"""
+
+
+class ConfigurationPipelines(BaseModel):
+    enabled: bool
+
+
+class RepositoryConfiguration(BaseModel):
+    managed: bool
+    private: bool = False
+    forkPolicy: str = "no_public_forks"
+    mainBranch: Literal["main", "master"]
+    otherBranches: list[str] = []
+    branchRestrictions: list[BranchRestriction]
+    pipelines: ConfigurationPipelines
+
+
+"""
+Privileges
+
+Store all privileges definitions for bitbucket
+Privilege structure
+
+{
+    "<group>": "<read | write | admin>",
+    ...
+}
+"""
+
+Privilege: TypeAlias = dict[str, Literal["read", "write", "admin"]]

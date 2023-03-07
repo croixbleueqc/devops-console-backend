@@ -4,6 +4,7 @@ from pydantic import BaseModel, Extra, EmailStr
 
 from devops_console.sccs.schemas.provision import ProvisionConfig
 
+
 class WatcherCreds(BaseModel):
     user: str
     pwd: str
@@ -56,10 +57,20 @@ class Plugins(BaseModel):
     builtin: dict[str, bool]
     config: dict[str, PluginConfig]
 
+
 class HookServer(BaseModel):
     host: str
     port: int
-class SccsConfig(BaseModel ):
+
+
+class SccsConfig(BaseModel):
     plugins: Plugins
     provision: ProvisionConfig
     hook_server: HookServer
+
+
+class VaultConfig(BaseModel):
+    skip_vault: bool = False
+    tmp: str
+    vault_secret: str
+    vault_mount: str

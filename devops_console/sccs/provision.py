@@ -366,9 +366,6 @@ class Provision(object):
             self.checkout_base_path, "".join(random.choices(string.ascii_letters, k=32))
         )
 
-        # Git part
-        # see: https://github.com/MichaelBoselowitz/pygit2-examples/blob/master/examples.py
-
         # Git Credential with callbacks
         callbacks = pygit2.RemoteCallbacks(credentials=git_credential.for_pygit2())
 
