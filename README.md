@@ -29,7 +29,8 @@ docker build -t devops-console-backend:local .
 docker run -it -p 5000:5000 devops-console-backend:local
 ```
 
-## Endpoints
+## Local Endpoints
 
-[http://localhost:5000/docs](http://localhost:5000/docs): OpenApi spec
-[http://localhost:5000](http://localhast:5000): Server address
+Server: [http://localhost:5000](http://localhost:5000)
+
+OpenAPI spec: [http://localhost:5000/docs](http://localhost:5000/docs)
