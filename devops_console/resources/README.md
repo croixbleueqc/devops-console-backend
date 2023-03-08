@@ -1,1 +1,0 @@
-Resources folder for everything else than source code or configuration

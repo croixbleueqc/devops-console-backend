@@ -1,0 +1,15 @@
+<article>
+    <header>
+        <hgroup>
+            <h2><a href="#" hx-get="/repo/{{ repo_name }}">{{ repo_name }}</a></h2>
+            <h3>{{ env.environment }}</h3>
+            <h4>Version: {{ env.version }}</h2>
+        </hgroup>
+    </header>
+    <div hx-ext="sse"
+         sse-connect="/sse/cd?repo_name={{ repo_name }}&env_name={{ env.environment }}">
+        <div sse-swap="cd_version" hx-swap="innerHTML">
+            {% include "fragments/spinner.html" %}
+        </div>
+    </div>
+</article>

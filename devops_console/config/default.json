@@ -1,10 +1,10 @@
 {
-    "api": {
-        "title": "devops_console",
-        "version": "0.2.2",
-        "description": "DevOps Console Backend",
-        "swagger": {
-            "url": "/api/doc"
-        }
+  "api": {
+    "title": "devops_console",
+    "version": "0.2.2",
+    "description": "DevOps Console Backend",
+    "swagger": {
+      "url": "/api/doc"
     }
+  }
 }

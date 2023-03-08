@@ -1,0 +1,46 @@
+[build-system]
+requires = ["setuptools", "wheel"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "devops-console"
+version = "2.2.6"
+description = "Monitor and manage your devops environment"
+readme = "README.md"
+requires-python = ">=3.10"
+license = { text = "LGPL-3.0-or-later" }
+authors = [{ name = "Croix Bleue", email = "devops@qc.croixbleue.ca" }]
+
+dependencies = [
+  "Jinja2>=3.1.2,<4",
+  "SQLAlchemy>=1.4.40,<2",
+  "anyio",
+  "atlassian-python-api>=3.26,<4",
+  "dill",
+  "fastapi>=0.79,<1",
+  "hvac>=1,<2",
+  "kubernetes-asyncio",
+  "loguru>=0.6.0,<1",
+  "passlib[bcrypt]>=1.7.4,<2",
+  "pycryptodomex>=3.17",
+  "pydantic[email,dotenv]>=1.9.1,<2",
+  "pygit2",
+  "python-multipart",
+  "redis",
+  "requests",
+  "sse-starlette>=1.1.6,<2",
+  "types-requests",
+  "uvicorn[standard]",
+]
+
+[tool.pyright]
+include = ["devops_console"]
+
+[tool.black]
+line-length = 110
+
+[tool.ruff]
+line-length = 110
+
+[tool.mypy]
+plugins = ["pydantic.mypy"]

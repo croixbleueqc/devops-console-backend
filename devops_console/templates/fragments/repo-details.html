@@ -1,0 +1,11 @@
+<p>
+    <a href="{{ repo.data.links.html.href }}" target="_blank" rel="noopener noreferrer">
+        {{ repo.data.links.html.href }}
+    </a>
+</p>
+<p>Last update: {{ repo.updated_on }}</p>
+<h2>Status</h2>
+<div id="cd-status" hx-get="/repo/{{ repo.name }}/cd" hx-trigger="load delay:100ms"
+     hx-target="this" hx-indicator=".spinner">
+    {% include "fragments/spinner.html" %}
+</div>

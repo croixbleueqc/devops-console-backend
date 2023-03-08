@@ -1,29 +1,19 @@
-# Copyright 2019 mickybart
+import os
+import pickle
+from pathlib import Path
 
-# Licensed under the Apache License, Version 2.0 (the "License");
-# you may not use this file except in compliance with the License.
-# You may obtain a copy of the License at
+from loguru import logger
 
-#     http://www.apache.org/licenses/LICENSE-2.0
+from devops_console.core.settings import Settings
 
-# Unless required by applicable law or agreed to in writing, software
-# distributed under the License is distributed on an "AS IS" BASIS,
-# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
-# See the License for the specific language governing permissions and
-# limitations under the License.
+settings: Settings
 
-from .core import Core
+settingspickle = Path(os.environ["PICKLEJAR"], "settings.pickle")
 
-_core = None
-
-def getCore(config=None):
-    """Get a unique core
-
-    Returns:
-        Core: a common core instance
-    """
-    global _core
-    if _core is None:
-        _core = Core(config)
-
-    return _core
+try:
+    with settingspickle.open("rb") as f:
+        settings = pickle.load(f)
+    logger.info("Loaded settings from 'settings.pickle'")
+except FileNotFoundError:
+    logger.warning(f"Pickled settings not found in {settingspickle}; creating new settings object")
+    settings = Settings()  # type: ignore
