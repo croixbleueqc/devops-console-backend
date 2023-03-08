@@ -1,9 +1,12 @@
 import os
 from pathlib import Path
+from kubernetes_asyncio.client.api_client import json
 
 import pygit2
 from anyio import sleep
 from loguru import logger
+
+from devops_console.sccs.errors import SccsException
 
 from .storage_helpers import get_superuser
 
@@ -78,6 +81,10 @@ class SccsStorageWriter:
                 return
 
         logger.debug("git: pulling from bitbucket-remote-storage")
+        # make the type checker happy
+        if self.config_origin is None or self.config_repository is None:
+            raise SccsException("Failed to initialize storage.")
+
         tx = self.config_origin.fetch(callbacks=storage_callbacks)
         while tx.total_objects != tx.received_objects:
             await sleep(2)

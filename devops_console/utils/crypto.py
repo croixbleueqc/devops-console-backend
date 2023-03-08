@@ -2,9 +2,9 @@ import os
 
 import Cryptodome
 from Cryptodome.Cipher import PKCS1_OAEP
-from Cryptodome.Hash import SHA256
 from Cryptodome.PublicKey import RSA
 
+# TODO get path from config
 private_path = "./keys/private.pem"
 public_path = "./keys/public.pem"
 
