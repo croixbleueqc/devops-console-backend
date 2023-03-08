@@ -77,13 +77,10 @@ class SccsStorageWriter:
                 if self.config_repository is None:
                     raise SccsException("failed to clone repository {self.config.git}")
                 self.config_origin = self.config_repository.remotes["origin"]
-                logger.debug("cloned")
+                logger.debug("git: cloned bitbucket-remote-storage")
                 return
 
         logger.debug("git: pulling from bitbucket-remote-storage")
-        # make the type checker happy
-        if self.config_origin is None or self.config_repository is None:
-            raise SccsException("Failed to initialize storage.")
 
         tx = self.config_origin.fetch(callbacks=storage_callbacks)
         while tx.total_objects != tx.received_objects:
@@ -93,7 +90,7 @@ class SccsStorageWriter:
             refname="refs/remotes/origin/master", strategy=pygit2.GIT_CHECKOUT_FORCE
         )
 
-        logger.debug("cbq: pull complete")
+        logger.debug("git: pull complete")
 
     def load_storage_definitions(self, repo_slug: str, storage_definition=None):
         """Load and return all definitions components involved to "understand" a repository configuration
