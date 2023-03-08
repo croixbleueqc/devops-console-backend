@@ -21,8 +21,8 @@ class SccsStorageWriter:
     """
 
     _instance = None
-    config_repository = None | pygit2.Repository
-    config_origin = None | pygit2.remote.Remote
+    config_repository = None
+    config_origin = None
 
     def __new__(cls, *args):
         # Singleton
