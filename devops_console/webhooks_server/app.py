@@ -8,10 +8,10 @@ from requests import JSONDecodeError
 
 from devops_console.clients.client import CoreClient
 from devops_console.clients.wscom import manager as ws_manager
-from devops_sccs.context import Context
-from devops_sccs.plugins.cache_keys import cache_key_fns
-from devops_sccs.redis import RedisCache
-from devops_sccs.utils import repo_slug_from_full_name
+from devops_console.sccs.context import Context
+from devops_console.sccs.plugins.cache_keys import cache_key_fns
+from devops_console.sccs.redis import RedisCache
+from devops_console.sccs.utils import repo_slug_from_full_name
 from ..schemas.webhooks import (
     PRApprovedEvent,
     PRCreatedEvent,

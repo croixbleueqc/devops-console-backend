@@ -5,8 +5,8 @@ from fastapi.responses import PlainTextResponse
 from pydantic import BaseModel
 
 from devops_console.utils import crypto
-from devops_sccs.plugins.cache_keys import cache_key_fns
-from devops_sccs.redis import RedisCache
+from devops_console.sccs.plugins.cache_keys import cache_key_fns
+from devops_console.sccs.redis import RedisCache
 
 cache = RedisCache()
 

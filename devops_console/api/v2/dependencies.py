@@ -1,6 +1,6 @@
 from fastapi import Header
 
-from devops_sccs.typing.credentials import Credentials
+from devops_console.sccs.typing.credentials import Credentials
 
 
 class CommonHeaders:

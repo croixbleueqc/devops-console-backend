@@ -22,8 +22,8 @@ from anyio import create_task_group
 from kubernetes_asyncio.client import V1Pod
 from loguru import logger
 
-from devops_kubernetes.client import K8sClient
-from devops_sccs.errors import AccessForbidden
+from devops_console.k8s.client import K8sClient
+from devops_console.sccs.errors import AccessForbidden
 from ..clients.sccs import Sccs
 from ..schemas.userconfig import KubernetesConfig
 

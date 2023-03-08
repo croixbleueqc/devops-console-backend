@@ -1,5 +1,5 @@
-build/
+.envrc
 __pycache__/
+.venv/
+build/
 *.egg-info/
-.pytest_cache/
-dist/
