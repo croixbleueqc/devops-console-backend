@@ -14,6 +14,7 @@ from devops_console.core import settings
 from devops_console.sccs.provisioning.storage_models import TemplateParams
 from devops_console.models.config.provision import (
     NewRepositoryDefinition,
+    ProvisionConfig,
 )
 from devops_console.models.webhooks import WebhookSubscription
 from devops_console.models.sccs import (
@@ -213,12 +214,12 @@ async def trigger_cd(
         raise HTTPException(status_code=e.response.status_code, detail=str(e))
 
 
-@router.get("/add-repository-contract")
-def get_add_repository_contract(
+@router.get("/new_repository_form_data")
+def get_new_repository_form_data(
     common_headers: CommonHeaders = Depends(),
-):
+) -> ProvisionConfig:
     try:
-        return client_v2.get_new_repository_templates(common_headers.credentials)
+        return client_v2.get_provision_configuration(common_headers.credentials)
     except HTTPError as e:
         raise HTTPException(status_code=e.response.status_code, detail=str(e))
 
