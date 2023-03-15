@@ -35,7 +35,6 @@ from typing import Any
 from devops_console.models.webhooks import WebhookEvent
 from devops_console.models.config.sccs_config import SccsPluginConfig
 from .accesscontrol import Action
-from .provision import Provision
 from .typing.cd import Available, EnvironmentConfig
 from .typing.credentials import Credentials
 from .typing.repositories import Repository
@@ -207,7 +206,6 @@ class SccsApi(ABC):
     async def add_repository(
         self,
         session: Session,
-        provision: Provision,
         repo_definition: dict,
         template: str,
         template_params: dict,
@@ -225,7 +223,6 @@ class SccsApi(ABC):
 
         Args:
             session(object): the session
-            provision(Provision): the provision class (provides helpers, templates, etc)
             repository(dict): Answers to a repository contract
             template(str): Template to use
             template_params(dict): Answers to a template contract

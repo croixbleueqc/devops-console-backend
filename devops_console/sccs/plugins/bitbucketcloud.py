@@ -30,7 +30,6 @@ from devops_console.sccs.accesscontrol import Action, Permission
 from devops_console.sccs.client import SccsClient, register_plugin
 from devops_console.sccs.errors import SccsException, TriggerCdEnvUnsupported
 from devops_console.sccs.plugin import SccsApi, StoredSession
-from devops_console.sccs.provision import Provision
 from devops_console.sccs.redis import cache_async
 from devops_console.sccs.typing import cd as typing_cd
 from devops_console.sccs.typing import repositories as typing_repo
@@ -245,7 +244,6 @@ class BitbucketCloud(SccsApi):
     async def add_repository(
         self,
         session: Cloud,
-        provision: Provision,
         repo_definition: dict,
         template: str,
         template_params: dict,
@@ -253,7 +251,6 @@ class BitbucketCloud(SccsApi):
         return await run_async(
             super().add_repository,
             session,
-            provision,
             repo_definition,
             template,
             template_params,

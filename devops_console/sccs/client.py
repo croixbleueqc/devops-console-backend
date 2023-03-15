@@ -28,7 +28,6 @@ from devops_console.models.config.sccs_config import SccsConfig, SccsPlugins
 from .context import Context
 from .errors import PluginAlreadyRegistered, PluginNotRegistered
 from .plugin import SccsApi
-from .provision import Provision
 from .realtime.scheduler import Scheduler
 from .redis import RedisCache
 from .typing.credentials import Credentials
@@ -52,7 +51,6 @@ class SccsClient(object):
     def __init__(self):
         """Initialize plugins and internal modules"""
         self.scheduler = Scheduler()
-        self.provision: Provision
 
     @classmethod
     async def create(cls, config: SccsConfig):
@@ -64,9 +62,6 @@ class SccsClient(object):
         except Exception:
             logging.error("Unable to initialize Redis cache. Exiting...")
             sys.exit(1)
-
-        if config.provision is not None:
-            self.provision = Provision(config=config.provision)
 
         plugins_config = config.plugins
         await self.load_builtin_plugins(plugins_config)
@@ -100,9 +95,6 @@ class SccsClient(object):
             await plugin.close_session(session_id)
 
     async def cleanup(self):
-        if self.provision is not None:
-            self.provision.cleanup()
-
         global plugins
         for plugin_id in list(plugins.keys()):
             await self.unregister(plugin_id)

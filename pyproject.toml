@@ -35,6 +35,9 @@ dependencies = [
 
 optional-dependencies = { dev = [ "black", "pytest" ] }
 
+[tool.setuptools]
+packages = ["devops_console"]
+
 [tool.pyright]
 include = ["devops_console", "tests"]
 venv = ".venv"
