@@ -1,9 +1,9 @@
 from pydantic import BaseModel
 
 from devops_console.models.config.provision import (
-    TemplateInitializationArgument,
     MainContract,
     RepositoryContract,
+    TemplateArgumentField,
 )
 
 
@@ -42,7 +42,7 @@ class RepositoryCollection(BaseModel):
 class AddRepositoryContract(BaseModel):
     main: MainContract
     repository: RepositoryContract
-    templates: dict[str, dict[str, TemplateInitializationArgument]]
+    templates: dict[str, dict[str, TemplateArgumentField]]
 
 
 class TriggerCDReturnType(BaseModel):
