@@ -214,11 +214,11 @@ async def trigger_cd(
 
 
 @router.get("/add-repository-contract")
-async def get_add_repository_contract(
+def get_add_repository_contract(
     common_headers: CommonHeaders = Depends(),
 ):
     try:
-        return await client_v2.get_new_repository_templates(common_headers.credentials)
+        return client_v2.get_new_repository_templates(common_headers.credentials)
     except HTTPError as e:
         raise HTTPException(status_code=e.response.status_code, detail=str(e))
 
@@ -226,11 +226,11 @@ async def get_add_repository_contract(
 class AddRepositoryRequestBody(BaseModel):
     repository_definition: NewRepositoryDefinition
     template_name: str
-    template_params: TemplateParams | None
+    template_params: TemplateParams = {}
 
 
 @router.post("/repositories")
-async def add_repository(
+def add_repository(
     body: AddRepositoryRequestBody,
     common_headers: CommonHeaders = Depends(),
 ) -> str:
@@ -240,7 +240,7 @@ async def add_repository(
     credentials = common_headers.credentials
 
     try:
-        result = await client_v2.add_repository(
+        result = client_v2.add_repository(
             credentials,
             repository_definition=body.repository_definition,
             template_name=body.template_name,
