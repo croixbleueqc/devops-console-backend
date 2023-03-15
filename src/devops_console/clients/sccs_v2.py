@@ -301,7 +301,7 @@ class SccsV2:
 
             return commit_from_api_dict(commit_dict)
 
-    def get_new_repository_templates(
+    def get_provision_configuration(
         self,
         credentials: Credentials,
     ):
