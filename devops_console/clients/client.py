@@ -19,7 +19,7 @@
 # along with devops-console-backend.  If not, see <https://www.gnu.org/licenses/>.
 
 from devops_console.core import settings
-from devops_console.models.config.config.userconfig import UserConfig
+from devops_console.models.config.userconfig import UserConfig
 
 from .kubernetes import Kubernetes
 from .oauth2 import OAuth2
@@ -40,7 +40,7 @@ class CoreClient:
         if cls._instance is None:
             cls._instance = object.__new__(cls)
 
-            cls.config = settings.config.config.userconfig
+            cls.config = settings.userconfig
             cls.sccs = Sccs(cls.config.sccs)
             cls.sccs_v2 = SccsV2(cls.config.sccs)
             cls.kubernetes = Kubernetes(cls.config.kubernetes, cls.sccs)
