@@ -54,7 +54,9 @@ class RepositoryTemplate(BaseModel):
     """Describes a template for the creation of a new repository."""
 
     configuration: TemplateConfiguration = Field(alias="from")
-    init_cmd: TemplateInitializationCommand = Field(alias="setup")
+    init_cmd: TemplateInitializationCommand = Field(
+        TemplateInitializationCommand(), alias="setup"
+    )
 
 
 class ConfigurationValue(BaseModel):
