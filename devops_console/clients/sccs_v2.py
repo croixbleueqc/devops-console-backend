@@ -7,21 +7,20 @@ from fastapi import HTTPException
 from loguru import logger
 from requests import HTTPError, Response
 
-from devops_console.sccs.errors import SccsException
-from devops_console.sccs.plugins.cache_keys import cache_key_fns
-from devops_console.sccs.provisioning.management_storage import ManagementStorage
-from devops_console.sccs.provisioning.provision import ProvisionV2
-from devops_console.sccs.provisioning.storage_models import TemplateParams
-from devops_console.sccs.redis import cache_sync
-from devops_console.sccs.typing.credentials import Credentials
 from devops_console.models.config.provision import NewRepositoryDefinition
-from devops_console.models.sccs import Commit, DeploymentStatus, RepositoryDescription
 from devops_console.models.config.sccs_config import (
     EnvironmentConfiguration,
     SccsConfig,
     SccsPluginConfig,
     SccsPlugins,
 )
+from devops_console.models.sccs import Commit, DeploymentStatus, RepositoryDescription
+from devops_console.sccs.errors import SccsException
+from devops_console.sccs.plugins.cache_keys import cache_key_fns
+from devops_console.sccs.provisioning.provision import ProvisionV2
+from devops_console.sccs.provisioning.storage_models import TemplateParams
+from devops_console.sccs.redis import cache_sync
+from devops_console.sccs.typing.credentials import Credentials
 
 
 # FIXME temporary hardcode
@@ -38,7 +37,6 @@ class SccsV2:
     _instance = None
     config: SccsPluginConfig
     provision: ProvisionV2
-    storage_access: ManagementStorage
 
     def __new__(cls, config: SccsConfig):
         if cls._instance is None:
@@ -46,7 +44,6 @@ class SccsV2:
             cls.config = get_plugin_config(config.plugins)
             if config.provision is not None:
                 cls.provision = ProvisionV2(config.provision, cls.config)
-            cls.storage_access = ManagementStorage(cls.config)
             cls.environment_configurations = (
                 cls.config.continuous_deployment.environments
             )
