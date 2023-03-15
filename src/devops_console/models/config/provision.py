@@ -38,7 +38,7 @@ class TemplateArgumentField(BaseModel):
     type: TemplateFieldType
     description: str
     required: bool = False
-    default: int | None
+    default: int | str | bool | None
     validator: str | None
     arg: str | dict[str, Any]
 
