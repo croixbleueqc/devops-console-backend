@@ -117,8 +117,9 @@ class SccsClient(object):
         # builtin = plugins_config.get("builtin", {})
         # config = plugins_config.get("config", {})
         # todo?
+        pass
 
-    async def load_external_plugins(self, plugins_config: Plugins):
+    async def load_external_plugins(self, plugins_config: SccsPlugins):
         """External plugins
 
         All files with .py extension will be loaded
