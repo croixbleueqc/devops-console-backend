@@ -1,20 +1,12 @@
 import re
 import uuid
 from pathlib import Path
-from atlassian.bitbucket.cloud.workspaces import Workspace
-from loguru import logger
 
 import pygit2
+from atlassian.bitbucket.cloud.workspaces import Workspace
+from loguru import logger
 from requests.models import HTTPError
 
-from devops_console.sccs.errors import SccsException
-from devops_console.sccs.plugins.models.bitbucket import BranchMatchKind
-from .management_storage import ManagementStorage
-from devops_console.sccs.typing.credentials import Credentials
-from .storage_models import (
-    RepositoryConfiguration,
-    TemplateParams,
-)
 from devops_console.models.config.provision import (
     ConfigurationField,
     ConfigurationValue,
@@ -26,6 +18,16 @@ from devops_console.models.config.provision import (
     TemplateFieldValue,
 )
 from devops_console.models.config.sccs_config import SccsPluginConfig
+from devops_console.sccs.errors import SccsException
+from devops_console.sccs.plugins.models.bitbucket import BranchMatchKind
+from devops_console.sccs.typing.credentials import Credentials
+
+from .git_credentials import GitCredentials
+from .management_storage import ManagementStorage
+from .storage_models import (
+    RepositoryConfiguration,
+    TemplateParams,
+)
 
 
 class ProvisionV2:
@@ -509,40 +511,3 @@ class Validator:
     def validate_with_regex_validator(validator: str, value: str):
         if not re.match(validator, value):
             raise ValueError(f"Invalid value: {value}")
-
-
-class GitCredentials(object):
-    """Credential for git
-
-    Only support SSH key for now
-
-    Args:
-        user (str): Sccs username
-        pub (str): Absolute path to the ssh public key
-        key (str): Absolute path to the ssh private key
-        author (str): Git author like "User <user@domain.tld>"
-    """
-
-    def __init__(self, user, pub, key, author):
-        self.user = user
-        self.pub = pub
-        self.key = key
-        self.author = author
-
-    @classmethod
-    def create_pygit2_signature(cls, author):
-        """Create a signature based on git author syntax "User <user@domain.tld>"""
-
-        # TODO: improve with a regex
-        user_email = author.split("<")
-
-        if len(user_email) != 2:
-            raise AuthorSyntax(author)
-
-        user = user_email[0].strip()
-        email = user_email[1].replace(">", "").strip()
-        return pygit2.Signature(user, email, 0, 0, "utf-8")
-
-    def for_pygit2(self):
-        """Use SSH key to connect with git"""
-        return pygit2.Keypair(self.user, self.pub, self.key, "")
