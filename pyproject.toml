@@ -33,14 +33,12 @@ dependencies = [
   "uvicorn[standard]",
 ]
 
+optional-dependencies = { dev = [ "black", "pytest" ] }
+
 [tool.pyright]
-include = ["devops_console"]
-
-[tool.black]
-line-length = 110
-
-[tool.ruff]
-line-length = 110
+include = ["devops_console", "tests"]
+venv = ".venv"
+venvPath = "."
 
 [tool.mypy]
 plugins = ["pydantic.mypy"]

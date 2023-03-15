@@ -2,10 +2,14 @@ from typing import Pattern
 
 from pydantic import BaseModel, Extra, EmailStr
 
-from devops_console.sccs.schemas.provision import ProvisionConfig
+from .provision import ProvisionConfig
 
 
 class WatcherCreds(BaseModel):
+    """
+    Admin credentials # TODO: rename to admin or superuser or something...
+    """
+
     user: str
     pwd: str
     email: EmailStr | None = None
@@ -43,19 +47,28 @@ class EscalationDetails(BaseModel):
     permissions: list[str]
 
 
-class PluginConfig(BaseModel, extra=Extra.allow):
+class VaultConfig(BaseModel):
+    skip_vault: bool = False
+    tmp: str
+    vault_secret: str
+    vault_mount: str
+
+
+class SccsPluginConfig(BaseModel, extra=Extra.allow):
+    # Bitbucket "worspace" | GitLab "owner" | "organization"
     team: str
     watcher: WatcherCreds
     continuous_deployment: ContinuousDeployment
     storage: Storage
+    vault_config: VaultConfig
     escalation: dict[str, EscalationDetails]
     blacklist: list[Pattern] = []
 
 
-class Plugins(BaseModel):
+class SccsPlugins(BaseModel):
     external: str
     builtin: dict[str, bool]
-    config: dict[str, PluginConfig]
+    config: dict[str, SccsPluginConfig]
 
 
 class HookServer(BaseModel):
@@ -64,13 +77,6 @@ class HookServer(BaseModel):
 
 
 class SccsConfig(BaseModel):
-    plugins: Plugins
+    plugins: SccsPlugins
     provision: ProvisionConfig
     hook_server: HookServer
-
-
-class VaultConfig(BaseModel):
-    skip_vault: bool = False
-    tmp: str
-    vault_secret: str
-    vault_mount: str

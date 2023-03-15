@@ -10,10 +10,10 @@ import anyio
 from anyio import get_cancelled_exc_class, BrokenResourceError
 from anyio.streams.memory import MemoryObjectSendStream
 
-from ..errors import SccsException
-from ..redis import RedisCache
-from ..typing import WatcherType
-from ..typing.event import Event, EventType
+from devops_console.sccs.errors import SccsException
+from devops_console.sccs.redis import RedisCache
+from devops_console.sccs.typing import WatcherType
+from devops_console.sccs.typing.event import Event, EventType
 
 # Copyright 2021-2022 Croix Bleue du Québec
 # This file is part of python-devops-sccs.
@@ -46,13 +46,13 @@ class Watcher:
             return self.exception
 
     def __init__(
-            self,
-            watcher_id: int,
-            poll_interval: int,
-            func: Callable,
-            args: tuple,
-            kwargs: dict,
-            ):
+        self,
+        watcher_id: int,
+        poll_interval: int,
+        func: Callable,
+        args: tuple,
+        kwargs: dict,
+    ):
         self.poll_interval = poll_interval
         self.poll_event = anyio.Event()
         self.bypass_func_cache = False
@@ -125,8 +125,11 @@ class Watcher:
         if values is None:
             return []
         return list(
-            map(lambda value: Event(_type=EventType.ADDED, value=value, key=value.key), values)
+            map(
+                lambda value: Event(_type=EventType.ADDED, value=value, key=value.key),
+                values,
             )
+        )
 
     async def watch(self):
         while True:
@@ -150,16 +153,14 @@ class Watcher:
             keys_to_delete = await get_keys_to_delete(values, cached_values)
             for key in keys_to_delete:
                 value = next((v for v in cached_values if v.key == key), None)
-                event = Event(
-                    _type=EventType.DELETED,
-                    value=value,
-                    key=key
-                    )
+                event = Event(_type=EventType.DELETED, value=value, key=key)
                 events.append(event)
 
             # Add/update new values
             for value in values:
-                cache_value = next((v for v in cached_values if v.key == value.key), _sentinel)
+                cache_value = next(
+                    (v for v in cached_values if v.key == value.key), _sentinel
+                )
                 if cache_value is _sentinel:  # new value
                     _type = EventType.ADDED
                 elif cache_value != value:  # modified value
@@ -195,13 +196,15 @@ def standardize_watcher_values(values):
         values = [values]
     values = list(
         map(
-            lambda v: v if isinstance(v, WatcherType) else WatcherType(
+            lambda v: v
+            if isinstance(v, WatcherType)
+            else WatcherType(
                 key=hash(str(v)),
                 data=v.dict() if hasattr(v, "dict") else v,
-                )
-            , values
-            )
+            ),
+            values,
         )
+    )
     return values
 
 

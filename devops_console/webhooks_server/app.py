@@ -12,7 +12,7 @@ from devops_console.sccs.context import Context
 from devops_console.sccs.plugins.cache_keys import cache_key_fns
 from devops_console.sccs.redis import RedisCache
 from devops_console.sccs.utils import repo_slug_from_full_name
-from ..schemas.webhooks import (
+from devops_console.models.webhooks import (
     PRApprovedEvent,
     PRCreatedEvent,
     PRDeclinedEvent,
@@ -22,9 +22,9 @@ from ..schemas.webhooks import (
     RepoBuildStatusUpdated,
     RepoPushEvent,
     WebhookEventKey,
-    )
-from ..sse_event_generator import sse_generator
-from ..sse_event_generator.sse_event_generator import SseData
+)
+from devops_console.sse_event_generator import sse_generator
+from devops_console.sse_event_generator.sse_event_generator import SseData
 
 app = FastAPI()
 
@@ -48,7 +48,9 @@ async def handle_webhook_event(request: Request):
         body = await request.json()
     except JSONDecodeError as e:
         logging.warning(f"Error parsing JSON: {e}")
-        raise HTTPException(status_code=HTTPStatus.BAD_REQUEST, detail="Error parsing JSON.")
+        raise HTTPException(
+            status_code=HTTPStatus.BAD_REQUEST, detail="Error parsing JSON."
+        )
 
     if type(body) is not dict:
         logging.warning(f"Invalid JSON: {body}")
@@ -79,14 +81,14 @@ async def handle_webhook_event(request: Request):
             raise HTTPException(
                 status_code=HTTPStatus.BAD_REQUEST,
                 detail=msg,
-                )
+            )
 
 
 def validation_exception_handler(e: ValidationError):
     logging.warning(f"Error validating webhook event: {e}")
     raise HTTPException(
         status_code=HTTPStatus.BAD_REQUEST, detail="Error validating webhook event."
-        )
+    )
 
 
 # TODO invalidate appropriate caches on in these handlers
@@ -103,7 +105,9 @@ async def handle_repo_push(event: dict):
     except ValidationError as e:
         validation_exception_handler(e)
 
-    await ws_manager.broadcast(f"repo:push:{repopushevent.repository.name}", legacy=True)
+    await ws_manager.broadcast(
+        f"repo:push:{repopushevent.repository.name}", legacy=True
+    )
 
 
 def clear_cd_cache(repo_slug: str):
@@ -124,7 +128,7 @@ async def handle_repo_build_created(event: dict):
 
     await ws_manager.broadcast(
         f"repo:build_created:{repobuildstatuscreated.repository.name}", legacy=True
-        )
+    )
 
 
 async def handle_repo_build_updated(event: dict):
@@ -143,7 +147,7 @@ async def handle_repo_build_updated(event: dict):
     await ws_manager.broadcast(f"pr:updated:{repo_slug}", legacy=True)
     await core.sccs.core.scheduler.notify(
         (Context.UUID_WATCH_CONTINOUS_DEPLOYMENT_CONFIG, repo_slug)
-        )
+    )
 
     # TODO: get environment from commit status. For now we'll do without it on the
     #  receiving end

@@ -26,25 +26,30 @@ from atlassian.bitbucket.cloud.workspaces import Projects, Workspace
 from atlassian.rest_client import AtlassianRestAPI
 from requests import HTTPError
 
-from devops_console.schemas import WebhookEvent
-from devops_console.sccs.schemas.config import EnvironmentConfiguration, PluginConfig
+from devops_console.sccs.accesscontrol import Action, Permission
+from devops_console.sccs.client import SccsClient, register_plugin
+from devops_console.sccs.errors import SccsException, TriggerCdEnvUnsupported
+from devops_console.sccs.plugin import SccsApi, StoredSession
+from devops_console.sccs.provision import Provision
+from devops_console.sccs.redis import cache_async
+from devops_console.sccs.typing import cd as typing_cd
+from devops_console.sccs.typing import repositories as typing_repo
+from devops_console.sccs.typing.credentials import Credentials
+from devops_console.sccs.utils import cd as utils_cd
+from devops_console.sccs.utils.aioify import run_async
+from devops_console.models.config.sccs_config import (
+    EnvironmentConfiguration,
+    SccsPluginConfig,
+)
+from devops_console.models.webhooks import WebhookEvent
+
 from .cache_keys import cache_key_fns
-from ..accesscontrol import Action, Permission
-from ..client import register_plugin, SccsClient
-from ..errors import SccsException, TriggerCdEnvUnsupported
-from ..plugin import SccsApi, StoredSession
-from ..provision import Provision
-from ..redis import cache_async
-from ..typing import cd as typing_cd, repositories as typing_repo
-from ..typing.credentials import Credentials
-from ..utils import cd as utils_cd
-from ..utils.aioify import run_async
 
 PLUGIN_NAME = "bitbucketcloud"
 
 
 class BitbucketCloud(SccsApi):
-    async def init(self, core: SccsClient, config: PluginConfig):
+    async def init(self, core: SccsClient, config: SccsPluginConfig):
         """
         Initialize the plugin
         """
@@ -57,7 +62,9 @@ class BitbucketCloud(SccsApi):
         self.cd_environments = config.continuous_deployment.environments
         self.cd_branches_accepted = [env.branch for env in self.cd_environments]
         self.cd_pullrequest_tag = config.continuous_deployment.pullrequest.tag
-        self.cd_versions_available = config.continuous_deployment.pipeline.versions_available
+        self.cd_versions_available = (
+            config.continuous_deployment.pipeline.versions_available
+        )
 
         try:
             self.watcher_user = Credentials(
@@ -71,7 +78,9 @@ class BitbucketCloud(SccsApi):
                 cloud=True,
             )
         except KeyError:
-            logging.error("Watcher credentials are missing from the configuration file.")
+            logging.error(
+                "Watcher credentials are missing from the configuration file."
+            )
             raise
 
         self.accesscontrol_rules = {
@@ -95,7 +104,9 @@ class BitbucketCloud(SccsApi):
 
         raise SccsException("Invalid credentials")
 
-    async def open_session(self, session_id: int, credentials: Credentials | None = None) -> StoredSession:
+    async def open_session(
+        self, session_id: int, credentials: Credentials | None = None
+    ) -> StoredSession:
         existing_session = self.local_sessions.get(session_id)
 
         if existing_session is not None:
@@ -105,7 +116,9 @@ class BitbucketCloud(SccsApi):
         stored = StoredSession(
             id=session_id,
             shared_sessions=1,
-            session=Cloud(username=credentials.user, password=credentials.apikey, cloud=True)
+            session=Cloud(
+                username=credentials.user, password=credentials.apikey, cloud=True
+            )
             if credentials is not None
             else self.admin_session,
             credentials=credentials if credentials is not None else self.watcher_user,
@@ -173,7 +186,9 @@ class BitbucketCloud(SccsApi):
         return await super().passthrough(session, request)
 
     @cache_async(ttl=timedelta(days=1), key="repositories")
-    async def get_repositories(self, session: Cloud | None) -> list[typing_repo.Repository]:
+    async def get_repositories(
+        self, session: Cloud | None
+    ) -> list[typing_repo.Repository]:
         """see plugin.py"""
         if session is None:
             session = self.admin_session
@@ -217,7 +232,9 @@ class BitbucketCloud(SccsApi):
                 return repo
         return None
 
-    async def get_api_repository(self, session: Cloud, repo_slug: str) -> Repository | None:
+    async def get_api_repository(
+        self, session: Cloud, repo_slug: str
+    ) -> Repository | None:
         """Returns an unmodified Repository object as returned by the API"""
         await self.accesscontrol(session, repo_slug)
 
@@ -234,7 +251,12 @@ class BitbucketCloud(SccsApi):
         template_params: dict,
     ):
         return await run_async(
-            super().add_repository, session, provision, repo_definition, template, template_params
+            super().add_repository,
+            session,
+            provision,
+            repo_definition,
+            template,
+            template_params,
         )
 
     @cache_async(
@@ -264,7 +286,10 @@ class BitbucketCloud(SccsApi):
             # Get supported branches
             for idx, branch_name in enumerate(self.cd_branches_accepted):
                 try:
-                    if len(environments) == 0 or self.cd_environments[idx].name in environments:
+                    if (
+                        len(environments) == 0
+                        or self.cd_environments[idx].name in environments
+                    ):
                         b = repo.branches.get(branch_name)
                         deploys.append((b, idx))
                 except (KeyError, ValueError, HTTPError):
@@ -289,7 +314,9 @@ class BitbucketCloud(SccsApi):
         return results
 
     @cache_async(ttl=timedelta(days=1))
-    async def get_continuous_deployment_versions_available(self, repo_slug: str) -> list[typing_cd.Available]:
+    async def get_continuous_deployment_versions_available(
+        self, repo_slug: str
+    ) -> list[typing_cd.Available]:
         """
         Get the list of version available to deploy
         """
@@ -308,7 +335,11 @@ class BitbucketCloud(SccsApi):
                 None,
                 trailing=True,
                 paging_workaround=True,
-                params={"q": "target.ref_name=master", "sort": "-created_on", "pagelen": 100},
+                params={
+                    "q": "target.ref_name=master",
+                    "sort": "-created_on",
+                    "pagelen": 100,
+                },
             ):
                 yield Pipeline(
                     AtlassianRestAPI.url_joiner(repo.pipelines.url, pl["uuid"]),
@@ -320,7 +351,11 @@ class BitbucketCloud(SccsApi):
             for pipeline in pl_gen():
                 target = pipeline.get_data("target")
                 state = pipeline.get_data("state")
-                if target is None or state is None or target["type"] != "pipeline_ref_target":
+                if (
+                    target is None
+                    or state is None
+                    or target["type"] != "pipeline_ref_target"
+                ):
                     continue
                 ref_name = target["ref_name"]
                 try:
@@ -331,7 +366,10 @@ class BitbucketCloud(SccsApi):
                     # "IN_PROGESS" which could be useful information to pass along to the caller
                     # although it falls outside the mandate of the current function.
                     continue
-                if ref_name in self.cd_versions_available and result_name == "SUCCESSFUL":
+                if (
+                    ref_name in self.cd_versions_available
+                    and result_name == "SUCCESSFUL"
+                ):
                     available = typing_cd.Available(
                         key=hash((repo_slug, pipeline.build_number)),
                         build=str(pipeline.build_number),
@@ -358,7 +396,9 @@ class BitbucketCloud(SccsApi):
         for environment in self.cd_environments:
             try:
                 branch = await run_async(repo.branches.get, environment.branch)
-                (_, cfg) = await self.get_continuous_deployment_config_by_branch(repo, branch, environment)
+                (_, cfg) = await self.get_continuous_deployment_config_by_branch(
+                    repo, branch, environment
+                )
             except Exception:
                 continue
             envs.append(cfg)
@@ -382,7 +422,9 @@ class BitbucketCloud(SccsApi):
                 cd_environment_config = cd_environment
                 break
         else:
-            utils_cd.trigger_not_supported(repo_slug, environment)  # raises an exception
+            utils_cd.trigger_not_supported(
+                repo_slug, environment
+            )  # raises an exception
 
         # using user session for repo manipulations
         # Check current configuration using the cache. This is ok because the user will see the
@@ -400,9 +442,13 @@ class BitbucketCloud(SccsApi):
             )
             raise TriggerCdEnvUnsupported(repo_slug, environment)
 
-        versions_available = await self.get_continuous_deployment_versions_available(repo_slug, fetch=True)
+        versions_available = await self.get_continuous_deployment_versions_available(
+            repo_slug, fetch=True
+        )
 
-        utils_cd.trigger_prepare(continuous_deployment, versions_available, repo_slug, environment, version)
+        utils_cd.trigger_prepare(
+            continuous_deployment, versions_available, repo_slug, environment, version
+        )
 
         repo = await self.get_api_repository(session, repo_slug)
         if repo is None:
@@ -438,7 +484,9 @@ class BitbucketCloud(SccsApi):
                 await run_async(repo.branches.delete, path=f"{deploy_branch_name}")
             except HTTPError:
                 pass
-            await run_async(repo.branches.create, deploy_branch_name, deploy_branch.hash)
+            await run_async(
+                repo.branches.create, deploy_branch_name, deploy_branch.hash
+            )
         else:
             deploy_branch = None
 
@@ -451,7 +499,9 @@ class BitbucketCloud(SccsApi):
         #         }, auth=(session.username, session.password),  # type: ignore
         #     )
         post_branch_name = branch_name if deploy_branch is None else deploy_branch_name
-        logging.info(f"TRIGGER CD: POST {version} to version.txt for {repo_slug} on {post_branch_name}")
+        logging.info(
+            f"TRIGGER CD: POST {version} to version.txt for {repo_slug} on {post_branch_name}"
+        )
         await run_async(
             repo.post,
             "src",
@@ -488,16 +538,24 @@ class BitbucketCloud(SccsApi):
     async def bridge_repository_to_namespace(
         self, session: Cloud, repo_slug: str, environment: str, untrustable: bool
     ):
-        return await super().bridge_repository_to_namespace(session, repo_slug, environment, untrustable)
+        return await super().bridge_repository_to_namespace(
+            session, repo_slug, environment, untrustable
+        )
 
-    async def compliance(self, session: Cloud, remediation: bool, report: bool) -> dict | None:
+    async def compliance(
+        self, session: Cloud, remediation: bool, report: bool
+    ) -> dict | None:
         return await super().compliance(session, remediation, report)
 
     async def compliance_report(self, session: Cloud) -> dict:
         return await super().compliance_report(session)
 
-    async def compliance_repository(self, session: Cloud, repository, remediation, report) -> dict | None:
-        return await super().compliance_repository(session, repository, remediation, report)
+    async def compliance_repository(
+        self, session: Cloud, repository, remediation, report
+    ) -> dict | None:
+        return await super().compliance_repository(
+            session, repository, remediation, report
+        )
 
     async def compliance_report_repository(self, session: Cloud, repository) -> dict:
         return await super().compliance_report_repository(session, repository)
@@ -528,7 +586,9 @@ class BitbucketCloud(SccsApi):
             author=author,
             date=date,
             readonly=not trigger_config.get("enabled", True),
-            pullrequest=pullrequest if trigger_config.get("pullrequest", False) else None,
+            pullrequest=pullrequest
+            if trigger_config.get("pullrequest", False)
+            else None,
         )
         return env
 
@@ -544,7 +604,9 @@ class BitbucketCloud(SccsApi):
         version: str
         if version_file is not None:
             res: bytes | None = await run_async(
-                repo.get, path=f"src/{commit_hash}/{version_file}", not_json_response=True
+                repo.get,
+                path=f"src/{commit_hash}/{version_file}",
+                not_json_response=True,
             )  # type: ignore
             if res is not None:
                 version = res.decode("utf-8").strip()
@@ -564,8 +626,9 @@ class BitbucketCloud(SccsApi):
             def pr_sync():
                 nonlocal pullrequest_link
                 for pullrequest in repo.pullrequests.each():
-                    if pullrequest.destination_branch == config.branch and self.cd_pullrequest_tag in (
-                        pullrequest.title or ""
+                    if (
+                        pullrequest.destination_branch == config.branch
+                        and self.cd_pullrequest_tag in (pullrequest.title or "")
                     ):
                         link = pullrequest.get_link("html")
                         pullrequest_link = link["href"] if type(link) is dict else link
@@ -588,7 +651,9 @@ class BitbucketCloud(SccsApi):
         )
 
     @cache_async(ttl=timedelta(days=1))
-    async def get_repository_permission(self, session: Cloud, repo_slug: str) -> str | None:
+    async def get_repository_permission(
+        self, session: Cloud, repo_slug: str
+    ) -> str | None:
         # get repository permissions for user
 
         try:
@@ -637,7 +702,9 @@ class BitbucketCloud(SccsApi):
             },
         )
 
-    async def delete_webhook_subscription(self, session: Cloud, repo_slug, subscription_id) -> None:
+    async def delete_webhook_subscription(
+        self, session: Cloud, repo_slug, subscription_id
+    ) -> None:
         repo = await self.get_api_repository(session, repo_slug)
         if repo is None:
             return None

@@ -23,13 +23,14 @@ import os
 import sys
 from contextlib import asynccontextmanager
 
+from devops_console.models.config.sccs_config import SccsConfig, SccsPlugins
+
 from .context import Context
 from .errors import PluginAlreadyRegistered, PluginNotRegistered
 from .plugin import SccsApi
 from .provision import Provision
 from .realtime.scheduler import Scheduler
 from .redis import RedisCache
-from .schemas.config import Plugins, SccsConfig
 from .typing.credentials import Credentials
 
 # runtime plugins stare
@@ -75,7 +76,9 @@ class SccsClient(object):
         return self
 
     @asynccontextmanager
-    async def context(self, plugin_id: str, credentials: Credentials | dict[str, str] | None):
+    async def context(
+        self, plugin_id: str, credentials: Credentials | dict[str, str] | None
+    ):
         global plugins
 
         plugin = plugins.get(plugin_id)
@@ -104,7 +107,7 @@ class SccsClient(object):
         for plugin_id in list(plugins.keys()):
             await self.unregister(plugin_id)
 
-    async def load_builtin_plugins(self, plugins_config: Plugins):
+    async def load_builtin_plugins(self, plugins_config: SccsPlugins):
         """Built-in plugins
 
         A config can be passed to skip/or config some built-in plugins.

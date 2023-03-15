@@ -7,23 +7,25 @@ from fastapi import HTTPException
 from loguru import logger
 from requests import HTTPError, Response
 
-from devops_console.schemas.sccs import Commit, DeploymentStatus, RepositoryDescription
 from devops_console.sccs.errors import SccsException
 from devops_console.sccs.plugins.cache_keys import cache_key_fns
+from devops_console.sccs.provisioning.management_storage import ManagementStorage
+from devops_console.sccs.provisioning.provision import ProvisionV2
+from devops_console.sccs.provisioning.storage_models import TemplateParams
 from devops_console.sccs.redis import cache_sync
-from devops_console.sccs.schemas.provision import AddRepositoryDefinition, TemplateParams
-from devops_console.sccs.schemas.config import (
-    SccsConfig,
-    Plugins,
-    PluginConfig,
-    EnvironmentConfiguration,
-)
 from devops_console.sccs.typing.credentials import Credentials
-from devops_console.sccs.provision_v2 import ProvisionV2
+from devops_console.models.config.provision import NewRepositoryDefinition
+from devops_console.models.sccs import Commit, DeploymentStatus, RepositoryDescription
+from devops_console.models.config.sccs_config import (
+    EnvironmentConfiguration,
+    SccsConfig,
+    SccsPluginConfig,
+    SccsPlugins,
+)
 
 
 # FIXME temporary hardcode
-def get_plugin_config(plugins_config: Plugins) -> PluginConfig:
+def get_plugin_config(plugins_config: SccsPlugins) -> SccsPluginConfig:
     config = plugins_config.config.get("cbq")
 
     if config is None:
@@ -34,16 +36,20 @@ def get_plugin_config(plugins_config: Plugins) -> PluginConfig:
 
 class SccsV2:
     _instance = None
-    config: PluginConfig
+    config: SccsPluginConfig
     provision: ProvisionV2
+    storage_access: ManagementStorage
 
     def __new__(cls, config: SccsConfig):
         if cls._instance is None:
             cls._instance = object.__new__(cls)
             cls.config = get_plugin_config(config.plugins)
             if config.provision is not None:
-                cls.provision = ProvisionV2(config.provision)
-            cls.environment_configurations = cls.config.continuous_deployment.environments
+                cls.provision = ProvisionV2(config.provision, cls.config)
+            cls.storage_access = ManagementStorage(cls.config)
+            cls.environment_configurations = (
+                cls.config.continuous_deployment.environments
+            )
             cls.admin_session = Cloud(
                 username=cls.config.watcher.user,
                 password=cls.config.watcher.pwd,
@@ -61,9 +67,12 @@ class SccsV2:
 
         session.close()
 
-    def access_control(self, *, credentials: Credentials, slug: str):
+    def access_control(self, credentials: Credentials, *, slug: str):
         with self.session(credentials) as session:
-            session.get("user/permissions/repositories", params=[("q", f'repository.name="{slug}"')])
+            session.get(
+                "user/permissions/repositories",
+                params=[("q", f'repository.name="{slug}"')],
+            )
 
     @cache_sync(ttl=timedelta(days=1))
     def get_repositories(self, credentials: Credentials) -> list[RepositoryDescription]:
@@ -104,7 +113,9 @@ class SccsV2:
                 return repo
 
     @cache_sync(ttl=timedelta(minutes=15))
-    def get_versions(self, credentials: Credentials, *, slug: str, top: str | None) -> list[Commit]:
+    def get_versions(
+        self, credentials: Credentials, *, slug: str, top: str | None
+    ) -> list[Commit]:
         """
         Returns 10 commits for the repositories reverse chronological order starting from the most
         recent, or from the commit hash given as the `top` parameter. This allows the caller to load
@@ -162,7 +173,9 @@ class SccsV2:
             environments = [e.name for e in self.environment_configurations]
         else:
             environments = [
-                e.name for e in self.environment_configurations if e.name in accepted_environments
+                e.name
+                for e in self.environment_configurations
+                if e.name in accepted_environments
             ]
 
         deployment_statuses = []
@@ -201,21 +214,26 @@ class SccsV2:
             repository = session.workspaces.get(self.config.team).repositories.get(slug)
 
             commit_hash = self.get_deployment_commit_hash(
-                repository=repository, environment_configuration=environment_configuration
+                repository=repository,
+                environment_configuration=environment_configuration,
             )
 
             if commit_hash is None:
                 return
 
             try:
-                commit = self.get_commit(credentials, slug=slug, commit_hash=commit_hash)
+                commit = self.get_commit(
+                    credentials, slug=slug, commit_hash=commit_hash
+                )
             except Exception:
                 return
 
             readonly = environment_configuration.trigger.get("enabled", True) and False
 
             pullrequest = (
-                self.get_pullrequest_url(repository=repository, branch_name=environment_configuration.branch)
+                self.get_pullrequest_url(
+                    repository=repository, branch_name=environment_configuration.branch
+                )
                 if environment_configuration.trigger.get("pullrequest", False)
                 else None
             )
@@ -227,7 +245,9 @@ class SccsV2:
                 pullrequest=pullrequest,
             )
 
-    def get_pullrequest_url(self, *, repository: Repository, branch_name: str) -> str | None:
+    def get_pullrequest_url(
+        self, *, repository: Repository, branch_name: str
+    ) -> str | None:
         for pr in repository.pullrequests.each():
             if (
                 pr.destination_branch == branch_name
@@ -251,7 +271,9 @@ class SccsV2:
         version_file_name = environment_configuration.version.get("file")
         deployment_commit_hash: str
         if version_file_name is not None:
-            response = repository.get(f"src/{branch.hash}/{version_file_name}", not_json_response=True)
+            response = repository.get(
+                f"src/{branch.hash}/{version_file_name}", not_json_response=True
+            )
             if response is None:
                 raise SccsException(
                     f"failed to get version from {version_file_name} for {repository.name} on branch {branch.name}"
@@ -260,14 +282,18 @@ class SccsV2:
                 deployment_commit_hash = response.decode("utf-8").strip()
             else:
                 raise TypeError("response is not an instance of `bytes`")
-        elif environment_configuration.version.get("git", False):  # TODO this is unclear
+        elif environment_configuration.version.get(
+            "git", False
+        ):  # TODO this is unclear
             deployment_commit_hash = branch.hash  # main branch
         else:
             raise NotImplementedError()
 
         return deployment_commit_hash
 
-    def get_commit(self, credentials: Credentials, *, slug: str, commit_hash: str) -> Commit:
+    def get_commit(
+        self, credentials: Credentials, *, slug: str, commit_hash: str
+    ) -> Commit:
         with self.session(credentials) as session:
             repository = session.workspaces.get(self.config.team).repositories.get(slug)
             try:
@@ -278,36 +304,37 @@ class SccsV2:
 
             return commit_from_api_dict(commit_dict)
 
+    def get_new_repository_templates(
+        self,
+        credentials: Credentials,
+    ):
+        with self.session(credentials):
+            return self.provision.config
+
     def add_repository(
         self,
         credentials: Credentials,
         *,
-        repository_definition: AddRepositoryDefinition,
+        repository_definition: NewRepositoryDefinition,
         template_name: str,
         template_params: TemplateParams,
     ):
+        # TODO Check permissions
+        # self.access_control(
+        #     credentials, slug=self.config.escalation["add_repository"].repository
+        # )
+
+        # Validate received data against configured templates (ProvisionConfig)
+
         with self.session(credentials) as session:
-            # Check permissions
-
-            # Use admin account ?
-
-            # Update storage definitions/templates/configs...
-
-            # Prepare provision
-
-            # Retrieve relevant definitions
-
-            # Create repository
-            try:
-                session.workspaces.get(self.config.team).repositories.create(
-                    repo_slug=slug,
-                    project_key=project_key,
-                    is_private=is_private,
-                    fork_policy=fork_policy,
-                )
-            except HTTPError as e:
-                logger.warning(e)
-                raise
+            workspace = session.workspaces.get(self.config.team)
+            self.provision.new_repository(
+                credentials,
+                workspace,
+                repository_definition,
+                template_name,
+                template_params,
+            )
 
 
 def commit_from_api_dict(commit_dict: dict) -> Commit:

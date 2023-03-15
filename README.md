@@ -11,9 +11,12 @@ It will be the entrypoint for a DevOps Console UI but not restrictive to this on
 ### Install
 
 ```bash
-python -m venv .venv # Create a python virtual environment
-source .venv/bin/activate # Activate it 
-python -m pip install -e . # Install local package
+# Create a python virtual environment
+python -m venv .venv
+# Activate it
+source .venv/bin/activate
+# Install local package with dev dependencies
+python -m pip install -e .[dev] --upgrade
 ```
 
 ### Run

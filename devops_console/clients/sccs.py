@@ -2,7 +2,7 @@
 import atlassian
 
 from devops_console.sccs.client import SccsClient
-from devops_console.sccs.schemas.config import SccsConfig
+from devops_console.models.config.sccs_config import SccsConfig
 from devops_console.sccs.typing.cd import EnvironmentConfig
 
 
@@ -40,6 +40,7 @@ def ctx_wrap_generator(wrapped):
 
 class Sccs:
     """Responsible for encapsulating the client's methods in a context manager"""
+
     _instance = None
     cd_branches_accepted: list[str]
     core: SccsClient
@@ -75,32 +76,39 @@ class Sccs:
 
     @ctx_wrap
     async def get_continuous_deployment_config(
-            self, plugin_id, credentials, repo_slug, environments=None, *args, **kwargs
-            ):
+        self, plugin_id, credentials, repo_slug, environments=None, *args, **kwargs
+    ):
         pass
 
     @ctx_wrap
     async def trigger_continuous_deployment(
-            self, plugin_id, credentials, repo_slug, environment, version
-            ):
+        self, plugin_id, credentials, repo_slug, environment, version
+    ):
         pass
 
     @ctx_wrap
     async def get_continuous_deployment_environments_available(
-            self, plugin_id, credentials, repo_slug
-            ) -> list[EnvironmentConfig]:
+        self, plugin_id, credentials, repo_slug
+    ) -> list[EnvironmentConfig]:
         pass
 
     @ctx_wrap
     async def get_continuous_deployment_versions_available(
-            self, plugin_id, credentials, repo_slug, *args, **kwargs
-            ):
+        self, plugin_id, credentials, repo_slug, *args, **kwargs
+    ):
         pass
 
     @ctx_wrap
     async def bridge_repository_to_namespace(
-            self, plugin_id, credentials, repository, environment, untrustable=True, *args, **kwargs
-            ):
+        self,
+        plugin_id,
+        credentials,
+        repository,
+        environment,
+        untrustable=True,
+        *args,
+        **kwargs,
+    ):
         pass
 
     @ctx_wrap
@@ -109,8 +117,15 @@ class Sccs:
 
     @ctx_wrap
     async def add_repository(
-            self, plugin_id, credentials, repository, template, template_params, *args, **kwargs
-            ) -> str:
+        self,
+        plugin_id,
+        credentials,
+        repository,
+        template,
+        template_params,
+        *args,
+        **kwargs,
+    ) -> str:
         pass
 
     @ctx_wrap
@@ -123,61 +138,63 @@ class Sccs:
 
     @ctx_wrap
     async def get_webhook_subscriptions(
-            self,
-            plugin_id,
-            credentials,
-            repo_slug: str,
-            *args,
-            **kwargs
-            ):
+        self, plugin_id, credentials, repo_slug: str, *args, **kwargs
+    ):
         pass
 
     @ctx_wrap
-    async def create_webhook_subscription(self, plugin_id, credentials, *args, **kwargs):
+    async def create_webhook_subscription(
+        self, plugin_id, credentials, *args, **kwargs
+    ):
         pass
 
     @ctx_wrap
-    async def delete_webhook_subscription(self, plugin_id, credentials, *args, **kwargs):
+    async def delete_webhook_subscription(
+        self, plugin_id, credentials, *args, **kwargs
+    ):
         pass
 
     @ctx_wrap
     async def get_projects(
-            self,
-            plugin_id,
-            credentials
-            ) -> atlassian.bitbucket.cloud.workspaces.Projects:
+        self, plugin_id, credentials
+    ) -> atlassian.bitbucket.cloud.workspaces.Projects:
         pass
 
     @ctx_wrap
     async def watch_repositories(
-            self,
-            plugin_id,
-            credentials,
-            poll_interval,
-            send_stream,
-            ):
+        self,
+        plugin_id,
+        credentials,
+        poll_interval,
+        send_stream,
+    ):
         pass
 
     @ctx_wrap
     async def watch_continuous_deployment_config(
-            self,
-            plugin_id,
-            credentials,
-            poll_interval,
-            send_stream,
-            repo_slug,
-            environments,
-            ):
+        self,
+        plugin_id,
+        credentials,
+        poll_interval,
+        send_stream,
+        repo_slug,
+        environments,
+    ):
         pass
 
     @ctx_wrap
     async def watch_continuous_deployment_versions_available(
-            self, plugin_id, credentials, poll_interval, send_stream, repo_slug
-            ):
+        self, plugin_id, credentials, poll_interval, send_stream, repo_slug
+    ):
         pass
 
     @ctx_wrap
     async def watch_continuous_deployment_environments_available(
-            self, plugin_id, credentials, poll_interval, send_stream, repo_slug,
-            ):
+        self,
+        plugin_id,
+        credentials,
+        poll_interval,
+        send_stream,
+        repo_slug,
+    ):
         pass

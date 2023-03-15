@@ -9,7 +9,7 @@ from pydantic import BaseModel
 from sse_starlette import ServerSentEvent
 
 from devops_console.clients import CoreClient
-from devops_console.schemas import WebhookEventKey
+from devops_console.models.webhooks import WebhookEventKey
 
 client = CoreClient().sccs
 
@@ -28,8 +28,8 @@ class SseGenerator:
         self.streams = set()
 
     async def broadcast(self, data: SseData):
-        """ Receive an event from the listening
-        webhook server and transmit it to all subscribers. """
+        """Receive an event from the listening
+        webhook server and transmit it to all subscribers."""
         for stream in self.streams:
             async with stream:
                 # TODO: use event type strings (probably webhook event keys)

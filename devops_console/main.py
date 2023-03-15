@@ -22,7 +22,6 @@ from fastapi.routing import APIRoute
 from .api.v1.router import router
 from .api.v2.router import main_router as router_v2
 from .clients.client import CoreClient
-# from .api.deps import azure_scheme
 from .core import settings
 from .utils.logs import setup_logging
 from .webhooks_server.app import app as webhooks_server
@@ -46,7 +45,7 @@ if settings.BACKEND_CORS_ORIGINS is not None and len(settings.BACKEND_CORS_ORIGI
         allow_credentials=True,
         allow_methods=["*"],
         allow_headers=["*"],
-        )
+    )
     logging.debug("Added CORS middleware")
 
 # main API
@@ -58,7 +57,7 @@ app.include_router(router_v2)
 app.mount(settings.WEBHOOKS_PATH, webhooks_server)
 logging.debug(
     f"Webhooks server listening on {urljoin(settings.WEBHOOKS_HOST, settings.WEBHOOKS_PATH)}"
-    )
+)
 
 
 # @app.exception_handler(HTTPException)
@@ -94,7 +93,7 @@ if __name__ == "__main__":
             "devops_console.main:app",
             host="0.0.0.0",
             port=5000,
-            )
         )
+    )
 
     uvicorn.run("main:app", reload=True, port=5000)

@@ -23,13 +23,13 @@ from anyio import (
     create_memory_object_stream,
     create_task_group,
     Event,
-    )
+)
 from fastapi import WebSocket
 from requests import HTTPError
 from starlette.websockets import WebSocketDisconnect
 from websockets.exceptions import ConnectionClosed
 
-from devops_console.schemas.legacy.ws import WsResponse
+from devops_console.models.legacy.ws import WsResponse
 
 
 class ConnectionManager:
@@ -43,8 +43,9 @@ class ConnectionManager:
     async def broadcast(self, data: str | dict, legacy: bool = False) -> None:
         if legacy:
             data = WsResponse(
-                "whitecard", data_response=data if isinstance(data, dict) else {"message": data}
-                ).json()
+                "whitecard",
+                data_response=data if isinstance(data, dict) else {"message": data},
+            ).json()
         for websocket in self.ws_set:
             await websocket.send_json(data)
 
@@ -159,17 +160,11 @@ async def wscom_generic_handler(websocket: WebSocket, handlers: dict):
                         path,
                         body,
                         cancel_event,
-                        )
+                    )
                 else:
                     tg.start_soon(
-                        wscom_restful_run,
-                        websocket,
-                        handler,
-                        data,
-                        action,
-                        path,
-                        body
-                        )
+                        wscom_restful_run, websocket, handler, data, action, path, body
+                    )
         except (WebSocketDisconnect, HTTPError) as e:
             cancel_all_watchers()
             if isinstance(e, HTTPError):
@@ -210,7 +205,9 @@ async def wscom_watcher_run(websocket, handler, data, action, path, body, cancel
         try:
             async with receive_stream:
                 async for event in receive_stream:
-                    data["dataResponse"] = event.dict() if hasattr(event, "dict") else event
+                    data["dataResponse"] = (
+                        event.dict() if hasattr(event, "dict") else event
+                    )
                     await manager.send_json(websocket, data)
         except Exception as e:
             data["error"] = str(e)
@@ -247,7 +244,7 @@ class DispatcherUnsupportedRequest(Exception):
         Exception.__init__(
             self,
             f"Dispatcher does not support {action}:{path} with provided dataRequest",
-            )
+        )
 
 
 class DeepLinkAlreadySet(Exception):
@@ -255,7 +252,7 @@ class DeepLinkAlreadySet(Exception):
         Exception.__init__(
             self,
             f"The deeplink {deeplink} is already registred for {dispatchers_app_key}",
-            )
+        )
 
 
 def wscom_setup(app, dispatchers_app_key, deeplink, dispatch):

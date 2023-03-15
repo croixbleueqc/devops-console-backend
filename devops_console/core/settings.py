@@ -26,9 +26,9 @@ from pathlib import Path
 from loguru import logger
 from pydantic import AnyHttpUrl, BaseSettings, Field
 
-from ..schemas.userconfig import UserConfig
-from ..schemas.webhooks import WebhookEventKey
-from ..utils.helpers import deep_replace, read_json_file
+from devops_console.models.config.userconfig import UserConfig
+from devops_console.models.webhooks import WebhookEventKey
+from devops_console.utils.helpers import deep_replace, read_json_file
 
 
 class Settings(BaseSettings):
@@ -43,7 +43,9 @@ class Settings(BaseSettings):
     AUTH_PATH: str = Field(default="/token", env="AUTH_PATH")
 
     WEBHOOKS_HOST: str = Field(default="localhost:4242", env="WEBHOOKS_HOST")
-    WEBHOOKS_PATH: str = Field(default="/bitbucketcloud/hooks/repo", env="WEBHOOKS_PATH")
+    WEBHOOKS_PATH: str = Field(
+        default="/bitbucketcloud/hooks/repo", env="WEBHOOKS_PATH"
+    )
 
     WEBHOOKS_DEFAULT_EVENTS = (
         WebhookEventKey.repo_push,
@@ -54,7 +56,7 @@ class Settings(BaseSettings):
         WebhookEventKey.pr_approved,
         WebhookEventKey.pr_declined,
         WebhookEventKey.pr_merged,
-        )
+    )
 
     WEBHOOKS_DEFAULT_DESCRIPTION = "Default webhook created via DevOps Console"
 
@@ -73,7 +75,7 @@ class Settings(BaseSettings):
     OPENAPI_CLIENT_ID: str = Field(default="", env="OPENAPI_CLIENT_ID")
     BACKEND_CORS_ORIGINS: list[str | AnyHttpUrl] = [
         "*",
-        ]
+    ]
 
     userconfig: UserConfig
 
@@ -88,7 +90,7 @@ class Settings(BaseSettings):
                 userconfig_src,
                 env_settings,
                 file_secret_settings,
-                )
+            )
 
 
 def userconfig_src(settings: BaseSettings):
@@ -108,7 +110,7 @@ def userconfig_src(settings: BaseSettings):
 
     (default_dict, env_dict, local_json_dict) = map(
         read_json_file, [default_json, env_json, local_json]
-        )
+    )
 
     # Order is important inside the list (last one is the most important)
     dicts = list(filter(lambda x: x != {}, [default_dict, env_dict, local_json_dict]))

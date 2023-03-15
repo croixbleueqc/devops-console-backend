@@ -18,16 +18,18 @@
 # You should have received a copy of the GNU Lesser General Public License
 # along with devops-console-backend.  If not, see <https://www.gnu.org/licenses/>.
 
+from devops_console.core import settings
+from devops_console.models.config.config.userconfig import UserConfig
+
 from .kubernetes import Kubernetes
 from .oauth2 import OAuth2
 from .sccs import Sccs
 from .sccs_v2 import SccsV2
-from ..core import settings
-from ..schemas import UserConfig
 
 
 class CoreClient:
     """Singleton class containing the core crud clients."""
+
     _instance = None
     config: UserConfig
     sccs: Sccs
@@ -38,11 +40,11 @@ class CoreClient:
         if cls._instance is None:
             cls._instance = object.__new__(cls)
 
-            cls.config = settings.userconfig
+            cls.config = settings.config.config.userconfig
             cls.sccs = Sccs(cls.config.sccs)
             cls.sccs_v2 = SccsV2(cls.config.sccs)
             cls.kubernetes = Kubernetes(cls.config.kubernetes, cls.sccs)
-            cls.oauth2 = OAuth2(cls.config.OAuth2)
+            cls.oauth2 = OAuth2(cls.config.oAuth2)
 
         return cls._instance
 

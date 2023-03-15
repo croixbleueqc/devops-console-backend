@@ -1,20 +1,27 @@
 import os
 from pathlib import Path
-from kubernetes_asyncio.client.api_client import json
 
 import pygit2
 from anyio import sleep
+from kubernetes_asyncio.client.api_client import json
 from loguru import logger
 
 from devops_console.sccs.errors import SccsException
-
-from .storage_helpers import get_superuser
+from devops_console.models.config.sccs_config import SccsPluginConfig, VaultConfig
+from devops_console.utils.storage_helpers import get_superuser
 
 from .provision import GitCredentials
-from .schemas.config import PluginConfig, VaultConfig
+from .storage_models import (
+    BranchRestriction,
+    Privileges,
+    RepositoryConfiguration,
+    Restriction,
+    SshKey,
+    StorageDefinition,
+)
 
 
-class SccsStorageWriter:
+class ManagementStorage:
     """Fetches storage configurations from our upstream management repo:
     https://bitbucket.org/croixbleue/bitbucket-management-storage/src/master/
     and stores them *on disk*
@@ -30,11 +37,11 @@ class SccsStorageWriter:
             cls._instance = super().__new__(cls)
         return cls._instance
 
-    def __init__(self, vault_config: VaultConfig, config: PluginConfig) -> None:
+    def __init__(self, config: SccsPluginConfig) -> None:
         self.config = config.storage
 
-        su_sshkey_pri = Path(vault_config.tmp, "bitbucket")
-        su_sshkey_pub = Path(vault_config.tmp, "bitbucket.pub")
+        su_sshkey_pri = Path(config.vault_config.tmp, "bitbucket")
+        su_sshkey_pub = Path(config.vault_config.tmp, "bitbucket.pub")
 
         superuser = get_superuser()
 
@@ -43,11 +50,11 @@ class SccsStorageWriter:
         )
 
     @classmethod
-    async def create(cls, vault_config: VaultConfig, config: PluginConfig) -> "SccsStorageWriter":
+    async def create(
+        cls, vault_config: VaultConfig, config: SccsPluginConfig
+    ) -> "ManagementStorage":
         self = cls(vault_config, config)
-        # TODO: this method was created to allow running the async method update_storage
-        # during the plugin initialization. But the method in question isn't behaving properly
-        # in a local environment. It's not clear why yet...
+
         await self.update_storage()
 
         return self
@@ -57,7 +64,9 @@ class SccsStorageWriter:
 
         The storage provides all configuration files required to check or add a repository
         """
-        storage_callbacks = pygit2.RemoteCallbacks(credentials=self.git_credentials.for_pygit2())
+        storage_callbacks = pygit2.RemoteCallbacks(
+            credentials=self.git_credentials.for_pygit2()
+        )
 
         if self.config_repository is None or self.config_origin is None:
             # path to .git directory in bitbucket-management-storage clone
@@ -92,8 +101,42 @@ class SccsStorageWriter:
 
         logger.debug("git: pull complete")
 
-    def load_storage_definitions(self, repo_slug: str, storage_definition=None):
-        """Load and return all definitions components involved to "understand" a repository configuration
+    def get_storage_definition(self, slug: str):
+        path = Path(self.config.path, "repositories", f"{slug}.json")
+        return StorageDefinition.parse_file(path)
+
+    def get_repository_configuration(self, key: str):
+        path = Path(self.config.path, "configurations", f"{key}.json")
+        return RepositoryConfiguration.parse_file(path)
+
+    def get_repository_privileges(self, key: str):
+        with open(f"{self.config.path}/privileges/{key}.json", "r") as f:
+            return Privileges(json.load(f))
+
+    def get_ssh_keys(self, configuration: RepositoryConfiguration) -> dict[str, SshKey]:
+        result = {}
+        for name in configuration.sshKeys:
+            path = Path(self.config.path, "sshkeys", f"{name}.json")
+            result[name] = SshKey.parse_file(path)
+        return result
+
+    def get_branch_restrictions(
+        self, configuration: RepositoryConfiguration
+    ) -> dict[str, BranchRestriction]:
+        result = {}
+        for branch_restriction in configuration.branchRestrictions:
+            with open(
+                f"{self.config.path}/restrictions/{branch_restriction.restrictions}.json",
+                "r",
+            ) as f:
+                result[branch_restriction.restrictions] = Restriction(json.load(f))
+        return result
+
+    def load_storage_definitions(
+        self, repo_slug: str, storage_definition: StorageDefinition | None = None
+    ):
+        """Load and return all definitions components involved to "understand" a
+        repository configuration
 
         - repository itself (only if storage_definition is None)
         - configuration
@@ -106,32 +149,32 @@ class SccsStorageWriter:
 
         # repository
         if storage_definition is None:
-            with open(f"{self.config.path}/repositories/{repo_slug}.json", "r") as f:
-                storage_definition = json.load(f)
+            path = Path(self.config.path, "repositories", f"{repo_slug}.json")
+            storage_definition = StorageDefinition.parse_file(path)
 
         # - configurations/
-        cache_name = storage_definition["repository"]["configuration"]
-        with open(f"{self.config.path}/configurations/{cache_name}.json", "r") as f:
-            configuration = json.load(f)
+        cache_name = storage_definition.repository.configuration
+        path = Path(self.config.path, "configurations", f"{cache_name}.json")
+        configuration = RepositoryConfiguration.parse_file(path)
 
         # - restrictions/
         restrictions_cache = {}
-        for branch_restriction in configuration.get("branchRestrictions", []):
-            cache_name = branch_restriction["restrictions"]
-            with open(f"{self.config.path}/restrictions/{cache_name}.json", "r") as f:
-                restrictions_cache[cache_name] = json.load(f)
+        for branch_restriction in configuration.branchRestrictions:
+            cache_name = branch_restriction.restrictions
+            path = Path(self.config.path, "restrictions", f"{cache_name}.json")
+            restrictions_cache[cache_name] = BranchRestriction.parse_file(path)
 
         # - privileges/
-        cache_name = storage_definition["repository"]["privileges"]
+        cache_name = storage_definition.repository.privileges
+        path = Path(self.config.path, "privileges", f"{cache_name}.json")
         with open(f"{self.config.path}/privileges/{cache_name}.json", "r") as f:
-            privileges = json.load(f)
+            privileges = Privileges(json.load(f))
 
         # - sshkeys/
         sshkeys_cache = {}
-        for sshkey in configuration.get("sshKeys", []):
-            cache_name = sshkey
-            with open(f"{self.config.path}/sshkeys/{cache_name}.json", "r") as f:
-                sshkeys_cache[cache_name] = json.load(f)
+        for name in configuration.sshKeys:
+            path = Path(self.config.path, "sshkeys", f"{name}.json")
+            sshkeys_cache[cache_name] = SshKey.parse_file(path)
 
         return (
             storage_definition,

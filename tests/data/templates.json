@@ -1,0 +1,44 @@
+{
+  "test-template": {
+    "from": {
+      "git": "https://github.com/owner/test-repo",
+      "main_branch": "master",
+      "other_branches": [
+        "one", "two", "three"
+      ]
+    },
+    "setup": {
+      "cmd": [
+        "bash",
+        "init.sh",
+      ],
+      "args": {
+        "name": {
+          "type": "string",
+          "description": "description",
+          "required": true,
+          "default": null,
+          "validator": "^[a-z][a-z,-]*[a-z]$",
+          "arg": "--arg={}"
+        },
+        "desc": {
+          "type": "bool",
+          "description": "",
+          "required": true,
+          "default": null,
+          "validator": ".+",
+          "arg": "--bool='{}'"
+        },
+        "helloworld": {
+          "type": "bool",
+          "description": "Remove helloworld",
+          "default": true,
+          "arg": {
+            "true": "-c",
+            "false": null
+          }
+        }
+      }
+    }
+  }
+}

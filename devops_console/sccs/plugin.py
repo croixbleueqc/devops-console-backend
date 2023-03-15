@@ -32,8 +32,8 @@ from abc import ABC, abstractmethod
 from dataclasses import dataclass
 from typing import Any
 
-from devops_console.schemas import WebhookEvent
-from devops_console.sccs.schemas.config import PluginConfig
+from devops_console.models.webhooks import WebhookEvent
+from devops_console.models.config.sccs_config import SccsPluginConfig
 from .accesscontrol import Action
 from .provision import Provision
 from .typing.cd import Available, EnvironmentConfig
@@ -57,7 +57,7 @@ class SccsApi(ABC):
     """
 
     @abstractmethod
-    async def init(self, core, config: PluginConfig):
+    async def init(self, core, config: SccsPluginConfig):
         """
         Initialize the plugin
 
@@ -102,8 +102,8 @@ class SccsApi(ABC):
 
     @abstractmethod
     async def open_session(
-            self, session_id: int, credentials: Credentials | None = None
-            ) -> StoredSession:
+        self, session_id: int, credentials: Credentials | None = None
+    ) -> StoredSession:
         """
         Open a session
 
@@ -136,8 +136,8 @@ class SccsApi(ABC):
         raise NotImplementedError()
 
     async def get_stored_session(
-            self, session_id: int | None, session: Session | None = None
-            ) -> StoredSession | None:
+        self, session_id: int | None, session: Session | None = None
+    ) -> StoredSession | None:
         raise NotImplementedError()
 
     @abstractmethod
@@ -205,13 +205,13 @@ class SccsApi(ABC):
 
     @abstractmethod
     async def add_repository(
-            self,
-            session: Session,
-            provision: Provision,
-            repo_definition: dict,
-            template: str,
-            template_params: dict,
-            ):
+        self,
+        session: Session,
+        provision: Provision,
+        repo_definition: dict,
+        template: str,
+        template_params: dict,
+    ):
         """Add a new repository
 
         The main workflow is:
@@ -238,8 +238,8 @@ class SccsApi(ABC):
 
     @abstractmethod
     async def get_continuous_deployment_config(
-            self, session: Session, repository, environments
-            ) -> list[EnvironmentConfig]:
+        self, session: Session, repository, environments
+    ) -> list[EnvironmentConfig]:
         """Get continuous deployment configuration
 
         This is not the real state of the deployment in your "production" environment but the state expected
@@ -257,8 +257,8 @@ class SccsApi(ABC):
 
     @abstractmethod
     async def get_continuous_deployment_versions_available(
-            self, repository
-            ) -> list[Available]:
+        self, repository
+    ) -> list[Available]:
         """Get continuous deployment versions available
 
         @abstractmethod
@@ -276,8 +276,8 @@ class SccsApi(ABC):
 
     @abstractmethod
     async def trigger_continuous_deployment(
-            self, session: Session, repo_slug: str, environment: str, version: str
-            ) -> EnvironmentConfig:
+        self, session: Session, repo_slug: str, environment: str, version: str
+    ) -> EnvironmentConfig:
         """Trigger a continuous deployment
 
         Args:
@@ -293,8 +293,8 @@ class SccsApi(ABC):
 
     @abstractmethod
     async def get_continuous_deployment_environments_available(
-            self, session, repository
-            ) -> list[EnvironmentConfig]:
+        self, session, repository
+    ) -> list[EnvironmentConfig]:
         """List all environments that can be used to run the application
 
         Args:
@@ -308,8 +308,8 @@ class SccsApi(ABC):
 
     @abstractmethod
     async def bridge_repository_to_namespace(
-            self, session, repository, environment, untrustable
-            ) -> dict:
+        self, session, repository, environment, untrustable
+    ) -> dict:
         """Bridge repository/environment to a kubernetes namespace
 
         EXPERIMENTAL FEATURE
@@ -343,7 +343,9 @@ class SccsApi(ABC):
         raise NotImplementedError()
 
     @abstractmethod
-    async def compliance(self, session: Session, remediation: bool, report: bool) -> dict | None:
+    async def compliance(
+        self, session: Session, remediation: bool, report: bool
+    ) -> dict | None:
         """Check if all repositories are compliants
 
         No remediation should be done by default if a repository is not compliant.
@@ -372,7 +374,9 @@ class SccsApi(ABC):
         raise NotImplementedError()
 
     @abstractmethod
-    async def compliance_repository(self, session, repository, remediation, report) -> dict | None:
+    async def compliance_repository(
+        self, session, repository, remediation, report
+    ) -> dict | None:
         """Check if a repository is compliant
 
         No remediation should be done by default if a repository is not compliant.
@@ -411,14 +415,14 @@ class SccsApi(ABC):
 
     @abstractmethod
     async def create_webhook_subscription_for_repo(
-            self,
-            session: Session,
-            repo_slug: str,
-            url: str,
-            active: bool,
-            events: list[WebhookEvent],
-            description: str,
-            ):
+        self,
+        session: Session,
+        repo_slug: str,
+        url: str,
+        active: bool,
+        events: list[WebhookEvent],
+        description: str,
+    ):
         raise NotImplementedError()
 
     @abstractmethod

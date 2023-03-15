@@ -1,8 +1,13 @@
+"""
+This madule contains models corresponding to the files in the top-level
+config directory.
+"""
+
 from typing import Literal
 
 from pydantic import BaseModel, Field
 
-from devops_console.sccs.schemas.config import SccsConfig
+from .sccs_config import SccsConfig
 
 
 class APIConfig(BaseModel):
@@ -18,7 +23,7 @@ class KubernetesConfig(BaseModel):
 
 
 class OAuth2ConfigConfig(BaseModel):
-    Issuer: str
+    issuer: str = Field(..., alias="Issuer")
     kAuth: str
     kAccessToken: str
     clientID: str
@@ -30,7 +35,9 @@ class OAuth2Config(BaseModel):
 
 
 class UserConfig(BaseModel):
+    """Top-Level configuration for the entire application"""
+
     api: APIConfig
     kubernetes: KubernetesConfig
     sccs: SccsConfig
-    OAuth2: OAuth2Config
+    oAuth2: OAuth2Config = Field(..., alias="OAuth2")
